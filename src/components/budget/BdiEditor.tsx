@@ -404,25 +404,28 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({
         {isSimples ? (
           /* Modo Simples Nacional: Alíquota Unificada do DAS */
           <div className="p-4 rounded-xl bg-[#294C87]/5 border-2 border-[#294C87]/30 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[#FF6B1F] text-white">
                     Simples Nacional
                   </span>
                   <span className="font-bold text-sm text-[#171A1F]">
-                    Simples Nacional — Tributos Unificados no DAS & Encargos Sociais
+                    Alíquota Efetiva do DAS (Único Tributo Incidente)
                   </span>
                 </div>
-                <p className="text-xs text-[#171A1F]/70 mt-1">
-                  Empresas do Simples Nacional recolhem tributos unificados no DAS (T do BDI). Na
-                  CONCE, a CPP (INSS patronal 20%, RAT e terceiros) já está inclusa na alíquota do
-                  DAS, zerando o Grupo A na planilha e incidindo apenas os encargos trabalhistas
-                  reais (Grupos B+C+D), sem bitributação da previdência.
+                <p className="text-xs text-[#171A1F]/70">
+                  Regra direta solicitada pela diretoria técnica: no Simples Nacional, os encargos
+                  trabalhistas ficam <strong>zerados (R$ 0,00)</strong>. O{' '}
+                  <strong>único percentual tributário</strong> a incidir no orçamento é a alíquota
+                  efetiva do DAS adicionada manualmente neste campo (componente T da fórmula TCU).
                 </p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                <label className="text-xs font-bold text-[#171A1F] whitespace-nowrap">
+                  Alíquota DAS:
+                </label>
                 <div className="relative w-36">
                   <input
                     type="number"
@@ -445,9 +448,9 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({
             {activeSimplesDas === 0 && (
               <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-center justify-between">
                 <span>
-                  <strong>Atenção:</strong> Alíquota padrão neutra (0%). Preencha manualmente a
-                  alíquota efetiva do DAS da sua empresa (ex.: 4,5% a 15,5%) para apurar o BDI exato
-                  da proposta.
+                  <strong>Atenção:</strong> Alíquota DAS não preenchida (0,00%). Nenhum valor
+                  tributário é inventado — o total fica sem incidência de impostos até você informar
+                  manualmente a porcentagem aplicável da sua faixa do Simples.
                 </span>
                 <span className="font-bold px-2 py-0.5 bg-amber-200/60 rounded text-[10px] uppercase shrink-0 ml-2">
                   Preencher Manualmente

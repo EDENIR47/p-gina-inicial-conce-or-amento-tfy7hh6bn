@@ -423,29 +423,35 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
           isRelieved: taxRegime === 'com_desoneracao',
           taxRegime,
           simplesCollectionOption: taxRegime === 'simples_nacional' ? 'cpp_inclusa_das' : undefined,
-          simplesDasRate: taxRegime === 'simples_nacional' ? simplesDasRate || 11.0 : 0,
+          simplesDasRate: taxRegime === 'simples_nacional' ? simplesDasRate : 0,
           customGroupA:
             taxRegime === 'simples_nacional'
-              ? 0.0 // Padrão CONCE: CPP já no DAS
+              ? 0.0 // Simples: encargos trabalhistas zerados
               : taxRegime === 'com_desoneracao'
                 ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupA
                 : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
                     .groupA,
           customGroupB:
-            taxRegime === 'com_desoneracao'
-              ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupB
-              : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
-                  .groupB,
+            taxRegime === 'simples_nacional'
+              ? 0.0
+              : taxRegime === 'com_desoneracao'
+                ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupB
+                : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
+                    .groupB,
           customGroupC:
-            taxRegime === 'com_desoneracao'
-              ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupC
-              : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
-                  .groupC,
+            taxRegime === 'simples_nacional'
+              ? 0.0
+              : taxRegime === 'com_desoneracao'
+                ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupC
+                : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
+                    .groupC,
           customGroupD:
-            taxRegime === 'com_desoneracao'
-              ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupD
-              : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
-                  .groupD,
+            taxRegime === 'simples_nacional'
+              ? 0.0
+              : taxRegime === 'com_desoneracao'
+                ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupD
+                : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
+                    .groupD,
           isExplicitZero: taxRegime === 'simples_nacional',
         },
         bdiConfig: {
@@ -782,13 +788,12 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                     <p className="font-bold text-[#294C87] flex items-center gap-1.5">
                       <span>Regime Simples Nacional — Padrão CONCE</span>
                       <span className="text-[10px] bg-[#FF6B1F] text-white px-1.5 py-0.2 rounded font-extrabold uppercase">
-                        Ativo
+                        Conta Simples
                       </span>
                     </p>
                     <p className="text-[11px] text-[#171A1F]/70">
-                      Encargos trabalhistas seguem a tabela base sem desoneração (CLT). No BDI, os
-                      tributos unificados do DAS são informados diretamente pela alíquota efetiva da
-                      empresa.
+                      Nenhum encargo trabalhista incide sobre a mão de obra (0,00%). O tributo único
+                      é a alíquota efetiva do DAS preenchida manualmente.
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

@@ -71,11 +71,7 @@ export function exportBudgetSpreadsheet(
     [
       'Regime Tributário:',
       budget.chargesConfig?.taxRegime === 'simples_nacional'
-        ? `Simples Nacional — ${
-            budget.chargesConfig?.simplesCollectionOption === 'cpp_guia_separada'
-              ? 'Anexo IV (Grupos A+B+C+D)'
-              : 'CPP inclusa no DAS (Grupos B+C+D)'
-          } (DAS: ${(budget.chargesConfig?.simplesDasRate ?? 0).toFixed(2)}%)`
+        ? `Simples Nacional (DAS Manual: ${(budget.chargesConfig?.simplesDasRate ?? 0).toFixed(2)}%)`
         : budget.chargesConfig?.taxRegime === 'com_desoneracao' || budget.chargesConfig.isRelieved
           ? 'Com Desoneração (CPRB Lei 12.546)'
           : 'Sem Desoneração (CLT)',
@@ -86,9 +82,7 @@ export function exportBudgetSpreadsheet(
       'Encargos Sociais:',
       `${summary.socialChargesRate.toFixed(2)}% (${
         budget.chargesConfig?.taxRegime === 'simples_nacional'
-          ? budget.chargesConfig?.simplesCollectionOption === 'cpp_guia_separada'
-            ? 'Simples Nacional — Anexo IV (A+B+C+D)'
-            : 'Simples Nacional — CPP inclusa no DAS (Grupos B+C+D)'
+          ? 'Simples Nacional — Sem encargos trabalhistas'
           : budget.chargesConfig.isRelieved
             ? 'Desonerado'
             : 'Sem Desoneração'

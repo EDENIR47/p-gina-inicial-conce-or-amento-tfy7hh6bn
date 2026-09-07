@@ -508,6 +508,15 @@ export const BudgetsScreen: React.FC = () => {
                         newRegime === 'simples_nacional'
                           ? activeDas
                           : activeBudget.chargesConfig?.simplesDasRate,
+                      ...(newRegime === 'simples_nacional'
+                        ? {
+                            customGroupA: 0,
+                            customGroupB: 0,
+                            customGroupC: 0,
+                            customGroupD: 0,
+                            isExplicitZero: true,
+                          }
+                        : {}),
                     },
                     bdiConfig: {
                       ...activeBudget.bdiConfig,
@@ -525,7 +534,6 @@ export const BudgetsScreen: React.FC = () => {
                       },
                     },
                   })
-
                   if (oldRegime !== newRegime) {
                     const regimeLabels: Record<string, string> = {
                       simples_nacional: 'Simples Nacional',
@@ -536,7 +544,10 @@ export const BudgetsScreen: React.FC = () => {
                       budgetId: activeBudget.id,
                       action: 'edicao_regime_tributario',
                       title: 'Regime Tributário Alterado',
-                      details: `Regime alterado de "${regimeLabels[oldRegime] || oldRegime}" para "${regimeLabels[newRegime] || newRegime}". Base de encargos: ${newRegime === 'com_desoneracao' ? 'Com Desoneração (CPRB)' : 'Sem Desoneração (CLT)'}.`,
+                      details:
+                        newRegime === 'simples_nacional'
+                          ? `Regime alterado de "${regimeLabels[oldRegime] || oldRegime}" para "${regimeLabels[newRegime] || newRegime}". Encargos trabalhistas zerados (0,00%); tributação exclusiva pelo DAS manual (${activeDas.toFixed(2)}%).`
+                          : `Regime alterado de "${regimeLabels[oldRegime] || oldRegime}" para "${regimeLabels[newRegime] || newRegime}". Base de encargos: ${newRegime === 'com_desoneracao' ? 'Com Desoneração (CPRB)' : 'Sem Desoneração (CLT)'}.`,
                       oldValue: oldRegime,
                       newValue: newRegime,
                       userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',

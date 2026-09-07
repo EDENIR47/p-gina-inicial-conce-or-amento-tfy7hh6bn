@@ -19,41 +19,45 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
     budget.chargesConfig?.taxRegime ||
     (budget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
 
-  // No Simples Nacional:
-  // - Se 'cpp_inclusa_das' (Padrão CONCE, default): Grupo A = 0% (já coberto no DAS), total = B + C + D
-  // - Se 'cpp_guia_separada' (Anexo IV): usa a tabela integral sem desoneração (A + B + C + D)
+  // Regra Simples Nacional: encargos trabalhistas zerados (0,00%).
+  // Nos regimes convencionais (com ou sem desoneração), aplica a tabela SINAPI da UF.
+  const isSimples = taxRegime === 'simples_nacional'
   const isRelievedForCharges = taxRegime === 'com_desoneracao'
   const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
 
-  const isSimples = taxRegime === 'simples_nacional'
-  const simplesOption =
-    budget.chargesConfig?.simplesCollectionOption || (isSimples ? 'cpp_inclusa_das' : undefined)
-  const isCppInDas = isSimples && simplesOption === 'cpp_inclusa_das'
-
-  const defaultGroupA = isCppInDas ? 0 : stateCharges.groupA
-  const defaultTotalForConfig = Number(
-    (defaultGroupA + stateCharges.groupB + stateCharges.groupC + stateCharges.groupD).toFixed(2),
-  )
-
   let chargesRate: number
-  if (budget.chargesConfig?.customGroupA !== undefined) {
-    const customSum =
-      (budget.chargesConfig.customGroupA || 0) +
-      (budget.chargesConfig.customGroupB || 0) +
-      (budget.chargesConfig.customGroupC || 0) +
-      (budget.chargesConfig.customGroupD || 0)
 
-    if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
-      chargesRate = defaultTotalForConfig
-    } else {
-      chargesRate = Number(customSum.toFixed(2))
-    }
+  if (isSimples) {
+    chargesRate = 0
   } else {
-    chargesRate = defaultTotalForConfig
-  }
+    const defaultTotalForConfig = Number(
+      (
+        stateCharges.groupA +
+        stateCharges.groupB +
+        stateCharges.groupC +
+        stateCharges.groupD
+      ).toFixed(2),
+    )
 
-  if (chargesRate === 0 && !budget.chargesConfig?.isExplicitZero) {
-    chargesRate = defaultTotalForConfig
+    if (budget.chargesConfig?.customGroupA !== undefined) {
+      const customSum =
+        (budget.chargesConfig.customGroupA || 0) +
+        (budget.chargesConfig.customGroupB || 0) +
+        (budget.chargesConfig.customGroupC || 0) +
+        (budget.chargesConfig.customGroupD || 0)
+
+      if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
+        chargesRate = defaultTotalForConfig
+      } else {
+        chargesRate = Number(customSum.toFixed(2))
+      }
+    } else {
+      chargesRate = defaultTotalForConfig
+    }
+
+    if (chargesRate === 0 && !budget.chargesConfig?.isExplicitZero) {
+      chargesRate = defaultTotalForConfig
+    }
   }
 
   const laborMultiplier = 1 + chargesRate / 100

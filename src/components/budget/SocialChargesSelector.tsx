@@ -67,53 +67,51 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
   const effectiveRegime: TaxRegime =
     taxRegime || (isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
 
-  // No Simples Nacional, os encargos usam como base o regime sem desoneração
   const usesRelievedCharges = effectiveRegime === 'com_desoneracao'
+  const isSimples = effectiveRegime === 'simples_nacional'
 
   const currentUf = (uf || 'SP').toUpperCase()
   const stateData = BRAZIL_STATES_CHARGES[currentUf] || BRAZIL_STATES_CHARGES['SP']
   const baseCharges = usesRelievedCharges ? stateData.relieved : stateData.nonRelieved
 
-  // No Simples Nacional com 'cpp_inclusa_das', o padrão do Grupo A é 0% (já no DAS), e B, C e D são os oficiais da UF
-  const isSimples = effectiveRegime === 'simples_nacional'
-  const isCppInDas = isSimples && simplesCollectionOption === 'cpp_inclusa_das'
-
+  // No Simples Nacional: grupos A, B, C e D NÃO incidem (taxa efetiva = 0%).
+  // Para fins informativos mantemos os valores zerados como padrão.
   const defaultCharges = {
-    groupA: isCppInDas ? 0 : baseCharges.groupA,
-    groupB: baseCharges.groupB,
-    groupC: baseCharges.groupC,
-    groupD: baseCharges.groupD,
+    groupA: isSimples ? 0 : baseCharges.groupA,
+    groupB: isSimples ? 0 : baseCharges.groupB,
+    groupC: isSimples ? 0 : baseCharges.groupC,
+    groupD: isSimples ? 0 : baseCharges.groupD,
   }
 
-  // Verifica customização: é customizado se os grupos diferirem dos defaults calculados
-  const activeA = customGroupA !== undefined ? customGroupA : defaultCharges.groupA
-  const activeB = customGroupB !== undefined ? customGroupB : defaultCharges.groupB
-  const activeC = customGroupC !== undefined ? customGroupC : defaultCharges.groupC
-  const activeD = customGroupD !== undefined ? customGroupD : defaultCharges.groupD
+  // Se Simples, os encargos aplicados são sempre 0%
+  const activeA = isSimples ? 0 : customGroupA !== undefined ? customGroupA : defaultCharges.groupA
+  const activeB = isSimples ? 0 : customGroupB !== undefined ? customGroupB : defaultCharges.groupB
+  const activeC = isSimples ? 0 : customGroupC !== undefined ? customGroupC : defaultCharges.groupC
+  const activeD = isSimples ? 0 : customGroupD !== undefined ? customGroupD : defaultCharges.groupD
 
   const isCustomized =
-    customGroupA !== undefined ||
-    customGroupB !== undefined ||
-    customGroupC !== undefined ||
-    customGroupD !== undefined
+    !isSimples &&
+    (customGroupA !== undefined ||
+      customGroupB !== undefined ||
+      customGroupC !== undefined ||
+      customGroupD !== undefined)
 
   const isDivergentFromDefault =
-    activeA !== defaultCharges.groupA ||
-    activeB !== defaultCharges.groupB ||
-    activeC !== defaultCharges.groupC ||
-    activeD !== defaultCharges.groupD
+    !isSimples &&
+    (activeA !== defaultCharges.groupA ||
+      activeB !== defaultCharges.groupB ||
+      activeC !== defaultCharges.groupC ||
+      activeD !== defaultCharges.groupD)
 
-  const currentTotal = Number((activeA + activeB + activeC + activeD).toFixed(2))
+  const currentTotal = isSimples ? 0 : Number((activeA + activeB + activeC + activeD).toFixed(2))
 
   const handleResetToUfDefault = () => {
-    // Restaura explicitamente os valores padrão da UF para a configuração ativa
-    // Se for Simples Nacional com CPP inclusa no DAS, Grupo A vai a 0% com isExplicitZero: true
     onCustomGroupsChange({
       customGroupA: defaultCharges.groupA,
       customGroupB: defaultCharges.groupB,
       customGroupC: defaultCharges.groupC,
       customGroupD: defaultCharges.groupD,
-      isExplicitZero: isCppInDas ? true : false,
+      isExplicitZero: isSimples,
     })
   }
 
@@ -143,10 +141,7 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FF6B1F]/30 bg-[#FF6B1F]/10 text-xs font-semibold text-[#FF6B1F] hover:bg-[#FF6B1F]/20 transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>
-              Restaurar Padrão {currentUf}
-              {isCppInDas ? ' (B+C+D)' : ''}
-            </span>
+            <span>Restaurar Padrão {currentUf}</span>
           </button>
         )}
       </div>
@@ -184,12 +179,11 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
             Região: {stateData.region} • Tabela oficial SINAPI base {stateData.stateName}
           </p>
         </div>
-
         {/* Seletor de Regime Tributário / Trabalhista */}
         <div className="md:col-span-7 space-y-1.5">
           <label className="text-xs font-bold text-[#171A1F] uppercase tracking-wider flex items-center gap-1.5">
             <FileCheck className="w-3.5 h-3.5 text-[#294C87]" />
-            Regime Tributário & Desoneração da Folha
+            Regime Tributário & Encargos Sociais
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {/* Opção Simples Nacional — CONCE */}
@@ -197,16 +191,13 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
               type="button"
               disabled={disabled}
               onClick={() => {
-                // Ao selecionar simples_nacional, o padrão da CONCE é 'cpp_inclusa_das'
-                // Grupo A = 0% (já no DAS), Grupos B, C, D carregam os percentuais oficiais da UF
-                const targetA =
-                  simplesCollectionOption === 'cpp_guia_separada' ? stateData.nonRelieved.groupA : 0
+                // Regra Simples: encargos trabalhistas zerados (0,00%). Incide apenas o DAS manual.
                 onCustomGroupsChange({
-                  customGroupA: targetA,
-                  customGroupB: stateData.nonRelieved.groupB,
-                  customGroupC: stateData.nonRelieved.groupC,
-                  customGroupD: stateData.nonRelieved.groupD,
-                  isExplicitZero: targetA === 0,
+                  customGroupA: 0,
+                  customGroupB: 0,
+                  customGroupC: 0,
+                  customGroupD: 0,
+                  isExplicitZero: true,
                 })
 
                 if (onTaxRegimeChange) {
@@ -232,7 +223,7 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                   effectiveRegime === 'simples_nacional' ? 'text-white/85' : 'text-[#171A1F]/60'
                 }`}
               >
-                Tributos unificados no DAS • Encargos sem desoneração
+                Sem encargos trabalhistas (0,00%) • Cobrança exclusiva pelo DAS manual
               </span>
             </button>
 
@@ -309,19 +300,21 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
 
           {/* Micro-legenda e campo do DAS se Simples Nacional */}
           {effectiveRegime === 'simples_nacional' && (
-            <div className="mt-2.5 p-3 rounded-xl bg-[#294C87]/5 border border-[#294C87]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="text-xs text-[#171A1F]/80 space-y-0.5">
+            <div className="mt-2.5 p-3 rounded-xl bg-[#294C87]/5 border-2 border-[#294C87]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+              <div className="text-xs text-[#171A1F]/85 space-y-1">
                 <div className="flex items-center gap-2">
                   <p className="font-bold text-[#294C87]">
-                    Regime Simples Nacional — Padrão Operacional CONCE
+                    Regra CONCE — Conta Simples (Sem Encargos Trabalhistas)
                   </p>
                   <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-[#FF6B1F] text-white">
-                    LC 123/2006
+                    DAS MANUAL
                   </span>
                 </div>
-                <p className="text-[11px] text-[#171A1F]/70">
-                  A CONCE recolhe os tributos unificados no DAS. Defina abaixo como a Contribuição
-                  Previdenciária Patronal (CPP) é recolhida para evitar bitributação.
+                <p className="text-[11px] text-[#171A1F]/80 leading-relaxed">
+                  No regime <strong>Simples Nacional</strong>, nenhum encargo trabalhista (Grupos A,
+                  B, C e D) é considerado no cálculo — o valor de encargos sociais é fixado em{' '}
+                  <strong>R$ 0,00</strong>. O único percentual incidente é o <strong>DAS</strong>{' '}
+                  adicionado manualmente abaixo e no BDI.
                 </p>
               </div>
 
@@ -344,123 +337,21 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                         onTaxRegimeChange('simples_nacional', val)
                       }
                     }}
-                    className="w-full pl-2.5 pr-7 py-1 rounded-lg bg-white border border-[#171A1F]/30 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                    className="w-full pl-2.5 pr-7 py-1 rounded-lg bg-white border-2 border-[#294C87] text-xs font-bold text-[#171A1F] focus:outline-none focus:ring-2 focus:ring-[#FF6B1F]"
                   />
                   <span className="absolute right-2 top-1.5 text-[11px] text-[#171A1F]/50 font-bold">
                     %
                   </span>
                 </div>
                 {simplesDasRate === 0 && (
-                  <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-semibold whitespace-nowrap">
+                  <span className="text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-semibold whitespace-nowrap">
                     Preencher manualmente
                   </span>
                 )}
               </div>
             </div>
           )}
-
-          {/* Sub-opção de Recolhimento Previdenciário (Simples Nacional) */}
-          {effectiveRegime === 'simples_nacional' && (
-            <div className="mt-3 p-3.5 rounded-xl bg-gradient-to-r from-[#294C87]/10 via-[#294C87]/5 to-[#FF6B1F]/10 border-2 border-[#294C87]/30 space-y-2.5 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#FF6B1F]" />
-                  <span className="text-xs font-bold text-[#171A1F] uppercase tracking-wider">
-                    Modalidade de Recolhimento da CPP (INSS Patronal)
-                  </span>
-                </div>
-                <span className="text-[10px] text-[#171A1F]/60">
-                  Prevenção de Dupla Contagem do INSS
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {/* Opção 1: CPP inclusa no DAS (Padrão CONCE) */}
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => {
-                    const newGroups = {
-                      customGroupA: 0,
-                      customGroupB: stateData.nonRelieved.groupB,
-                      customGroupC: stateData.nonRelieved.groupC,
-                      customGroupD: stateData.nonRelieved.groupD,
-                      isExplicitZero: true,
-                    }
-                    if (onSimplesCollectionOptionChange) {
-                      onSimplesCollectionOptionChange('cpp_inclusa_das', newGroups)
-                    } else {
-                      onCustomGroupsChange(newGroups)
-                    }
-                  }}
-                  className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
-                    simplesCollectionOption === 'cpp_inclusa_das'
-                      ? 'bg-white border-[#294C87] shadow-sm ring-2 ring-[#294C87]'
-                      : 'bg-[#F8F9FA] border-[#171A1F]/15 hover:bg-white text-[#171A1F]/80'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1 w-full">
-                    <span className="text-xs font-bold text-[#171A1F] flex items-center gap-1">
-                      {simplesCollectionOption === 'cpp_inclusa_das' && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#294C87] shrink-0" />
-                      )}
-                      CPP inclusa no DAS (Padrão CONCE)
-                    </span>
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-[#294C87] text-white shrink-0">
-                      Padrão CONCE
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#171A1F]/70 mt-1">
-                    <strong>Grupo A zerado (0,00%)</strong>: INSS patronal, RAT e terceiros já
-                    inclusos nos {simplesDasRate > 0 ? `${simplesDasRate}%` : 'tributos'} do DAS.
-                    Incidem apenas os custos trabalhistas (<strong>Grupos B + C + D</strong>).
-                  </p>
-                </button>
-
-                {/* Opção 2: CPP em guia separada (Anexo IV) */}
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => {
-                    const newGroups = {
-                      customGroupA: stateData.nonRelieved.groupA,
-                      customGroupB: stateData.nonRelieved.groupB,
-                      customGroupC: stateData.nonRelieved.groupC,
-                      customGroupD: stateData.nonRelieved.groupD,
-                      isExplicitZero: false,
-                    }
-                    if (onSimplesCollectionOptionChange) {
-                      onSimplesCollectionOptionChange('cpp_guia_separada', newGroups)
-                    } else {
-                      onCustomGroupsChange(newGroups)
-                    }
-                  }}
-                  className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
-                    simplesCollectionOption === 'cpp_guia_separada'
-                      ? 'bg-white border-[#294C87] shadow-sm ring-2 ring-[#294C87]'
-                      : 'bg-[#F8F9FA] border-[#171A1F]/15 hover:bg-white text-[#171A1F]/80'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1 w-full">
-                    <span className="text-xs font-bold text-[#171A1F] flex items-center gap-1">
-                      {simplesCollectionOption === 'cpp_guia_separada' && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#294C87] shrink-0" />
-                      )}
-                      CPP em guia separada (Anexo IV)
-                    </span>
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-gray-200 text-[#171A1F]/70 shrink-0">
-                      Anexo IV
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#171A1F]/70 mt-1">
-                    <strong>Tabela integral (Grupos A+B+C+D)</strong>: o INSS patronal de 20% é
-                    recolhido em GPS/DARF previdenciário à parte da folha de pagamento.
-                  </p>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        </div>{' '}
       </div>
 
       {/* Detalhamento dos Grupos A, B, C e D */}
@@ -471,23 +362,42 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
             Composição Paramétrica dos Encargos (%)
           </h4>
           <span className="text-xs text-[#171A1F]/60">
-            Valores editáveis por grupo • Total incide sobre Mão de Obra
+            {isSimples
+              ? 'Simples Nacional: Grupos A–D não incidem (tributação pelo DAS manual)'
+              : 'Valores editáveis por grupo • Total incide sobre Mão de Obra'}
           </span>
         </div>
+
+        {isSimples && (
+          <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-bold">
+                Encargos Trabalhistas Zerados no Simples Nacional (Padrão CONCE)
+              </p>
+              <p className="text-[11px] text-blue-800/80 leading-relaxed">
+                Conforme solicitado pela diretoria técnica (Eng. Edenir Souza da Rosa), neste regime
+                os Grupos A, B, C e D não incidem sobre a mão de obra (total 0,00%). Os valores
+                abaixo da tabela SINAPI estadual de {currentUf} são exibidos apenas a título de
+                referência comparativa.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Grupo A */}
           <div
             className={`p-3.5 rounded-xl border space-y-1.5 ${
-              isCppInDas && activeA === 0
-                ? 'bg-[#294C87]/5 border-[#294C87]/30'
+              isSimples
+                ? 'bg-gray-50 border-gray-200 opacity-90'
                 : 'bg-[#F8F9FA] border-[#171A1F]/10'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#171A1F]">Grupo A</span>
               <span className="text-[10px] text-[#171A1F]/50">
-                {isCppInDas ? '0,00% (no DAS)' : `Padrão ${defaultCharges.groupA}%`}
+                {isSimples ? 'Não incide (0,00%)' : `Padrão ${defaultCharges.groupA}%`}
               </span>
             </div>
             <div className="relative">
@@ -496,8 +406,8 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                 step="0.01"
                 min="0"
                 max="50"
-                disabled={disabled}
-                value={activeA}
+                disabled={disabled || isSimples}
+                value={isSimples ? 0 : activeA}
                 onChange={(e) => {
                   const val = parseFloat(e.target.value) || 0
                   onCustomGroupsChange({
@@ -508,10 +418,10 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                     isExplicitZero: val === 0,
                   })
                 }}
-                className={`w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87] ${
-                  isCppInDas && activeA === 0
-                    ? 'border-[#294C87]/40 text-[#294C87]'
-                    : 'border-[#171A1F]/20'
+                className={`w-full pl-3 pr-7 py-1.5 rounded-lg border text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87] ${
+                  isSimples
+                    ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-white border-[#171A1F]/20'
                 }`}
               />
               <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
@@ -519,9 +429,9 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
               </span>
             </div>
             <p className="text-[10px] text-[#171A1F]/60">
-              {isCppInDas && activeA === 0 ? (
-                <span className="text-[#294C87] font-semibold">
-                  ✓ Previdenciário (INSS/RAT/Sistema S) embutido no DAS
+              {isSimples ? (
+                <span className="text-gray-600 italic">
+                  Ref. SINAPI {currentUf}: {stateData.nonRelieved.groupA.toFixed(2)}% (não aplicado)
                 </span>
               ) : (
                 'INSS patronal, RAT, Salário Educação, SESI, SENAI, INCRA, SEBRAE'
@@ -530,10 +440,18 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
           </div>
 
           {/* Grupo B */}
-          <div className="p-3.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1.5">
+          <div
+            className={`p-3.5 rounded-xl border space-y-1.5 ${
+              isSimples
+                ? 'bg-gray-50 border-gray-200 opacity-90'
+                : 'bg-[#F8F9FA] border-[#171A1F]/10'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#171A1F]">Grupo B</span>
-              <span className="text-[10px] text-[#171A1F]/50">Padrão {defaultCharges.groupB}%</span>
+              <span className="text-[10px] text-[#171A1F]/50">
+                {isSimples ? 'Não incide (0,00%)' : `Padrão ${defaultCharges.groupB}%`}
+              </span>
             </div>
             <div className="relative">
               <input
@@ -541,8 +459,8 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                 step="0.01"
                 min="0"
                 max="60"
-                disabled={disabled}
-                value={activeB}
+                disabled={disabled || isSimples}
+                value={isSimples ? 0 : activeB}
                 onChange={(e) =>
                   onCustomGroupsChange({
                     customGroupA: activeA,
@@ -551,22 +469,40 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                     customGroupD: activeD,
                   })
                 }
-                className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                className={`w-full pl-3 pr-7 py-1.5 rounded-lg border text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87] ${
+                  isSimples
+                    ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-white border-[#171A1F]/20'
+                }`}
               />
               <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
                 %
               </span>
             </div>
             <p className="text-[10px] text-[#171A1F]/60">
-              Repouso Semanal, Férias, Feriados, Auxílio Enfermidade, Licenças
+              {isSimples ? (
+                <span className="text-gray-600 italic">
+                  Ref. SINAPI {currentUf}: {stateData.nonRelieved.groupB.toFixed(2)}% (não aplicado)
+                </span>
+              ) : (
+                'Repouso Semanal, Férias, Feriados, Auxílio Enfermidade, Licenças'
+              )}
             </p>
           </div>
 
           {/* Grupo C */}
-          <div className="p-3.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1.5">
+          <div
+            className={`p-3.5 rounded-xl border space-y-1.5 ${
+              isSimples
+                ? 'bg-gray-50 border-gray-200 opacity-90'
+                : 'bg-[#F8F9FA] border-[#171A1F]/10'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#171A1F]">Grupo C</span>
-              <span className="text-[10px] text-[#171A1F]/50">Padrão {defaultCharges.groupC}%</span>
+              <span className="text-[10px] text-[#171A1F]/50">
+                {isSimples ? 'Não incide (0,00%)' : `Padrão ${defaultCharges.groupC}%`}
+              </span>
             </div>
             <div className="relative">
               <input
@@ -574,8 +510,8 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                 step="0.01"
                 min="0"
                 max="30"
-                disabled={disabled}
-                value={activeC}
+                disabled={disabled || isSimples}
+                value={isSimples ? 0 : activeC}
                 onChange={(e) =>
                   onCustomGroupsChange({
                     customGroupA: activeA,
@@ -584,22 +520,40 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                     customGroupD: activeD,
                   })
                 }
-                className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                className={`w-full pl-3 pr-7 py-1.5 rounded-lg border text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87] ${
+                  isSimples
+                    ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-white border-[#171A1F]/20'
+                }`}
               />
               <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
                 %
               </span>
             </div>
             <p className="text-[10px] text-[#171A1F]/60">
-              Aviso prévio indenizado/trabalhado e indenização rescisória
+              {isSimples ? (
+                <span className="text-gray-600 italic">
+                  Ref. SINAPI {currentUf}: {stateData.nonRelieved.groupC.toFixed(2)}% (não aplicado)
+                </span>
+              ) : (
+                'Aviso prévio indenizado/trabalhado e indenização rescisória'
+              )}
             </p>
           </div>
 
           {/* Grupo D */}
-          <div className="p-3.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1.5">
+          <div
+            className={`p-3.5 rounded-xl border space-y-1.5 ${
+              isSimples
+                ? 'bg-gray-50 border-gray-200 opacity-90'
+                : 'bg-[#F8F9FA] border-[#171A1F]/10'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#171A1F]">Grupo D</span>
-              <span className="text-[10px] text-[#171A1F]/50">Padrão {defaultCharges.groupD}%</span>
+              <span className="text-[10px] text-[#171A1F]/50">
+                {isSimples ? 'Não incide (0,00%)' : `Padrão ${defaultCharges.groupD}%`}
+              </span>
             </div>
             <div className="relative">
               <input
@@ -607,8 +561,8 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                 step="0.01"
                 min="0"
                 max="20"
-                disabled={disabled}
-                value={activeD}
+                disabled={disabled || isSimples}
+                value={isSimples ? 0 : activeD}
                 onChange={(e) =>
                   onCustomGroupsChange({
                     customGroupA: activeA,
@@ -617,14 +571,24 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                     customGroupD: parseFloat(e.target.value) || 0,
                   })
                 }
-                className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                className={`w-full pl-3 pr-7 py-1.5 rounded-lg border text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87] ${
+                  isSimples
+                    ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-white border-[#171A1F]/20'
+                }`}
               />
               <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
                 %
               </span>
             </div>
             <p className="text-[10px] text-[#171A1F]/60">
-              Reincidências cumulativas (Grupo A sobre Grupo B)
+              {isSimples ? (
+                <span className="text-gray-600 italic">
+                  Ref. SINAPI {currentUf}: {stateData.nonRelieved.groupD.toFixed(2)}% (não aplicado)
+                </span>
+              ) : (
+                'Reincidências cumulativas (Grupo A sobre Grupo B)'
+              )}
             </p>
           </div>
         </div>
@@ -637,18 +601,20 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
             <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
               Taxa Total de Encargos Sociais Aplicada ({currentUf})
             </span>
-            {isCustomized && (
+            {isSimples ? (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-bold">
+                Simples Nacional: 0,00%
+              </span>
+            ) : isCustomized ? (
               <span className="px-2 py-0.5 rounded-full bg-[#FF6B1F] text-white text-[10px] font-bold">
                 Customizado
               </span>
-            )}
+            ) : null}
           </div>
           <p className="text-xs text-white/70">
             Regime:{' '}
             {effectiveRegime === 'simples_nacional'
-              ? isCppInDas
-                ? 'Simples Nacional — CPP inclusa no DAS (Grupos B+C+D)'
-                : 'Simples Nacional — Anexo IV (Grupos A+B+C+D)'
+              ? 'Simples Nacional (Padrão CONCE) — tributação exclusiva pelo DAS manual'
               : effectiveRegime === 'com_desoneracao'
                 ? 'Com Desoneração (CPRB Lei 12.546)'
                 : 'Sem Desoneração (CLT integral)'}{' '}
@@ -661,7 +627,9 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
             {currentTotal.toFixed(2)}%
           </span>
           <div className="text-[11px] text-white/60">
-            Multiplicador direto: {(1 + currentTotal / 100).toFixed(4)}x
+            {isSimples
+              ? 'Sem acréscimo sobre mão de obra (multiplicador 1,0000x)'
+              : `Multiplicador direto: ${(1 + currentTotal / 100).toFixed(4)}x`}
           </div>
         </div>
       </div>

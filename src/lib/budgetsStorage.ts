@@ -6,6 +6,7 @@
 import { FullBudget } from '@/types/budgetEngine'
 import { CONCE_CANONICAL_COMPOSITIONS } from './compositionsData'
 import { DEFAULT_BDI_CONFIG } from './budgetEngine'
+import { BRAZIL_STATES_CHARGES } from './chargesData'
 
 export const STORAGE_KEYS_BUDGETS = {
   FULL_BUDGETS: 'conce_full_budgets',
@@ -63,13 +64,13 @@ export function createCanonicalDemoBudget(): FullBudget {
       uf: 'SP',
       isRelieved: false,
       taxRegime: 'simples_nacional', // CONCE trabalha no Simples Nacional
-      simplesCollectionOption: 'cpp_inclusa_das', // Padrão CONCE: CPP inclusa no DAS
-      simplesDasRate: 11.0, // Alíquota DAS efetiva da CONCE (11%)
-      customGroupA: 0.0, // Grupo A zerado (CPP já no DAS)
-      customGroupB: 44.15, // Padrão SP
-      customGroupC: 16.48, // Padrão SP
-      customGroupD: 7.1, // Padrão SP
-      isExplicitZero: true, // Flag explícita para o motor não re-aplicar o Grupo A da UF
+      simplesCollectionOption: 'cpp_inclusa_das',
+      simplesDasRate: 11.0, // Alíquota DAS efetiva informada (11%)
+      customGroupA: 0.0, // Simples Nacional: encargos trabalhistas zerados
+      customGroupB: 0.0,
+      customGroupC: 0.0,
+      customGroupD: 0.0,
+      isExplicitZero: true, // Flag explícita
     },
     bdiConfig: {
       ...DEFAULT_BDI_CONFIG,
@@ -307,36 +308,65 @@ export function getStoredFullBudgets(): FullBudget[] {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
         // Migração de sanitização:
-        // - Diferenciar zerado-por-CPP-no-DAS (legítimo: Grupo A = 0, mas B+C+D > 0, ou flag isExplicitZero)
-        //   de zerado-por-falha (todos os grupos zerados por omissão ou bug).
-        // - Se todos os grupos (A, B, C, D) somarem 0 E isExplicitZero não for true, restaura os grupos oficiais.
+        // - No Simples Nacional: regra do usuário Eng. Edenir Souza da Rosa:
+        //   Encargos trabalhistas (Grupos A, B, C e D) devem ficar ZERADOS (0,00%).
+        //   Tributação exclusiva pelo DAS preenchido manualmente.
+        // - Nos demais regimes (sem ou com desoneração): se todos os grupos somarem 0 sem isExplicitZero,
+        //   restaura os grupos oficiais SINAPI da UF para proteger integridade.
         let hasFixed = false
         const sanitized = parsed.map((b: FullBudget) => {
-          if (
-            b.chargesConfig?.taxRegime === 'simples_nacional' &&
-            b.chargesConfig.customGroupA !== undefined
-          ) {
-            const totalSum =
-              (b.chargesConfig.customGroupA || 0) +
-              (b.chargesConfig.customGroupB || 0) +
-              (b.chargesConfig.customGroupC || 0) +
-              (b.chargesConfig.customGroupD || 0)
+          const regime =
+            b.chargesConfig?.taxRegime ||
+            (b.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
 
-            // Falha genuína: soma total é 0 e não foi intencional
-            if (totalSum === 0 && !b.chargesConfig.isExplicitZero) {
+          if (regime === 'simples_nacional') {
+            const hasNonZeroGroups =
+              (b.chargesConfig?.customGroupA ?? 0) > 0 ||
+              (b.chargesConfig?.customGroupB ?? 0) > 0 ||
+              (b.chargesConfig?.customGroupC ?? 0) > 0 ||
+              (b.chargesConfig?.customGroupD ?? 0) > 0
+
+            if (hasNonZeroGroups || !b.chargesConfig?.isExplicitZero) {
               hasFixed = true
               return {
                 ...b,
                 chargesConfig: {
                   ...b.chargesConfig,
-                  simplesCollectionOption:
-                    b.chargesConfig.simplesCollectionOption || 'cpp_inclusa_das',
+                  taxRegime: 'simples_nacional' as const,
                   customGroupA: 0,
-                  customGroupB: 44.15,
-                  customGroupC: 16.48,
-                  customGroupD: 7.1,
+                  customGroupB: 0,
+                  customGroupC: 0,
+                  customGroupD: 0,
                   isExplicitZero: true,
                 },
+              }
+            }
+          } else {
+            // Regimes sem_desoneracao ou com_desoneracao: proteção contra zeramento indevido
+            if (b.chargesConfig?.customGroupA !== undefined) {
+              const totalSum =
+                (b.chargesConfig.customGroupA || 0) +
+                (b.chargesConfig.customGroupB || 0) +
+                (b.chargesConfig.customGroupC || 0) +
+                (b.chargesConfig.customGroupD || 0)
+
+              if (totalSum === 0 && !b.chargesConfig.isExplicitZero) {
+                hasFixed = true
+                const uf = b.chargesConfig.uf || 'SP'
+                const isRel = regime === 'com_desoneracao'
+                const stateData = BRAZIL_STATES_CHARGES[uf] || BRAZIL_STATES_CHARGES['SP']
+                const base = isRel ? stateData.relieved : stateData.nonRelieved
+                return {
+                  ...b,
+                  chargesConfig: {
+                    ...b.chargesConfig,
+                    customGroupA: base.groupA,
+                    customGroupB: base.groupB,
+                    customGroupC: base.groupC,
+                    customGroupD: base.groupD,
+                    isExplicitZero: false,
+                  },
+                }
               }
             }
           }

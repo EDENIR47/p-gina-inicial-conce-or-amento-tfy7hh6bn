@@ -423,7 +423,8 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
                   currentRegime === 'simples_nacional' ? 'text-white/80' : 'text-[#171A1F]/60'
                 }`}
               >
-                Tributos unificados pelo DAS. Encargos sociais seguem a base sem desoneração.
+                Conta Simples: sem encargos trabalhistas (0,00%). Cobrança exclusiva pelo DAS
+                manual.
               </p>
             </div>
           </button>
@@ -479,11 +480,12 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
           <div className="p-3.5 rounded-xl bg-[#294C87]/5 border border-[#294C87]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
             <div className="text-xs text-[#171A1F]/80">
               <span className="font-bold text-[#294C87] block mb-0.5">
-                Alíquota Efetiva do DAS no BDI
+                Alíquota Efetiva do DAS no BDI (Único Tributo Incidente)
               </span>
               <span className="text-[#171A1F]/70">
-                Informe a alíquota apurada do Simples Nacional aplicável ao faturamento desta obra.
-                O valor incidirá diretamente como componente de tributos (T) na fórmula do TCU.
+                No Simples Nacional, os encargos trabalhistas são zerados (R$ 0,00). O único
+                percentual incidente é a alíquota efetiva do DAS adicionada manualmente, atuando
+                como o tributo (T) da fórmula TCU.
               </span>
             </div>
 

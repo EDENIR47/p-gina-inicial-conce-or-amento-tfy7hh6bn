@@ -351,52 +351,50 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
     (budget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
 
   // 1. Determina taxa de encargos sociais pela UF e regime:
-  // No Simples Nacional:
-  // - Se 'cpp_inclusa_das' (Padrão CONCE, default): Grupo A = 0% (já coberto no DAS), total = B + C + D da UF sem desoneração
-  // - Se 'cpp_guia_separada' (Anexo IV): usa a tabela integral sem desoneração (A + B + C + D)
+  // REGRA DO USUÁRIO (Eng. Edenir Souza da Rosa - CREA/RS-252397):
+  // No Simples Nacional, a conta é SIMPLES: NÃO considera encargos trabalhistas (nem Grupo A, nem B, nem C, nem D).
+  // Encargos sociais ficam rigorosamente zerados (0,00% / R$ 0,00).
+  // O ÚNICO percentual tributário incidente é o DAS no BDI (inserido manualmente).
+  // Nos demais regimes ("sem_desoneracao" e "com_desoneracao"), aplica a tabela de encargos SINAPI da UF.
+  const isSimples = taxRegime === 'simples_nacional'
   const isRelievedForCharges = taxRegime === 'com_desoneracao'
   const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
 
-  const isSimples = taxRegime === 'simples_nacional'
-  const simplesOption =
-    budget.chargesConfig?.simplesCollectionOption || (isSimples ? 'cpp_inclusa_das' : undefined)
-  const isCppInDas = isSimples && simplesOption === 'cpp_inclusa_das'
-
-  // Default da UF ajustado para Simples com CPP no DAS:
-  // Se CPP inclusa no DAS, o default do Grupo A é 0% e o total é apenas B+C+D
-  const defaultGroupA = isCppInDas ? 0 : stateCharges.groupA
-  const defaultGroupB = stateCharges.groupB
-  const defaultGroupC = stateCharges.groupC
-  const defaultGroupD = stateCharges.groupD
-  const defaultTotalForConfig = Number(
-    (defaultGroupA + defaultGroupB + defaultGroupC + defaultGroupD).toFixed(2),
-  )
-
-  // Percentual total de encargos sociais (pode ser customizado ou default da UF)
-  // REGRA DE SEGURANÇA / GUARD:
-  // Taxa zero total só é legítima se explicitamente marcada como isExplicitZero === true.
-  // No caso de CPP inclusa no DAS, o Grupo A zerado é legítimo (e isExplicitZero é true),
-  // resultando na soma de B+C+D (~67% a 70%).
   let chargesRate: number
-  if (budget.chargesConfig?.customGroupA !== undefined) {
-    const customSum =
-      (budget.chargesConfig.customGroupA || 0) +
-      (budget.chargesConfig.customGroupB || 0) +
-      (budget.chargesConfig.customGroupC || 0) +
-      (budget.chargesConfig.customGroupD || 0)
 
-    if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
-      chargesRate = defaultTotalForConfig
-    } else {
-      chargesRate = Number(customSum.toFixed(2))
-    }
+  if (isSimples) {
+    // No Simples Nacional, encargos trabalhistas = 0.00%
+    chargesRate = 0
   } else {
-    chargesRate = defaultTotalForConfig
-  }
+    const defaultTotalForConfig = Number(
+      (
+        stateCharges.groupA +
+        stateCharges.groupB +
+        stateCharges.groupC +
+        stateCharges.groupD
+      ).toFixed(2),
+    )
 
-  // Fallback extra: se chargesRate for 0 sem flag explícita, restaura default
-  if (chargesRate === 0 && !budget.chargesConfig?.isExplicitZero) {
-    chargesRate = defaultTotalForConfig
+    if (budget.chargesConfig?.customGroupA !== undefined) {
+      const customSum =
+        (budget.chargesConfig.customGroupA || 0) +
+        (budget.chargesConfig.customGroupB || 0) +
+        (budget.chargesConfig.customGroupC || 0) +
+        (budget.chargesConfig.customGroupD || 0)
+
+      if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
+        chargesRate = defaultTotalForConfig
+      } else {
+        chargesRate = Number(customSum.toFixed(2))
+      }
+    } else {
+      chargesRate = defaultTotalForConfig
+    }
+
+    // Fallback extra para regimes convencionais: se chargesRate for 0 sem flag explícita, restaura default da UF
+    if (chargesRate === 0 && !budget.chargesConfig?.isExplicitZero) {
+      chargesRate = defaultTotalForConfig
+    }
   }
 
   // 2. Determina o BDI pela fórmula TCU

@@ -184,16 +184,12 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
             className="text-[10px] text-white/60 line-clamp-1"
             title={
               budget.chargesConfig?.taxRegime === 'simples_nacional'
-                ? budget.chargesConfig.simplesCollectionOption === 'cpp_guia_separada'
-                  ? 'Simples Nacional — Anexo IV (Grupos A+B+C+D)'
-                  : 'Simples Nacional — CPP inclusa no DAS (Grupos B+C+D)'
+                ? 'Simples Nacional — sem encargos trabalhistas (tributação pelo DAS)'
                 : `Sobre MO (${formatCurrencyBRL(summary.laborDirectCost)})`
             }
           >
             {budget.chargesConfig?.taxRegime === 'simples_nacional'
-              ? budget.chargesConfig.simplesCollectionOption === 'cpp_guia_separada'
-                ? 'Simples Nacional — Anexo IV (A+B+C+D)'
-                : 'Simples Nacional — CPP inclusa no DAS (B+C+D)'
+              ? 'Simples Nacional — sem encargos trabalhistas (tributação pelo DAS)'
               : `Sobre MO (${formatCurrencyBRL(summary.laborDirectCost)})`}
           </span>
         </div>
