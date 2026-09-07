@@ -11,6 +11,14 @@ export type InputCategory =
   | 'servico_terceiro'
   | 'outros'
 
+export type BudgetInputSource =
+  | 'SINAPI'
+  | 'SICRO'
+  | 'Biblioteca CONCE'
+  | 'Usuário'
+  | 'sem fonte — preencher manualmente'
+  | string
+
 export interface BudgetInput {
   id: string
   code: string // ex.: "SINAPI-88316", "MAT-001"
@@ -19,6 +27,8 @@ export interface BudgetInput {
   category: InputCategory
   coefficient: number // Coeficiente de consumo por unidade da composição
   unitCost: number // Custo unitário base em R$
+  source?: BudgetInputSource // Fonte de custo comprovada
+  sourceStatus?: 'valido' | 'sem_fonte' | 'pendente'
   notes?: string
 }
 

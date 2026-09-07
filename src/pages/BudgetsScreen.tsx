@@ -189,6 +189,25 @@ export const BudgetsScreen: React.FC = () => {
     return Object.keys(errors).length === 0
   }
 
+  // Atualizar orçamento ativo e limpar erros corrigidos
+  const handleUpdateActiveBudget = (updated: FullBudget) => {
+    setActiveBudget(updated)
+    if (validationErrors['work.name'] && updated.work.name.trim()) {
+      setValidationErrors((prev) => {
+        const next = { ...prev }
+        delete next['work.name']
+        return next
+      })
+    }
+    if (validationErrors['client.name'] && updated.client.name.trim()) {
+      setValidationErrors((prev) => {
+        const next = { ...prev }
+        delete next['client.name']
+        return next
+      })
+    }
+  }
+
   // Salvar orçamento ativo
   const handleSaveActiveBudget = () => {
     if (!activeBudget) return
@@ -376,10 +395,7 @@ export const BudgetsScreen: React.FC = () => {
           {/* CONTEÚDO DA ABA SELECIONADA */}
           {editorTab === 'arvore' && (
             <div className="space-y-4 animate-fade-in">
-              <BudgetHierarchyTree
-                budget={activeBudget}
-                onChange={(updated) => setActiveBudget(updated)}
-              />
+              <BudgetHierarchyTree budget={activeBudget} onChange={handleUpdateActiveBudget} />
             </div>
           )}
 
@@ -387,7 +403,7 @@ export const BudgetsScreen: React.FC = () => {
             <div className="space-y-4 animate-fade-in">
               <BudgetHeaderForm
                 budget={activeBudget}
-                onChange={(updated) => setActiveBudget(updated)}
+                onChange={handleUpdateActiveBudget}
                 validationErrors={validationErrors}
               />
             </div>
@@ -403,7 +419,7 @@ export const BudgetsScreen: React.FC = () => {
                 customGroupC={activeBudget.chargesConfig?.customGroupC}
                 customGroupD={activeBudget.chargesConfig?.customGroupD}
                 onUfChange={(newUf) =>
-                  setActiveBudget({
+                  handleUpdateActiveBudget({
                     ...activeBudget,
                     chargesConfig: {
                       ...activeBudget.chargesConfig,
@@ -412,7 +428,7 @@ export const BudgetsScreen: React.FC = () => {
                   })
                 }
                 onRelievedChange={(newRelieved) =>
-                  setActiveBudget({
+                  handleUpdateActiveBudget({
                     ...activeBudget,
                     chargesConfig: {
                       ...activeBudget.chargesConfig,
@@ -421,7 +437,7 @@ export const BudgetsScreen: React.FC = () => {
                   })
                 }
                 onCustomGroupsChange={(groups) =>
-                  setActiveBudget({
+                  handleUpdateActiveBudget({
                     ...activeBudget,
                     chargesConfig: {
                       ...activeBudget.chargesConfig,
@@ -438,7 +454,7 @@ export const BudgetsScreen: React.FC = () => {
               <BdiEditor
                 bdiConfig={activeBudget.bdiConfig}
                 onChange={(newBdi) =>
-                  setActiveBudget({
+                  handleUpdateActiveBudget({
                     ...activeBudget,
                     bdiConfig: newBdi,
                   })

@@ -44,7 +44,7 @@ import { BRAZIL_STATES_LIST } from '@/lib/chargesData'
 import { DEFAULT_BDI_CONFIG, calculateFullBudget } from '@/lib/budgetEngine'
 import { getStoredCompositions, saveSingleBudget, getStoredFullBudgets } from '@/lib/budgetsStorage'
 import { logAuditEvent, saveBudgetRevision } from '@/lib/intelligenceStorage'
-import { formatCurrencyBRL } from '@/lib/formatters'
+import { formatCurrencyBRL, getSourceBadgeInfo } from '@/lib/formatters'
 import pb from '@/lib/pocketbase/client'
 
 interface AiBudgetModalProps {
@@ -125,11 +125,29 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
   // Orçamento gerado temporário em revisão
   const [draftBudget, setDraftBudget] = useState<FullBudget | null>(null)
   const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({})
+  const [allowSaveWithPendingSources, setAllowSaveWithPendingSources] = useState(false)
 
   // Cálculos do orçamento em revisão (incondicional no topo)
   const draftSummary = useMemo(() => {
     if (!draftBudget) return null
     return calculateFullBudget(draftBudget)
+  }, [draftBudget])
+
+  // Contagem de itens sem fonte na revisão
+  const pendingSourcesCount = useMemo(() => {
+    if (!draftBudget) return 0
+    let count = 0
+    draftBudget.stages.forEach((stg) => {
+      stg.services.forEach((srv) => {
+        ;(srv.composition.inputs || []).forEach((inp) => {
+          const badge = getSourceBadgeInfo(inp.source, inp.sourceStatus)
+          if (badge.isPending || inp.unitCost === 0) {
+            count++
+          }
+        })
+      })
+    })
+    return count
   }, [draftBudget])
 
   if (!isOpen) return null
@@ -232,19 +250,52 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                   let comp: BudgetComposition
                   if (matchedComp) {
                     comp = JSON.parse(JSON.stringify(matchedComp))
+                    // Garante que cada insumo da biblioteca CONCE canônica tenha source definida
+                    comp.inputs = (comp.inputs || []).map((inp) => ({
+                      ...inp,
+                      source:
+                        inp.source ||
+                        (comp.source === 'CONCE' ? 'Biblioteca CONCE' : comp.source) ||
+                        'SINAPI',
+                      sourceStatus: inp.sourceStatus || 'valido',
+                    }))
                   } else {
                     const rawComp = srv.composition || {}
+                    const compSource = (rawComp.source as any) || (reference as any) || 'SINAPI'
                     const inputs: BudgetInput[] =
                       Array.isArray(rawComp.inputs) && rawComp.inputs.length > 0
-                        ? rawComp.inputs.map((inp: any, iIdx: number) => ({
-                            id: `inp-ai-${Date.now()}-${sIdx}-${svIdx}-${iIdx}`,
-                            code: inp.code || `SINAPI-${1000 + iIdx}`,
-                            description: inp.description || 'Insumo de obra',
-                            unit: inp.unit || 'un',
-                            category: inp.category || 'material',
-                            coefficient: Number(inp.coefficient) || 1,
-                            unitCost: Number(inp.unitCost) || 10,
-                          }))
+                        ? rawComp.inputs.map((inp: any, iIdx: number) => {
+                            const rawSource = inp.source ? String(inp.source).trim() : ''
+                            const rawStatus =
+                              inp.sourceStatus ||
+                              (rawSource.toLowerCase().includes('sem fonte')
+                                ? 'sem_fonte'
+                                : rawSource
+                                  ? 'valido'
+                                  : 'sem_fonte')
+                            const rawCost = Number(inp.unitCost)
+                            const isWithoutSource =
+                              rawStatus === 'sem_fonte' ||
+                              rawSource === '' ||
+                              rawSource.toLowerCase().includes('sem fonte') ||
+                              isNaN(rawCost) ||
+                              rawCost === 0
+
+                            return {
+                              id: `inp-ai-${Date.now()}-${sIdx}-${svIdx}-${iIdx}`,
+                              code: inp.code || `${compSource}-${1000 + iIdx}`,
+                              description: inp.description || 'Insumo de obra',
+                              unit: inp.unit || 'un',
+                              category: inp.category || 'material',
+                              coefficient:
+                                Number(inp.coefficient) > 0 ? Number(inp.coefficient) : 1,
+                              unitCost: isWithoutSource ? 0 : rawCost,
+                              source: isWithoutSource
+                                ? 'sem fonte — preencher manualmente'
+                                : rawSource || compSource,
+                              sourceStatus: isWithoutSource ? 'sem_fonte' : 'valido',
+                            }
+                          })
                         : [
                             {
                               id: `inp-ai-${Date.now()}-${sIdx}-${svIdx}-1`,
@@ -254,15 +305,19 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                               category: 'mao_de_obra',
                               coefficient: 1.2,
                               unitCost: 26.5,
+                              source: 'SINAPI',
+                              sourceStatus: 'valido',
                             },
                             {
                               id: `inp-ai-${Date.now()}-${sIdx}-${svIdx}-2`,
-                              code: 'MAT-GEN-01',
-                              description: 'Material e insumos de aplicação direta',
+                              code: 'INS-PEND-01',
+                              description: 'Insumo auxiliar pendente de cotação/tabela',
                               unit: srv.unit || 'm²',
                               category: 'material',
-                              coefficient: 1.05,
-                              unitCost: 45.0,
+                              coefficient: 1.0,
+                              unitCost: 0,
+                              source: 'sem fonte — preencher manualmente',
+                              sourceStatus: 'sem_fonte',
                             },
                           ]
 
@@ -273,7 +328,7 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                         rawComp.description || srv.description || 'Composição de custo unitário',
                       specialty: rawComp.specialty || stg.name || 'Edificações Gerais',
                       unit: rawComp.unit || srv.unit || 'm²',
-                      source: (rawComp.source as any) || (reference as any) || 'SINAPI',
+                      source: compSource,
                       version: 'v1.0',
                       inputs,
                     }
@@ -427,9 +482,54 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
     })
   }
 
+  // Ajuste inline de insumo na revisão (custo ou coeficiente) -> Fonte passa a ser "Usuário"
+  const handleReviewInputUpdate = (
+    stageId: string,
+    serviceId: string,
+    inputId: string,
+    field: 'unitCost' | 'coefficient',
+    value: number,
+  ) => {
+    if (!draftBudget) return
+    const updatedStages = draftBudget.stages.map((stg) => {
+      if (stg.id !== stageId) return stg
+      return {
+        ...stg,
+        services: stg.services.map((srv) => {
+          if (srv.id !== serviceId) return srv
+          const updatedInputs = (srv.composition.inputs || []).map((inp) => {
+            if (inp.id !== inputId) return inp
+            return {
+              ...inp,
+              [field]: Math.max(0, value),
+              source: 'Usuário',
+              sourceStatus: 'valido' as const,
+            }
+          })
+          return {
+            ...srv,
+            composition: {
+              ...srv.composition,
+              inputs: updatedInputs,
+            },
+          }
+        }),
+      }
+    })
+    setDraftBudget({ ...draftBudget, stages: updatedStages })
+  }
+
   // Salvar definitivamente
   const handleSaveBudget = () => {
     if (!draftBudget) return
+
+    // Bloqueia se houver insumos sem fonte e usuário não tiver marcado a autorização expressa
+    if (pendingSourcesCount > 0 && !allowSaveWithPendingSources) {
+      alert(
+        `Atenção: Este orçamento possui ${pendingSourcesCount} item(ns) com valores sem fonte oficial ou com custo zerado.\n\nPor favor, preencha os valores antes de salvar ou marque a opção "Aceito salvar orçamento com itens pendentes de cotação" no rodapé.`,
+      )
+      return
+    }
 
     // 1. Persistir no localStorage
     saveSingleBudget(draftBudget)
@@ -693,25 +793,48 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
           {/* PASSO 3: REVISÃO PRÉVIA EDITÁVEL */}
           {step === 'review' && draftBudget && draftSummary && (
             <div className="space-y-6 animate-fade-in">
-              {/* ALERTA DE SUCESSO E RASTREABILIDADE */}
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <strong className="font-bold text-sm text-emerald-900">
-                      Orçamento Estruturado com Sucesso!
-                    </strong>
-                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
-                      {draftBudget.code}
-                    </span>
+              {/* ALERTA DE STATUS E RASTREABILIDADE DE FONTES */}
+              {pendingSourcesCount > 0 ? (
+                <div className="p-4 rounded-xl bg-[#FF6B1F]/10 border-2 border-[#FF6B1F] text-[#171A1F] text-xs flex items-start gap-3 shadow-sm animate-pulse-subtle">
+                  <AlertTriangle className="w-5 h-5 text-[#FF6B1F] shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <strong className="font-extrabold text-sm text-[#FF6B1F]">
+                        Aviso CONCE: {pendingSourcesCount} item(ns) sem fonte comprovada
+                      </strong>
+                      <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#FF6B1F] text-white font-bold">
+                        Ação Obrigatória
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#171A1F]/80 leading-relaxed">
+                      Em cumprimento à diretriz da CONCE, o agente de IA{' '}
+                      <strong>não inventou preços fictícios</strong> para itens sem referência nas
+                      tabelas SINAPI/SICRO/Biblioteca. Esses insumos vieram com{' '}
+                      <strong>custo R$ 0,00</strong> e destaque visual em Pumpkin Orange.
+                      Preencha-os manualmente abaixo ou autorize expressamente a gravação como
+                      pendência de cotação.
+                    </p>
                   </div>
-                  <p className="text-xs text-emerald-700 leading-relaxed">
-                    Revise os dados abaixo antes de persistir. Você pode alterar o BDI, ajustar
-                    quantidades de serviços, remover itens desnecessários e conferir os valores
-                    totais calculados.
-                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <strong className="font-bold text-sm text-emerald-900">
+                        Orçamento Estruturado — 100% dos Itens com Fonte Oficial
+                      </strong>
+                      <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+                        {draftBudget.code}
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-700 leading-relaxed">
+                      Todos os coeficientes e custos unitários foram mapeados a partir de bases
+                      oficiais (SINAPI/SICRO/Biblioteca CONCE). Nenhum preço foi arbitrado pela IA.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* CARDS DE RESUMO FINANCEIRO */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -984,24 +1107,117 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                                     </div>
                                   </div>
 
-                                  {/* Pílulas de Insumos da Composição */}
-                                  <div className="pl-6 flex flex-wrap gap-1.5 pt-1">
-                                    {srv.composition.inputs.map((inp) => (
-                                      <span
-                                        key={inp.id}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-[#171A1F]/5 text-[#171A1F]/70 border border-[#171A1F]/10"
-                                      >
-                                        <span className="font-mono text-[#294C87] font-bold">
-                                          {inp.code}
-                                        </span>
-                                        <span className="truncate max-w-[140px]">
-                                          {inp.description}
-                                        </span>
-                                        <span className="text-[#FF6B1F] font-bold">
-                                          R$ {inp.unitCost.toFixed(2)}
-                                        </span>
-                                      </span>
-                                    ))}
+                                  {/* Pílulas e Tabela de Insumos da Composição com Edição Inline e Fontes */}
+                                  <div className="pl-6 space-y-2 pt-1">
+                                    {srv.composition.inputs.map((inp) => {
+                                      const badgeInfo = getSourceBadgeInfo(
+                                        inp.source,
+                                        inp.sourceStatus,
+                                      )
+                                      const isPending = badgeInfo.isPending || inp.unitCost === 0
+
+                                      return (
+                                        <div
+                                          key={inp.id}
+                                          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg text-xs transition-colors ${
+                                            isPending
+                                              ? 'bg-[#FF6B1F]/10 border-2 border-[#FF6B1F] shadow-xs'
+                                              : 'bg-[#171A1F]/[0.03] border border-[#171A1F]/10 hover:bg-[#171A1F]/[0.06]'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            <span className="font-mono text-[10px] text-[#294C87] font-bold">
+                                              {inp.code}
+                                            </span>
+                                            <span
+                                              className="truncate font-medium text-[#171A1F]"
+                                              title={inp.description}
+                                            >
+                                              {inp.description}
+                                            </span>
+                                            {/* Badge da Fonte */}
+                                            <span
+                                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] whitespace-nowrap ${badgeInfo.badgeClass}`}
+                                            >
+                                              <span
+                                                className={`w-1.5 h-1.5 rounded-full ${badgeInfo.dotClass}`}
+                                              />
+                                              {badgeInfo.label}
+                                            </span>
+                                          </div>
+
+                                          <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                                            {/* Coeficiente */}
+                                            <div className="flex items-center gap-1">
+                                              <span className="text-[10px] text-[#171A1F]/50">
+                                                Coef:
+                                              </span>
+                                              <input
+                                                type="number"
+                                                step="0.001"
+                                                min="0.0001"
+                                                value={inp.coefficient}
+                                                onChange={(e) =>
+                                                  handleReviewInputUpdate(
+                                                    stage.id,
+                                                    srv.id,
+                                                    inp.id,
+                                                    'coefficient',
+                                                    parseFloat(e.target.value) || 0,
+                                                  )
+                                                }
+                                                className="w-16 px-1.5 py-0.5 text-right font-mono font-bold text-xs rounded bg-white border border-[#171A1F]/20 text-[#171A1F]"
+                                                title="Coeficiente de consumo"
+                                              />
+                                              <span className="text-[10px] text-[#171A1F]/60">
+                                                {inp.unit}
+                                              </span>
+                                            </div>
+
+                                            {/* Custo Unitário com destaque em Pumpkin Orange se sem fonte */}
+                                            <div className="flex items-center gap-1">
+                                              <span className="text-[10px] text-[#171A1F]/50">
+                                                Unit: R$
+                                              </span>
+                                              <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={inp.unitCost}
+                                                placeholder="0,00"
+                                                onChange={(e) =>
+                                                  handleReviewInputUpdate(
+                                                    stage.id,
+                                                    srv.id,
+                                                    inp.id,
+                                                    'unitCost',
+                                                    parseFloat(e.target.value) || 0,
+                                                  )
+                                                }
+                                                className={`w-20 px-1.5 py-0.5 text-right font-mono font-bold text-xs rounded bg-white transition-colors ${
+                                                  isPending
+                                                    ? 'border-2 border-[#FF6B1F] text-[#FF6B1F] focus:outline-none focus:ring-2 focus:ring-[#FF6B1F]/30'
+                                                    : 'border border-[#171A1F]/20 text-[#171A1F]'
+                                                }`}
+                                                title={
+                                                  isPending
+                                                    ? 'Sem fonte oficial conhecida: digite o custo para marcar como fonte Usuário'
+                                                    : 'Custo unitário'
+                                                }
+                                              />
+                                            </div>
+
+                                            <div className="text-right min-w-[70px]">
+                                              <span className="font-mono text-xs font-bold text-[#171A1F]">
+                                                {formatCurrencyBRL(
+                                                  (inp.coefficient || 0) * (inp.unitCost || 0),
+                                                )}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
                                   </div>
                                 </div>
                               ))
@@ -1020,9 +1236,25 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
         {/* RODAPÉ DO MODAL (AÇÕES) */}
         <div className="bg-[#F8F9FA] px-5 sm:px-6 py-3.5 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-[11px] text-[#171A1F]/60 flex items-center gap-2">
-            <span className="font-semibold text-[#171A1F]">CONCE</span>
-            <span>•</span>
-            <span className="italic">"Conce é conceito. Conce é concreto."</span>
+            {step === 'review' && pendingSourcesCount > 0 ? (
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-[#FF6B1F] font-bold">
+                <input
+                  type="checkbox"
+                  checked={allowSaveWithPendingSources}
+                  onChange={(e) => setAllowSaveWithPendingSources(e.target.checked)}
+                  className="rounded border-[#FF6B1F] text-[#FF6B1F] focus:ring-[#FF6B1F]"
+                />
+                <span>
+                  Aceito salvar orçamento com {pendingSourcesCount} item(ns) pendente(s) de cotação
+                </span>
+              </label>
+            ) : (
+              <>
+                <span className="font-semibold text-[#171A1F]">CONCE</span>
+                <span>•</span>
+                <span className="italic">"Conce é conceito. Conce é concreto."</span>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">

@@ -31,7 +31,8 @@ import {
   calculateServiceDirectCost,
   calculateStageDirectCost,
 } from '@/lib/budgetEngine'
-import { formatCurrencyBRL } from '@/lib/formatters'
+import { formatCurrencyBRL, getSourceBadgeInfo } from '@/lib/formatters'
+import { logAuditEvent } from '@/lib/intelligenceStorage'
 import { StageEditModal } from './StageEditModal'
 import { ServiceEditModal } from './ServiceEditModal'
 import { InputEditModal } from './InputEditModal'
@@ -233,7 +234,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     onChange({ ...budget, stages: newStages })
   }
 
-  // Edição rápida de coeficiente ou custo do insumo inline
+  // Edição rápida de coeficiente ou custo do insumo inline com rastreamento de fonte "Usuário"
   const handleInlineInputUpdate = (
     stageId: string,
     serviceId: string,
@@ -241,13 +242,24 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     field: 'coefficient' | 'unitCost',
     value: number,
   ) => {
+    let changedInputName = ''
+    let prevVal: number | undefined
+    const newVal = Math.max(0, value)
+
     const newStages = budget.stages.map((st) => {
       if (st.id !== stageId) return st
       const updatedServices = st.services.map((srv) => {
         if (srv.id !== serviceId) return srv
         const updatedInputs = (srv.composition.inputs || []).map((inp) => {
           if (inp.id !== inputId) return inp
-          return { ...inp, [field]: Math.max(0, value) }
+          changedInputName = inp.description || inp.code
+          prevVal = inp[field]
+          return {
+            ...inp,
+            [field]: newVal,
+            source: 'Usuário',
+            sourceStatus: 'valido' as const,
+          }
         })
         return {
           ...srv,
@@ -257,19 +269,58 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       return { ...st, services: updatedServices }
     })
 
+    // Registra trilha de auditoria para alteração manual de valor/coeficiente
+    if (prevVal !== undefined && prevVal !== newVal) {
+      logAuditEvent({
+        budgetId: budget.id,
+        action: 'edicao_insumo',
+        title: `Edição Inline de ${field === 'unitCost' ? 'Custo Unitário' : 'Coeficiente'}: ${changedInputName}`,
+        details: `Alterado ${field === 'unitCost' ? 'custo unitário' : 'coeficiente'} de ${prevVal} para ${newVal}. Fonte atualizada para "Usuário".`,
+        userName: 'Eng. Denir Souza - CREA/SP (Usuário)',
+        oldValue: prevVal,
+        newValue: newVal,
+        metadata: {
+          stageId,
+          serviceId,
+          inputId,
+          field,
+          source: 'Usuário',
+        },
+      })
+    }
+
     onChange({ ...budget, stages: newStages })
   }
 
-  // Edição rápida de quantidade do serviço inline
+  // Edição rápida de quantidade do serviço inline com auditoria
   const handleInlineServiceQtyUpdate = (stageId: string, serviceId: string, qty: number) => {
+    let serviceDesc = ''
+    let prevQty = 0
+    const newQty = Math.max(0, qty)
+
     const newStages = budget.stages.map((st) => {
       if (st.id !== stageId) return st
       const updatedServices = st.services.map((srv) => {
         if (srv.id !== serviceId) return srv
-        return { ...srv, quantity: Math.max(0, qty) }
+        serviceDesc = srv.description
+        prevQty = srv.quantity
+        return { ...srv, quantity: newQty }
       })
       return { ...st, services: updatedServices }
     })
+
+    if (prevQty !== newQty) {
+      logAuditEvent({
+        budgetId: budget.id,
+        action: 'edicao_servico',
+        title: `Ajuste de Quantidade de Serviço: ${serviceDesc}`,
+        details: `Quantidade alterada de ${prevQty} para ${newQty}.`,
+        userName: 'Eng. Denir Souza - CREA/SP (Usuário)',
+        oldValue: prevQty,
+        newValue: newQty,
+        metadata: { stageId, serviceId },
+      })
+    }
 
     onChange({ ...budget, stages: newStages })
   }
@@ -661,6 +712,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                           <th className="py-2 px-3">
                                             Descrição do Insumo (Nível 4)
                                           </th>
+                                          <th className="py-2 px-3">Fonte</th>
                                           <th className="py-2 px-3">Categoria</th>
                                           <th className="py-2 px-3">Unid.</th>
                                           <th className="py-2 px-3 text-right">Coeficiente</th>
@@ -716,17 +768,45 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                             const badge =
                                               categoryBadges[inp.category] ||
                                               categoryBadges.material
+                                            const sourceInfo = getSourceBadgeInfo(
+                                              inp.source,
+                                              inp.sourceStatus,
+                                            )
+                                            const isSemFonte =
+                                              sourceInfo.isPending || inp.unitCost === 0
 
                                             return (
                                               <tr
                                                 key={inp.id}
-                                                className="hover:bg-[#171A1F]/[0.02] transition-colors"
+                                                className={`transition-colors ${
+                                                  isSemFonte
+                                                    ? 'bg-[#FF6B1F]/10 hover:bg-[#FF6B1F]/15'
+                                                    : 'hover:bg-[#171A1F]/[0.02]'
+                                                }`}
                                               >
                                                 <td className="py-2 px-3 font-mono text-[11px] text-[#294C87] font-semibold">
                                                   {inp.code}
                                                 </td>
-                                                <td className="py-2 px-3 font-medium text-[#171A1F] max-w-xs truncate">
+                                                <td
+                                                  className="py-2 px-3 font-medium text-[#171A1F] max-w-xs truncate"
+                                                  title={inp.description}
+                                                >
                                                   {inp.description}
+                                                </td>
+                                                <td className="py-2 px-3">
+                                                  <span
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] whitespace-nowrap ${sourceInfo.badgeClass}`}
+                                                    title={
+                                                      isSemFonte
+                                                        ? 'Item sem fonte oficial comprovada — preencha o custo manualmente'
+                                                        : `Fonte: ${sourceInfo.label}`
+                                                    }
+                                                  >
+                                                    <span
+                                                      className={`w-1.5 h-1.5 rounded-full ${sourceInfo.dotClass}`}
+                                                    />
+                                                    {sourceInfo.label}
+                                                  </span>
                                                 </td>
                                                 <td className="py-2 px-3">
                                                   <span
@@ -754,6 +834,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                                         parseFloat(e.target.value) || 0,
                                                       )
                                                     }
+                                                    title="Coeficiente de consumo editável (altera fonte para 'Usuário')"
                                                     className="w-20 px-1.5 py-0.5 text-right font-mono font-bold rounded border border-[#171A1F]/15 focus:outline-none focus:border-[#294C87]"
                                                   />
                                                 </td>
@@ -773,7 +854,12 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                                         parseFloat(e.target.value) || 0,
                                                       )
                                                     }
-                                                    className="w-24 px-1.5 py-0.5 text-right font-mono font-bold rounded border border-[#171A1F]/15 text-[#FF6B1F] focus:outline-none focus:border-[#FF6B1F]"
+                                                    title="Custo unitário em R$ editável (altera fonte para 'Usuário')"
+                                                    className={`w-24 px-1.5 py-0.5 text-right font-mono font-bold rounded focus:outline-none ${
+                                                      isSemFonte
+                                                        ? 'border-2 border-[#FF6B1F] text-[#FF6B1F] bg-white ring-1 ring-[#FF6B1F]/30'
+                                                        : 'border border-[#171A1F]/15 text-[#FF6B1F] focus:border-[#FF6B1F]'
+                                                    }`}
                                                   />
                                                 </td>
                                                 <td className="py-2 px-3 text-right font-bold text-[#171A1F]">
@@ -822,7 +908,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                       <tfoot className="bg-[#F8F9FA] font-bold text-xs border-t border-[#171A1F]/10">
                                         <tr>
                                           <td
-                                            colSpan={6}
+                                            colSpan={7}
                                             className="py-2 px-3 text-right text-[#171A1F]/70"
                                           >
                                             Custo Unitário da Composição ({comp.unit}):

@@ -26,6 +26,7 @@ export const InputEditModal: React.FC<InputEditModalProps> = ({
   const [category, setCategory] = useState<InputCategory>(initialInput?.category || 'material')
   const [coefficient, setCoefficient] = useState<number>(initialInput?.coefficient || 1.0)
   const [unitCost, setUnitCost] = useState<number>(initialInput?.unitCost || 0)
+  const [source, setSource] = useState<string>(initialInput?.source || 'Usuário')
   const [error, setError] = useState('')
 
   if (!isOpen) return null
@@ -45,6 +46,9 @@ export const InputEditModal: React.FC<InputEditModalProps> = ({
       return
     }
 
+    const effectiveSource = source.trim() || 'Usuário'
+    const isSemFonte = effectiveSource.toLowerCase().includes('sem fonte') || unitCost === 0
+
     onSave({
       id: initialInput?.id || `inp-${Date.now()}`,
       code: code.trim() || 'INSP-001',
@@ -53,6 +57,8 @@ export const InputEditModal: React.FC<InputEditModalProps> = ({
       category,
       coefficient: Number(coefficient),
       unitCost: Number(unitCost),
+      source: isSemFonte ? 'sem fonte — preencher manualmente' : effectiveSource,
+      sourceStatus: isSemFonte ? 'sem_fonte' : 'valido',
     })
 
     onClose()
@@ -81,7 +87,7 @@ export const InputEditModal: React.FC<InputEditModalProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-bold text-[#171A1F] block mb-1">
                 Código SINAPI/Próprio
@@ -93,6 +99,21 @@ export const InputEditModal: React.FC<InputEditModalProps> = ({
                 placeholder="Ex: SINAPI-88316"
                 className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-mono focus:outline-none focus:border-[#294C87]"
               />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#171A1F] block mb-1">Fonte do Custo</label>
+              <select
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-semibold focus:outline-none focus:border-[#294C87]"
+              >
+                <option value="Usuário">Usuário (Inserção manual)</option>
+                <option value="SINAPI">SINAPI</option>
+                <option value="SICRO">SICRO</option>
+                <option value="Biblioteca CONCE">Biblioteca CONCE</option>
+                <option value="sem fonte — preencher manualmente">Sem fonte (Pendente)</option>
+              </select>
             </div>
 
             <div>

@@ -78,3 +78,77 @@ export function getMarginColor(marginPercent: number): {
     label: 'Atenção (<15%)',
   }
 }
+
+/**
+ * Retorna as propriedades visuais de badge para a fonte de um insumo
+ * "SINAPI", "SICRO", "Biblioteca CONCE", "Usuário", ou sem fonte
+ */
+export function getSourceBadgeInfo(
+  source?: string,
+  sourceStatus?: string,
+): {
+  label: string
+  isPending: boolean
+  badgeClass: string
+  dotClass: string
+} {
+  const normalized = (source || '').trim().toLowerCase()
+  const isSemFonte =
+    sourceStatus === 'sem_fonte' ||
+    sourceStatus === 'pendente' ||
+    normalized.includes('sem fonte') ||
+    normalized === '' ||
+    normalized === 'pendente'
+
+  if (isSemFonte) {
+    return {
+      label: source?.trim() || 'sem fonte — preencher manualmente',
+      isPending: true,
+      badgeClass: 'bg-[#FF6B1F]/15 text-[#FF6B1F] border border-[#FF6B1F]/40 font-bold',
+      dotClass: 'bg-[#FF6B1F] animate-pulse',
+    }
+  }
+
+  if (normalized.includes('sinapi')) {
+    return {
+      label: 'SINAPI',
+      isPending: false,
+      badgeClass: 'bg-[#294C87]/15 text-[#294C87] border border-[#294C87]/30 font-semibold',
+      dotClass: 'bg-[#294C87]',
+    }
+  }
+
+  if (normalized.includes('sicro')) {
+    return {
+      label: 'SICRO',
+      isPending: false,
+      badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold',
+      dotClass: 'bg-emerald-600',
+    }
+  }
+
+  if (normalized.includes('conce') || normalized.includes('biblioteca')) {
+    return {
+      label: 'Biblioteca CONCE',
+      isPending: false,
+      badgeClass: 'bg-indigo-100 text-indigo-800 border border-indigo-300 font-semibold',
+      dotClass: 'bg-indigo-600',
+    }
+  }
+
+  if (normalized.includes('usuário') || normalized.includes('usuario')) {
+    return {
+      label: 'Usuário',
+      isPending: false,
+      badgeClass: 'bg-[#171A1F]/10 text-[#171A1F] border border-[#171A1F]/20 font-semibold',
+      dotClass: 'bg-[#171A1F]',
+    }
+  }
+
+  return {
+    label: source || 'Informado',
+    isPending: false,
+    badgeClass: 'bg-slate-100 text-slate-700 border border-slate-300 font-semibold',
+    dotClass: 'bg-slate-500',
+  }
+}

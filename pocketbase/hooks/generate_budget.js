@@ -22,22 +22,25 @@ routerAdd('POST', '/backend/v1/generate-budget', (e) => {
     }
 
     const userMessage =
-      'Elabore a planilha orçamentária detalhada para a seguinte solicitação de obra civil:\\n' +
+      'Elabore a planilha orçamentária detalhada para a seguinte solicitação de obra civil:\n' +
       'PROMPT DO ENGENHEIRO: ' +
       prompt +
-      '\\n' +
-      'PARÂMETROS ADICIONAIS:\\n' +
+      '\n' +
+      'PARÂMETROS ADICIONAIS:\n' +
       '- UF da obra (para encargos sociais): ' +
       uf +
-      '\\n' +
+      '\n' +
       '- Regime de encargos: ' +
       (isRelieved ? 'Com desoneração (CPRB)' : 'Sem desoneração (CLT)') +
-      '\\n' +
-      '- Base de composições de referência: ' +
+      '\n' +
+      '- Base de composições de referência principal: ' +
       reference +
-      '\\n\\n' +
-      'ATENÇÃO: Retorne APENAS o JSON válido estruturado de acordo com as especificações exigidas, contendo as etapas, serviços, composições e insumos detalhados com custos e coeficientes reais de mercado.'
-
+      '\n\n' +
+      'DIRETRIZ INEGOCIÁVEL SOBRE FONTES DE PREÇOS:\n' +
+      '- NUNCA invente ou chute valores de custos unitários.\n' +
+      '- Todo insumo deve conter o campo "source" explicitando sua fonte ("SINAPI", "SICRO", "Biblioteca CONCE").\n' +
+      '- Quando um insumo não constar em fonte oficial comprovada, atribua unitCost: 0, source: "sem fonte — preencher manualmente" e sourceStatus: "sem_fonte".\n' +
+      '- Retorne APENAS o JSON válido estruturado de acordo com as especificações exigidas, contendo as etapas, serviços, composições e insumos.'
     const result = $ai.agent('conce-budget-agent').chat({
       user_id: userId,
       conversation_id: body.conversation_id || null,
