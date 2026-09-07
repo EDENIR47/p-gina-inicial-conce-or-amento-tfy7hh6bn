@@ -22,14 +22,34 @@ import { BdiConfig } from '@/types/budgetEngine'
 import { calculateTcuBdi, DEFAULT_BDI_CONFIG } from '@/lib/budgetEngine'
 import { formatPercent } from '@/lib/formatters'
 
+import { TaxRegime } from '@/types/budgetEngine'
+
 interface BdiEditorProps {
   bdiConfig: BdiConfig
+  taxRegime?: TaxRegime
+  simplesDasRate?: number
+  onSimplesDasChange?: (rate: number) => void
   onChange: (newConfig: BdiConfig) => void
   disabled?: boolean
 }
 
-export const BdiEditor: React.FC<BdiEditorProps> = ({ bdiConfig, onChange, disabled = false }) => {
+export const BdiEditor: React.FC<BdiEditorProps> = ({
+  bdiConfig,
+  taxRegime,
+  simplesDasRate,
+  onSimplesDasChange,
+  onChange,
+  disabled = false,
+}) => {
   const [showFormulaDetails, setShowFormulaDetails] = useState(false)
+
+  const isSimples = taxRegime === 'simples_nacional'
+  const activeSimplesDas =
+    simplesDasRate !== undefined
+      ? simplesDasRate
+      : bdiConfig.taxes?.simplesDas !== undefined
+        ? bdiConfig.taxes.simplesDas
+        : 0
 
   // Faixas de referência TCU para obras de edificação (Acórdão 2.622/2013)
   const tcuBenchmarks = {
@@ -41,11 +61,12 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({ bdiConfig, onChange, disab
     bdi: { min: 20.34, medium: 22.84, max: 25.0, label: '20,34% - 25,00%' },
   }
 
-  const taxesTotal =
-    (Number(bdiConfig.taxes?.iss) || 0) +
-    (Number(bdiConfig.taxes?.pis) || 0) +
-    (Number(bdiConfig.taxes?.cofins) || 0) +
-    (Number(bdiConfig.taxes?.inssOrCprb) || 0)
+  const taxesTotal = isSimples
+    ? Number(activeSimplesDas) || 0
+    : (Number(bdiConfig.taxes?.iss) || 0) +
+      (Number(bdiConfig.taxes?.pis) || 0) +
+      (Number(bdiConfig.taxes?.cofins) || 0) +
+      (Number(bdiConfig.taxes?.inssOrCprb) || 0)
 
   const calcResult = calculateTcuBdi({
     administrationCentral: bdiConfig.administrationCentral,
@@ -62,11 +83,12 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({ bdiConfig, onChange, disab
       [field]: Math.max(0, value),
     }
 
-    const newTaxesTotal =
-      (Number(updated.taxes?.iss) || 0) +
-      (Number(updated.taxes?.pis) || 0) +
-      (Number(updated.taxes?.cofins) || 0) +
-      (Number(updated.taxes?.inssOrCprb) || 0)
+    const newTaxesTotal = isSimples
+      ? Number(activeSimplesDas) || 0
+      : (Number(updated.taxes?.iss) || 0) +
+        (Number(updated.taxes?.pis) || 0) +
+        (Number(updated.taxes?.cofins) || 0) +
+        (Number(updated.taxes?.inssOrCprb) || 0)
 
     const res = calculateTcuBdi({
       administrationCentral: updated.administrationCentral,
@@ -108,6 +130,32 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({ bdiConfig, onChange, disab
       taxesTotal: newTaxesTotal,
     })
 
+    updated.calculatedBdi = res.bdiPercent
+    onChange(updated)
+  }
+
+  const handleSimplesDasChange = (value: number) => {
+    const val = Math.max(0, value)
+    if (onSimplesDasChange) {
+      onSimplesDasChange(val)
+    }
+    const updatedTaxes = {
+      ...bdiConfig.taxes,
+      simplesDas: val,
+      totalTaxes: val,
+    }
+    const updated = {
+      ...bdiConfig,
+      taxes: updatedTaxes,
+    }
+    const res = calculateTcuBdi({
+      administrationCentral: updated.administrationCentral,
+      risk: updated.risk,
+      insuranceAndGuarantee: updated.insuranceAndGuarantee,
+      financialExpenses: updated.financialExpenses,
+      profit: updated.profit,
+      taxesTotal: val,
+    })
     updated.calculatedBdi = res.bdiPercent
     onChange(updated)
   }
@@ -353,99 +401,154 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({ bdiConfig, onChange, disab
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          {/* ISS */}
-          <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-[#171A1F]">ISS Municipal</label>
-              <span className="text-[10px] text-[#171A1F]/50">2% a 5%</span>
-            </div>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="10"
-                disabled={disabled}
-                value={bdiConfig.taxes?.iss || 0}
-                onChange={(e) => handleTaxChange('iss', parseFloat(e.target.value) || 0)}
-                className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
-              />
-              <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
-                %
-              </span>
-            </div>
-          </div>
+        {isSimples ? (
+          /* Modo Simples Nacional: Alíquota Unificada do DAS */
+          <div className="p-4 rounded-xl bg-[#294C87]/5 border-2 border-[#294C87]/30 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[#FF6B1F] text-white">
+                    Simples Nacional
+                  </span>
+                  <span className="font-bold text-sm text-[#171A1F]">
+                    Alíquota Efetiva do DAS (Documento de Arrecadação do Simples Nacional)
+                  </span>
+                </div>
+                <p className="text-xs text-[#171A1F]/70 mt-1">
+                  Empresas do Simples Nacional recolhem IRPJ, CSLL, PIS, COFINS, ISS e CPP de forma
+                  unificada. No cálculo do BDI (T), aplica-se a alíquota efetiva do Anexo IV/III
+                  correspondente à receita bruta dos últimos 12 meses.
+                </p>
+              </div>
 
-          {/* PIS */}
-          <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-[#171A1F]">PIS</label>
-              <span className="text-[10px] text-[#171A1F]/50">0,65%</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="relative w-36">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="40"
+                    disabled={disabled}
+                    placeholder="0.00"
+                    value={activeSimplesDas > 0 ? activeSimplesDas : ''}
+                    onChange={(e) => handleSimplesDasChange(parseFloat(e.target.value) || 0)}
+                    className="w-full pl-3 pr-8 py-2 rounded-lg bg-white border-2 border-[#294C87] text-sm font-bold text-[#171A1F] focus:outline-none focus:ring-2 focus:ring-[#FF6B1F]"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs text-[#171A1F]/50 font-bold">
+                    %
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="5"
-                disabled={disabled}
-                value={bdiConfig.taxes?.pis || 0}
-                onChange={(e) => handleTaxChange('pis', parseFloat(e.target.value) || 0)}
-                className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
-              />
-              <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
-                %
-              </span>
-            </div>
-          </div>
 
-          {/* COFINS */}
-          <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-[#171A1F]">COFINS</label>
-              <span className="text-[10px] text-[#171A1F]/50">3,00%</span>
-            </div>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="10"
-                disabled={disabled}
-                value={bdiConfig.taxes?.cofins || 0}
-                onChange={(e) => handleTaxChange('cofins', parseFloat(e.target.value) || 0)}
-                className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
-              />
-              <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
-                %
-              </span>
-            </div>
+            {activeSimplesDas === 0 && (
+              <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-center justify-between">
+                <span>
+                  <strong>Atenção:</strong> Alíquota padrão neutra (0%). Preencha manualmente a
+                  alíquota efetiva do DAS da sua empresa (ex.: 4,5% a 15,5%) para apurar o BDI exato
+                  da proposta.
+                </span>
+                <span className="font-bold px-2 py-0.5 bg-amber-200/60 rounded text-[10px] uppercase shrink-0 ml-2">
+                  Preencher Manualmente
+                </span>
+              </div>
+            )}
           </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            {/* ISS */}
+            <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#171A1F]">ISS Municipal</label>
+                <span className="text-[10px] text-[#171A1F]/50">2% a 5%</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="10"
+                  disabled={disabled}
+                  value={bdiConfig.taxes?.iss || 0}
+                  onChange={(e) => handleTaxChange('iss', parseFloat(e.target.value) || 0)}
+                  className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                />
+                <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
+                  %
+                </span>
+              </div>
+            </div>
 
-          {/* CPRB / INSS */}
-          <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-[#171A1F]">CPRB (Deson.)</label>
-              <span className="text-[10px] text-[#171A1F]/50">4,50% se aplicável</span>
+            {/* PIS */}
+            <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#171A1F]">PIS</label>
+                <span className="text-[10px] text-[#171A1F]/50">0,65%</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="5"
+                  disabled={disabled}
+                  value={bdiConfig.taxes?.pis || 0}
+                  onChange={(e) => handleTaxChange('pis', parseFloat(e.target.value) || 0)}
+                  className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                />
+                <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
+                  %
+                </span>
+              </div>
             </div>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="10"
-                disabled={disabled}
-                value={bdiConfig.taxes?.inssOrCprb || 0}
-                onChange={(e) => handleTaxChange('inssOrCprb', parseFloat(e.target.value) || 0)}
-                className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
-              />
-              <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
-                %
-              </span>
+
+            {/* COFINS */}
+            <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#171A1F]">COFINS</label>
+                <span className="text-[10px] text-[#171A1F]/50">3,00%</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="10"
+                  disabled={disabled}
+                  value={bdiConfig.taxes?.cofins || 0}
+                  onChange={(e) => handleTaxChange('cofins', parseFloat(e.target.value) || 0)}
+                  className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                />
+                <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
+                  %
+                </span>
+              </div>
+            </div>
+
+            {/* CPRB / INSS */}
+            <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#171A1F]">CPRB (Deson.)</label>
+                <span className="text-[10px] text-[#171A1F]/50">4,50% se aplicável</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="10"
+                  disabled={disabled}
+                  value={bdiConfig.taxes?.inssOrCprb || 0}
+                  onChange={(e) => handleTaxChange('inssOrCprb', parseFloat(e.target.value) || 0)}
+                  className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                />
+                <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
+                  %
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* BDI Diferenciado e Resultado Final */}
@@ -513,7 +616,10 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({ bdiConfig, onChange, disab
 
           <div className="text-[11px] text-white/70 flex items-center justify-between border-t border-white/10 pt-2">
             <span>TCU Edificação: 20,34% a 25,00%</span>
-            <span>Tributos Totais: {taxesTotal.toFixed(2)}%</span>
+            <span>
+              {isSimples ? 'Tributos (DAS): ' : 'Tributos Totais: '}
+              {taxesTotal.toFixed(2)}%
+            </span>
           </div>
         </div>
       </div>

@@ -39,6 +39,7 @@ import {
   BudgetService,
   BudgetComposition,
   BudgetInput,
+  TaxRegime,
 } from '@/types/budgetEngine'
 import { BRAZIL_STATES_LIST } from '@/lib/chargesData'
 import { DEFAULT_BDI_CONFIG, calculateFullBudget } from '@/lib/budgetEngine'
@@ -59,7 +60,9 @@ interface ExamplePrompt {
   description: string
   prompt: string
   uf: string
+  taxRegime: TaxRegime
   isRelieved: boolean
+  simplesDasRate?: number
   reference: string
 }
 
@@ -71,7 +74,9 @@ const EXAMPLE_PROMPTS: ExamplePrompt[] = [
     prompt:
       'Reforma completa de apartamento residencial de 120 m² em São Paulo/SP. Demolição de alvenarias internas, execução de novas divisórias em drywall com isolamento termoacústico, troca completa de piso com porcelanato retificado 80x80cm, revisão das instalações elétricas e iluminação LED em sanca de gesso, reforma de 2 banheiros e pintura acrílica fosca premium em duas demãos. Prazo estimado de 4 meses.',
     uf: 'SP',
+    taxRegime: 'simples_nacional',
     isRelieved: false,
+    simplesDasRate: 0,
     reference: 'SINAPI',
   },
   {
@@ -81,7 +86,9 @@ const EXAMPLE_PROMPTS: ExamplePrompt[] = [
     prompt:
       'Construção de Escola Técnica Municipal padrão FDE/MEC com 1.800 m² de área construída, 12 salas de aula, bloco administrativo, laboratórios e quadra poliesportiva coberta. Obra pública regida pela Lei Federal 14.133/2021, estrutura em concreto armado usinado FCK 30MPa com armação em aço CA-50, alvenaria de blocos de concreto, cobertura em telha termoacústica e pisos de alta resistência granilite. BDI conforme Acórdão 2.622/2013 do TCU e regime com desoneração da folha de pagamento.',
     uf: 'SP',
+    taxRegime: 'com_desoneracao',
     isRelieved: true,
+    simplesDasRate: 0,
     reference: 'SINAPI',
   },
   {
@@ -91,7 +98,9 @@ const EXAMPLE_PROMPTS: ExamplePrompt[] = [
     prompt:
       'Retrofit comercial de loja de alto padrão de 250 m² em shopping center no Rio de Janeiro/RJ. Instalações elétricas especiais com quadro de distribuição trifásico, cabeamento estruturado e luminárias de embutir no forro mineral; piso vinílico de tráfego intenso; climatização dutada VRF; fachada com vitrine em vidro temperado 10mm com ferragens inox e marcenaria comercial sob medida. Prazo de execução de 60 dias.',
     uf: 'RJ',
+    taxRegime: 'simples_nacional',
     isRelieved: false,
+    simplesDasRate: 0,
     reference: 'SINAPI',
   },
   {
@@ -101,7 +110,9 @@ const EXAMPLE_PROMPTS: ExamplePrompt[] = [
     prompt:
       'Construção de galpão logístico e industrial com 1.500 m² em Betim/MG. Fundações em estacas pré-moldadas, piso industrial de alta resistência nivelado a laser com capacidade para 6 tf/m², pilares e tesouras em estrutura metálica, fechamento lateral em telhas trapezoidais pré-pintadas com translúcidas, e pátio de manobras pavimentado.',
     uf: 'MG',
+    taxRegime: 'com_desoneracao',
     isRelieved: true,
+    simplesDasRate: 0,
     reference: 'SICRO',
   },
 ]
@@ -111,9 +122,11 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
   onClose,
   onBudgetCreated,
 }) => {
-  // Estados do formulário
+  // Estados do formulário — Simples Nacional como primeira classe e padrão CONCE
   const [prompt, setPrompt] = useState('')
   const [selectedUf, setSelectedUf] = useState('SP')
+  const [taxRegime, setTaxRegime] = useState<TaxRegime>('simples_nacional')
+  const [simplesDasRate, setSimplesDasRate] = useState<number>(0)
   const [isRelieved, setIsRelieved] = useState(false)
   const [reference, setReference] = useState<'SINAPI' | 'SICRO' | 'CONCE'>('SINAPI')
 
@@ -156,7 +169,9 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
   const handleApplyExample = (ex: ExamplePrompt) => {
     setPrompt(ex.prompt)
     setSelectedUf(ex.uf)
+    setTaxRegime(ex.taxRegime || (ex.isRelieved ? 'com_desoneracao' : 'sem_desoneracao'))
     setIsRelieved(ex.isRelieved)
+    setSimplesDasRate(ex.simplesDasRate || 0)
     setReference((ex.reference as any) || 'SINAPI')
     setValidationError(null)
   }
@@ -190,7 +205,9 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
         body: JSON.stringify({
           prompt: trimmed,
           uf: selectedUf,
-          isRelieved,
+          isRelieved: taxRegime === 'com_desoneracao',
+          taxRegime,
+          simplesDasRate: taxRegime === 'simples_nacional' ? simplesDasRate : 0,
           reference,
         }),
       })
@@ -402,10 +419,21 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
         },
         chargesConfig: {
           uf: selectedUf,
-          isRelieved,
+          isRelieved: taxRegime === 'com_desoneracao',
+          taxRegime,
+          simplesDasRate: taxRegime === 'simples_nacional' ? simplesDasRate : 0,
         },
         bdiConfig: {
           ...DEFAULT_BDI_CONFIG,
+          taxes: {
+            ...DEFAULT_BDI_CONFIG.taxes,
+            inssOrCprb: taxRegime === 'com_desoneracao' ? 4.5 : 0.0,
+            simplesDas: taxRegime === 'simples_nacional' ? simplesDasRate : undefined,
+            totalTaxes:
+              taxRegime === 'simples_nacional'
+                ? simplesDasRate
+                : DEFAULT_BDI_CONFIG.taxes.totalTaxes,
+          },
           calculatedBdi: suggestedBdi,
           profit: isPublic ? 6.85 : 7.8,
         },
@@ -535,18 +563,27 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
     saveSingleBudget(draftBudget)
 
     // 2. Registrar trilha de auditoria específica para geração com IA
+    const regimeLabel =
+      draftBudget.chargesConfig?.taxRegime === 'simples_nacional'
+        ? 'Simples Nacional'
+        : draftBudget.chargesConfig?.taxRegime === 'com_desoneracao'
+          ? 'Com Desoneração'
+          : 'Sem Desoneração'
+
     logAuditEvent({
       budgetId: draftBudget.id,
       action: 'criacao_orcamento',
       title: '✨ Orçamento Gerado por Agente de IA',
-      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${regimeLabel}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
       userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Agente IA CONCE)',
       newValue: draftSummary?.finalSalePrice,
       metadata: {
         aiAgentSlug: 'conce-budget-agent',
         prompt,
         uf: selectedUf,
-        isRelieved,
+        taxRegime: draftBudget.chargesConfig?.taxRegime || taxRegime,
+        isRelieved: draftBudget.chargesConfig?.isRelieved,
+        simplesDasRate: draftBudget.chargesConfig?.simplesDasRate,
         reference,
         stagesCount: draftBudget.stages.length,
         servicesCount: draftSummary?.servicesCount || 0,
@@ -669,16 +706,26 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                   </select>
                 </div>
 
-                {/* Regime de Encargos */}
+                {/* Regime Tributário */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#171A1F]">Regime Tributário</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#171A1F]">Regime Tributário</label>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#FF6B1F] text-white font-extrabold uppercase">
+                      CONCE
+                    </span>
+                  </div>
                   <select
-                    value={isRelieved ? 'desonerado' : 'sem_desoneracao'}
-                    onChange={(e) => setIsRelieved(e.target.value === 'desonerado')}
+                    value={taxRegime}
+                    onChange={(e) => {
+                      const reg = e.target.value as TaxRegime
+                      setTaxRegime(reg)
+                      setIsRelieved(reg === 'com_desoneracao')
+                    }}
                     className="w-full px-3 py-2 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/20 text-xs font-semibold focus:outline-none focus:border-[#294C87]"
                   >
-                    <option value="sem_desoneracao">Sem Desoneração (CLT)</option>
-                    <option value="desonerado">Com Desoneração (Lei 12.546 / CPRB)</option>
+                    <option value="simples_nacional">★ Simples Nacional (Padrão CONCE)</option>
+                    <option value="sem_desoneracao">Sem Desoneração (CLT integral 20%)</option>
+                    <option value="com_desoneracao">Com Desoneração (CPRB 4,5% Lei 12.546)</option>
                   </select>
                 </div>
 
@@ -696,6 +743,63 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                   </select>
                 </div>
               </div>
+
+              {/* Micro-legenda do Regime Tributário selecionado e Alíquota DAS se Simples Nacional */}
+              {taxRegime === 'simples_nacional' ? (
+                <div className="p-3 rounded-xl bg-[#294C87]/5 border border-[#294C87]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-[#294C87] flex items-center gap-1.5">
+                      <span>Regime Simples Nacional — Padrão CONCE</span>
+                      <span className="text-[10px] bg-[#FF6B1F] text-white px-1.5 py-0.2 rounded font-extrabold uppercase">
+                        Ativo
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-[#171A1F]/70">
+                      Encargos trabalhistas seguem a tabela base sem desoneração (CLT). No BDI, os
+                      tributos unificados do DAS são informados diretamente pela alíquota efetiva da
+                      empresa.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label className="text-xs font-bold text-[#171A1F] whitespace-nowrap">
+                      Alíquota DAS:
+                    </label>
+                    <div className="relative w-28">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="40"
+                        placeholder="0.00"
+                        value={simplesDasRate > 0 ? simplesDasRate : ''}
+                        onChange={(e) => setSimplesDasRate(parseFloat(e.target.value) || 0)}
+                        className="w-full pl-2.5 pr-7 py-1 rounded-lg bg-white border border-[#171A1F]/30 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                      />
+                      <span className="absolute right-2 top-1 text-[11px] text-[#171A1F]/50 font-bold">
+                        %
+                      </span>
+                    </div>
+                    {simplesDasRate === 0 && (
+                      <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-semibold whitespace-nowrap">
+                        Preencher manualmente
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : taxRegime === 'sem_desoneracao' ? (
+                <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 text-xs text-[#171A1F]/70">
+                  <span className="font-bold text-[#171A1F]">Sem Desoneração:</span> Recolhimento
+                  integral de 20% de INSS patronal sobre a folha de pagamento (padrão CLT).
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 text-xs text-[#171A1F]/70">
+                  <span className="font-bold text-[#FF6B1F]">
+                    Com Desoneração (Lei 12.546/2011):
+                  </span>{' '}
+                  Alíquota reduzida no Grupo A de encargos trabalhistas compensada por CPRB de 4,5%
+                  sobre o faturamento no BDI.
+                </div>
+              )}
 
               {/* CAMPO DE PROMPT */}
               <div className="space-y-2">

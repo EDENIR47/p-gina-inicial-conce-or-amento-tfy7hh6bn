@@ -120,6 +120,8 @@ export interface SocialChargesGroup {
   description: string
 }
 
+export type TaxRegime = 'simples_nacional' | 'sem_desoneracao' | 'com_desoneracao'
+
 export interface SocialChargesStateConfig {
   uf: string
   stateName: string
@@ -153,7 +155,8 @@ export interface BdiConfig {
     pis: number // PIS (%)
     cofins: number // COFINS (%)
     inssOrCprb: number // CPRB se desonerado (%)
-    totalTaxes: number // T (%) = ISS + PIS + COFINS + CPRB
+    simplesDas?: number // Alíquota do Simples Nacional (DAS) (%) quando Simples Nacional
+    totalTaxes: number // T (%) = ISS + PIS + COFINS + CPRB (ou DAS se Simples Nacional)
   }
   calculatedBdi: number // Resultado da fórmula do TCU (%)
   differentiatedEquipBdi?: number // BDI para fornecimento de materiais/equipamentos (TCU recomenda menor)
@@ -169,7 +172,9 @@ export interface FullBudget {
   stages: BudgetStage[]
   chargesConfig: {
     uf: string
-    isRelieved: boolean // com ou sem desoneração
+    isRelieved: boolean // compatibilidade: true se 'com_desoneracao', false se 'sem_desoneracao' ou 'simples_nacional'
+    taxRegime?: TaxRegime // 'simples_nacional' | 'sem_desoneracao' | 'com_desoneracao'
+    simplesDasRate?: number // Alíquota efetiva do DAS informada pelo usuário (0 padrão neutro até preencher)
     customGroupA?: number
     customGroupB?: number
     customGroupC?: number
@@ -182,6 +187,7 @@ export interface FullBudget {
 }
 
 export interface CalculationSummary {
+  taxRegime?: TaxRegime // Regime tributário efetivo ('simples_nacional' | 'sem_desoneracao' | 'com_desoneracao')
   directCostInputs: number // Custo Direto de Insumos
   laborDirectCost: number // Parcela de Mão de Obra
   materialDirectCost: number // Parcela de Materiais

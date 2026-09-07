@@ -21,8 +21,9 @@ import {
   FileText,
   AlertCircle,
 } from 'lucide-react'
-import { ClientData, FullBudget, PublicWorkData, WorkData } from '@/types/budgetEngine'
+import { ClientData, FullBudget, PublicWorkData, TaxRegime, WorkData } from '@/types/budgetEngine'
 import { BRAZIL_STATES_LIST } from '@/lib/chargesData'
+import { Briefcase } from 'lucide-react'
 
 interface BudgetHeaderFormProps {
   budget: FullBudget
@@ -63,6 +64,56 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
       publicWork: {
         ...budget.publicWork,
         [field]: value,
+      },
+    })
+  }
+
+  const currentRegime: TaxRegime =
+    budget.chargesConfig?.taxRegime ||
+    (budget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
+
+  const handleTaxRegimeChange = (regime: TaxRegime) => {
+    const isRel = regime === 'com_desoneracao'
+    onChange({
+      ...budget,
+      chargesConfig: {
+        ...budget.chargesConfig,
+        taxRegime: regime,
+        isRelieved: isRel,
+        simplesDasRate:
+          regime === 'simples_nacional'
+            ? (budget.chargesConfig?.simplesDasRate ?? 0)
+            : budget.chargesConfig?.simplesDasRate,
+      },
+      bdiConfig: {
+        ...budget.bdiConfig,
+        taxes: {
+          ...budget.bdiConfig.taxes,
+          inssOrCprb: regime === 'com_desoneracao' ? 4.5 : 0.0,
+          simplesDas:
+            regime === 'simples_nacional'
+              ? (budget.chargesConfig?.simplesDasRate ?? budget.bdiConfig.taxes?.simplesDas ?? 0)
+              : undefined,
+        },
+      },
+    })
+  }
+
+  const handleSimplesDasInputChange = (rate: number) => {
+    const val = Math.max(0, rate)
+    onChange({
+      ...budget,
+      chargesConfig: {
+        ...budget.chargesConfig,
+        simplesDasRate: val,
+      },
+      bdiConfig: {
+        ...budget.bdiConfig,
+        taxes: {
+          ...budget.bdiConfig.taxes,
+          simplesDas: val,
+          totalTaxes: val,
+        },
       },
     })
   }
@@ -324,6 +375,148 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
             />
           </div>
         </div>
+      </div>
+
+      {/* 2.1 REGIME TRIBUTÁRIO DA EMPRESA EXECUTORA */}
+      <div className="bg-white rounded-[16px] p-5 sm:p-7 shadow-[0_4px_24px_rgba(23,26,31,0.06)] border border-[#171A1F]/10 space-y-4">
+        <div className="flex items-center gap-2 border-b border-[#171A1F]/10 pb-3">
+          <span className="p-2 rounded-lg bg-[#294C87]/10 text-[#294C87]">
+            <Briefcase className="w-5 h-5" />
+          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-bold text-[#171A1F]">
+                Regime Tributário da Empresa Executora
+              </h3>
+              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[#FF6B1F] text-white">
+                CONCE: Simples Nacional
+              </span>
+            </div>
+            <p className="text-xs text-[#171A1F]/60">
+              Define o recolhimento dos tributos do BDI (DAS unificado ou PIS/COFINS/ISS/CPRB) e a
+              base dos encargos sociais trabalhistas
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Opção Simples Nacional */}
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => handleTaxRegimeChange('simples_nacional')}
+            className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+              currentRegime === 'simples_nacional'
+                ? 'bg-[#294C87] text-white border-[#294C87] shadow-md ring-2 ring-[#FF6B1F]'
+                : 'bg-[#F8F9FA] text-[#171A1F] border-[#171A1F]/15 hover:bg-white'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <span className="font-bold text-sm">Simples Nacional</span>
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-[#FF6B1F] text-white">
+                  Padrão CONCE
+                </span>
+              </div>
+              <p
+                className={`text-xs ${
+                  currentRegime === 'simples_nacional' ? 'text-white/80' : 'text-[#171A1F]/60'
+                }`}
+              >
+                Tributos unificados pelo DAS. Encargos sociais seguem a base sem desoneração.
+              </p>
+            </div>
+          </button>
+
+          {/* Opção Sem Desoneração */}
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => handleTaxRegimeChange('sem_desoneracao')}
+            className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+              currentRegime === 'sem_desoneracao'
+                ? 'bg-[#294C87] text-white border-[#294C87] shadow-md'
+                : 'bg-[#F8F9FA] text-[#171A1F] border-[#171A1F]/15 hover:bg-white'
+            }`}
+          >
+            <div>
+              <div className="font-bold text-sm mb-1">Sem Desoneração</div>
+              <p
+                className={`text-xs ${
+                  currentRegime === 'sem_desoneracao' ? 'text-white/80' : 'text-[#171A1F]/60'
+                }`}
+              >
+                Lucro Presumido/Real com INSS patronal de 20% integral na folha de pagamento (CLT).
+              </p>
+            </div>
+          </button>
+
+          {/* Opção Com Desoneração */}
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => handleTaxRegimeChange('com_desoneracao')}
+            className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+              currentRegime === 'com_desoneracao'
+                ? 'bg-[#FF6B1F] text-white border-[#FF6B1F] shadow-md'
+                : 'bg-[#F8F9FA] text-[#171A1F] border-[#171A1F]/15 hover:bg-white'
+            }`}
+          >
+            <div>
+              <div className="font-bold text-sm mb-1">Com Desoneração</div>
+              <p
+                className={`text-xs ${
+                  currentRegime === 'com_desoneracao' ? 'text-white/80' : 'text-[#171A1F]/60'
+                }`}
+              >
+                Lei 12.546/2011: substitui INSS patronal pela CPRB de 4,5% sobre o faturamento.
+              </p>
+            </div>
+          </button>
+        </div>
+
+        {currentRegime === 'simples_nacional' && (
+          <div className="p-3.5 rounded-xl bg-[#294C87]/5 border border-[#294C87]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+            <div className="text-xs text-[#171A1F]/80">
+              <span className="font-bold text-[#294C87] block mb-0.5">
+                Alíquota Efetiva do DAS no BDI
+              </span>
+              <span className="text-[#171A1F]/70">
+                Informe a alíquota apurada do Simples Nacional aplicável ao faturamento desta obra.
+                O valor incidirá diretamente como componente de tributos (T) na fórmula do TCU.
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <label className="text-xs font-bold text-[#171A1F]">Alíquota DAS:</label>
+              <div className="relative w-32">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="40"
+                  disabled={disabled}
+                  placeholder="0.00"
+                  value={
+                    (budget.chargesConfig?.simplesDasRate ?? 0) > 0
+                      ? budget.chargesConfig?.simplesDasRate
+                      : ''
+                  }
+                  onChange={(e) => handleSimplesDasInputChange(parseFloat(e.target.value) || 0)}
+                  className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                />
+                <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
+                  %
+                </span>
+              </div>
+              {(budget.chargesConfig?.simplesDasRate ?? 0) === 0 && (
+                <span className="text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-semibold whitespace-nowrap">
+                  Preencher manualmente
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. SEÇÃO MODO OBRAS PÚBLICAS (LICITAÇÕES / CONTRATOS) */}

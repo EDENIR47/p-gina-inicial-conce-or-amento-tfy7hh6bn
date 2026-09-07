@@ -15,10 +15,14 @@ import { AbcCalculatedItem, AbcCurveAnalysis, AbcClass } from '@/types/intellige
 import { getChargesForState } from './chargesData'
 
 export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
-  const stateCharges = getChargesForState(
-    budget.chargesConfig?.uf || 'SP',
-    budget.chargesConfig?.isRelieved || false,
-  )
+  const taxRegime =
+    budget.chargesConfig?.taxRegime ||
+    (budget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
+
+  // No Simples Nacional, os encargos seguem sem desoneração
+  const isRelievedForCharges = taxRegime === 'com_desoneracao'
+
+  const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
 
   const chargesRate =
     budget.chargesConfig?.customGroupA !== undefined

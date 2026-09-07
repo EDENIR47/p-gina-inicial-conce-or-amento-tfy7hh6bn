@@ -107,6 +107,7 @@ export type AuditActionType =
   | 'edicao_custo'
   | 'edicao_bdi'
   | 'edicao_encargos'
+  | 'edicao_regime_tributario'
   | 'troca_composicao'
   | 'exclusao_item'
   | 'cotacao_homologada'

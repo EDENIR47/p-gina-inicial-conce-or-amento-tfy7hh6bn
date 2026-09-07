@@ -7,8 +7,19 @@ routerAdd('POST', '/backend/v1/generate-budget', (e) => {
     }
 
     const uf = body.uf ? String(body.uf).trim().toUpperCase() : 'SP'
-    const isRelieved = Boolean(body.isRelieved)
+    const taxRegime = body.taxRegime ? String(body.taxRegime).trim() : ''
+    const isRelieved = taxRegime === 'com_desoneracao' || Boolean(body.isRelieved)
     const reference = body.reference ? String(body.reference).trim() : 'SINAPI'
+    const simplesDasRate = Number(body.simplesDasRate) || 0
+
+    const regimeLabel =
+      taxRegime === 'simples_nacional'
+        ? 'Simples Nacional (Regime operacional CONCE - encargos base sem desoneração / tributos unificados no DAS' +
+          (simplesDasRate > 0 ? ` com alíquota de ${simplesDasRate}%` : '') +
+          ')'
+        : isRelieved
+          ? 'Com desoneração (CPRB Lei 12.546/2011)'
+          : 'Sem desoneração (CLT)'
 
     // Resolver ID de usuário para a persistência da conversa do agente
     let userId = e.auth?.id
@@ -30,8 +41,8 @@ routerAdd('POST', '/backend/v1/generate-budget', (e) => {
       '- UF da obra (para encargos sociais): ' +
       uf +
       '\n' +
-      '- Regime de encargos: ' +
-      (isRelieved ? 'Com desoneração (CPRB)' : 'Sem desoneração (CLT)') +
+      '- Regime tributário da empresa executora: ' +
+      regimeLabel +
       '\n' +
       '- Base de composições de referência principal: ' +
       reference +

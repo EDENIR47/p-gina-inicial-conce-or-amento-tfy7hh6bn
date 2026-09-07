@@ -143,11 +143,17 @@ export function calculateStageDirectCost(
  * Executa o cálculo integral de um orçamento em tempo real
  */
 export function calculateFullBudget(budget: FullBudget): CalculationSummary {
-  // 1. Determina taxa de encargos sociais pela UF e regime
-  const stateCharges = getChargesForState(
-    budget.chargesConfig?.uf || 'SP',
-    budget.chargesConfig?.isRelieved || false,
-  )
+  // Determina o regime tributário efetivo
+  const taxRegime =
+    budget.chargesConfig?.taxRegime ||
+    (budget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
+
+  // 1. Determina taxa de encargos sociais pela UF e regime:
+  // No Simples Nacional, os percentuais de encargos usam o regime SEM desoneração como base
+  // (a desoneração da folha da Lei 12.546 não se aplica a empresas do Simples Nacional).
+  const isRelievedForCharges = taxRegime === 'com_desoneracao'
+
+  const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
 
   // Percentual total de encargos sociais (pode ser customizado ou default da UF)
   const chargesRate =
@@ -159,11 +165,24 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
       : stateCharges.total
 
   // 2. Determina o BDI pela fórmula TCU
-  const taxesTotal =
-    (budget.bdiConfig.taxes.iss || 0) +
-    (budget.bdiConfig.taxes.pis || 0) +
-    (budget.bdiConfig.taxes.cofins || 0) +
-    (budget.bdiConfig.taxes.inssOrCprb || 0)
+  // No Simples Nacional, os tributos sobre faturamento são unificados no DAS (alíquota efetiva informada pelo usuário).
+  // Nos regimes normais (Lucro Presumido / Real), somam-se ISS + PIS + COFINS + CPRB (se desonerado).
+  let taxesTotal = 0
+  if (taxRegime === 'simples_nacional') {
+    const dasRate =
+      budget.chargesConfig?.simplesDasRate !== undefined
+        ? budget.chargesConfig.simplesDasRate
+        : budget.bdiConfig.taxes.simplesDas !== undefined
+          ? budget.bdiConfig.taxes.simplesDas
+          : 0
+    taxesTotal = Number(dasRate) || 0
+  } else {
+    taxesTotal =
+      (budget.bdiConfig.taxes.iss || 0) +
+      (budget.bdiConfig.taxes.pis || 0) +
+      (budget.bdiConfig.taxes.cofins || 0) +
+      (budget.bdiConfig.taxes.inssOrCprb || 0)
+  }
 
   const tcuResult = calculateTcuBdi({
     administrationCentral: budget.bdiConfig.administrationCentral,
@@ -278,6 +297,7 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
   const totalTaxesAmount = (totalWithBdi * taxesTotal) / 100
 
   return {
+    taxRegime,
     directCostInputs: Number(totalDirectCostNoCharges.toFixed(2)),
     laborDirectCost: Number(laborDirectCost.toFixed(2)),
     materialDirectCost: Number(materialDirectCost.toFixed(2)),

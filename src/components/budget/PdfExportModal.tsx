@@ -444,7 +444,20 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               <p className="text-[#171A1F]/70">
                 Prazo de Execução: {budget.work.deadlineMonths} meses
               </p>
-              <p className="font-semibold text-[#171A1F] pt-1">
+              <p className="text-xs font-semibold text-[#294C87] pt-0.5">
+                Regime Tributário:{' '}
+                {budget.chargesConfig?.taxRegime === 'simples_nacional'
+                  ? 'Simples Nacional'
+                  : budget.chargesConfig?.taxRegime === 'com_desoneracao' ||
+                      budget.chargesConfig?.isRelieved
+                    ? 'Com Desoneração (Lei 12.546)'
+                    : 'Sem Desoneração (CLT)'}
+                {budget.chargesConfig?.taxRegime === 'simples_nacional' &&
+                  budget.chargesConfig?.simplesDasRate !== undefined &&
+                  budget.chargesConfig?.simplesDasRate > 0 &&
+                  ` (DAS: ${budget.chargesConfig.simplesDasRate.toFixed(2)}%)`}
+              </p>
+              <p className="font-semibold text-[#171A1F] pt-0.5">
                 Responsável Técnico: {budget.author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397'}
               </p>
             </div>
@@ -1243,7 +1256,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                       </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
-                      <span>Tributos Totais (ISS+PIS+COFINS+CPRB):</span>
+                      <span>
+                        {budget.chargesConfig?.taxRegime === 'simples_nacional'
+                          ? 'Tributos Simples Nacional (DAS):'
+                          : 'Tributos Totais (ISS+PIS+COFINS+CPRB):'}
+                      </span>
                       <span className="font-mono font-bold">
                         {summary.totalTaxesRate.toFixed(2)}%
                       </span>
@@ -1269,11 +1286,14 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
                   <div className="space-y-1.5 text-[#171A1F]/80">
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
-                      <span>Regime de Desoneração:</span>
+                      <span>Regime Tributário / Desoneração:</span>
                       <span className="font-bold text-[#171A1F]">
-                        {budget.chargesConfig.isRelieved
-                          ? 'Desonerado (CPRB Lei 12.546)'
-                          : 'Sem Desoneração (Padrão CLT)'}
+                        {budget.chargesConfig?.taxRegime === 'simples_nacional'
+                          ? 'Simples Nacional (Encargos sem desoneração / DAS)'
+                          : budget.chargesConfig?.taxRegime === 'com_desoneracao' ||
+                              budget.chargesConfig.isRelieved
+                            ? 'Desonerado (CPRB Lei 12.546)'
+                            : 'Sem Desoneração (Padrão CLT)'}
                       </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">

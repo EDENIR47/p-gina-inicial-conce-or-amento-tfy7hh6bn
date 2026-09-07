@@ -9,15 +9,20 @@ import React from 'react'
 import { MapPin, Building, CheckCircle2, Sliders, RotateCcw, Layers, FileCheck } from 'lucide-react'
 import { BRAZIL_STATES_CHARGES, BRAZIL_STATES_LIST, getChargesForState } from '@/lib/chargesData'
 
+import { TaxRegime } from '@/types/budgetEngine'
+
 interface SocialChargesSelectorProps {
   uf: string
   isRelieved: boolean
+  taxRegime?: TaxRegime
+  simplesDasRate?: number
   customGroupA?: number
   customGroupB?: number
   customGroupC?: number
   customGroupD?: number
   onUfChange: (uf: string) => void
   onRelievedChange: (isRelieved: boolean) => void
+  onTaxRegimeChange?: (regime: TaxRegime, dasRate?: number) => void
   onCustomGroupsChange: (groups: {
     customGroupA?: number
     customGroupB?: number
@@ -30,18 +35,28 @@ interface SocialChargesSelectorProps {
 export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
   uf,
   isRelieved,
+  taxRegime,
+  simplesDasRate = 0,
   customGroupA,
   customGroupB,
   customGroupC,
   customGroupD,
   onUfChange,
   onRelievedChange,
+  onTaxRegimeChange,
   onCustomGroupsChange,
   disabled = false,
 }) => {
+  // Regime ativo com fallback retrocompatível
+  const effectiveRegime: TaxRegime =
+    taxRegime || (isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
+
+  // No Simples Nacional, os encargos usam como base o regime sem desoneração
+  const usesRelievedCharges = effectiveRegime === 'com_desoneracao'
+
   const currentUf = (uf || 'SP').toUpperCase()
   const stateData = BRAZIL_STATES_CHARGES[currentUf] || BRAZIL_STATES_CHARGES['SP']
-  const defaultCharges = isRelieved ? stateData.relieved : stateData.nonRelieved
+  const defaultCharges = usesRelievedCharges ? stateData.relieved : stateData.nonRelieved
 
   const activeA = customGroupA !== undefined ? customGroupA : defaultCharges.groupA
   const activeB = customGroupB !== undefined ? customGroupB : defaultCharges.groupB
@@ -129,47 +144,147 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
           </p>
         </div>
 
-        {/* Chave de Regime: Sem Desoneração vs Com Desoneração */}
+        {/* Seletor de Regime Tributário / Trabalhista */}
         <div className="md:col-span-7 space-y-1.5">
           <label className="text-xs font-bold text-[#171A1F] uppercase tracking-wider flex items-center gap-1.5">
             <FileCheck className="w-3.5 h-3.5 text-[#294C87]" />
-            Regime de Desoneração da Folha (Lei 12.546/2011)
+            Regime Tributário & Desoneração da Folha
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {/* Opção Simples Nacional — CONCE */}
             <button
               type="button"
               disabled={disabled}
-              onClick={() => onRelievedChange(false)}
-              className={`px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all text-left flex flex-col ${
-                !isRelieved
+              onClick={() => {
+                if (onTaxRegimeChange) {
+                  onTaxRegimeChange('simples_nacional', simplesDasRate)
+                } else {
+                  onRelievedChange(false)
+                }
+              }}
+              className={`px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all text-left flex flex-col relative ${
+                effectiveRegime === 'simples_nacional'
+                  ? 'bg-[#294C87] text-white border-[#294C87] shadow-sm ring-2 ring-[#FF6B1F]/50'
+                  : 'bg-[#F8F9FA] text-[#171A1F]/80 border-[#171A1F]/15 hover:bg-white'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-1 w-full">
+                <span className="font-bold">Simples Nacional</span>
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-[#FF6B1F] text-white">
+                  CONCE
+                </span>
+              </div>
+              <span
+                className={`text-[10px] mt-0.5 line-clamp-2 ${
+                  effectiveRegime === 'simples_nacional' ? 'text-white/85' : 'text-[#171A1F]/60'
+                }`}
+              >
+                Tributos unificados no DAS • Encargos sem desoneração
+              </span>
+            </button>
+
+            {/* Opção Sem Desoneração */}
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => {
+                if (onTaxRegimeChange) {
+                  onTaxRegimeChange('sem_desoneracao', simplesDasRate)
+                } else {
+                  onRelievedChange(false)
+                }
+              }}
+              className={`px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all text-left flex flex-col ${
+                effectiveRegime === 'sem_desoneracao'
                   ? 'bg-[#294C87] text-white border-[#294C87] shadow-sm'
-                  : 'bg-[#F8F9FA] text-[#171A1F]/70 border-[#171A1F]/15 hover:bg-white'
+                  : 'bg-[#F8F9FA] text-[#171A1F]/80 border-[#171A1F]/15 hover:bg-white'
               }`}
             >
               <span className="font-bold">Sem Desoneração</span>
               <span
-                className={`text-[10px] ${!isRelieved ? 'text-white/80' : 'text-[#171A1F]/50'}`}
+                className={`text-[10px] mt-0.5 line-clamp-2 ${
+                  effectiveRegime === 'sem_desoneracao' ? 'text-white/85' : 'text-[#171A1F]/60'
+                }`}
               >
-                INSS integral 20% (Padrão)
+                INSS patronal 20% sobre folha de pagamento (CLT)
               </span>
             </button>
 
+            {/* Opção Com Desoneração */}
             <button
               type="button"
               disabled={disabled}
-              onClick={() => onRelievedChange(true)}
-              className={`px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all text-left flex flex-col ${
-                isRelieved
+              onClick={() => {
+                if (onTaxRegimeChange) {
+                  onTaxRegimeChange('com_desoneracao', simplesDasRate)
+                } else {
+                  onRelievedChange(true)
+                }
+              }}
+              className={`px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all text-left flex flex-col ${
+                effectiveRegime === 'com_desoneracao'
                   ? 'bg-[#FF6B1F] text-white border-[#FF6B1F] shadow-sm'
-                  : 'bg-[#F8F9FA] text-[#171A1F]/70 border-[#171A1F]/15 hover:bg-white'
+                  : 'bg-[#F8F9FA] text-[#171A1F]/80 border-[#171A1F]/15 hover:bg-white'
               }`}
             >
               <span className="font-bold">Com Desoneração</span>
-              <span className={`text-[10px] ${isRelieved ? 'text-white/80' : 'text-[#171A1F]/50'}`}>
-                CPRB 4,5% sobre faturamento
+              <span
+                className={`text-[10px] mt-0.5 line-clamp-2 ${
+                  effectiveRegime === 'com_desoneracao' ? 'text-white/85' : 'text-[#171A1F]/60'
+                }`}
+              >
+                CPRB 4,5% sobre receita bruta (Lei 12.546/2011)
               </span>
             </button>
           </div>
+
+          {/* Micro-legenda e campo do DAS se Simples Nacional */}
+          {effectiveRegime === 'simples_nacional' && (
+            <div className="mt-2.5 p-3 rounded-xl bg-[#294C87]/5 border border-[#294C87]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="text-xs text-[#171A1F]/80 space-y-0.5">
+                <p className="font-bold text-[#294C87]">
+                  Regime Simples Nacional — Padrão Operacional CONCE
+                </p>
+                <p className="text-[11px] text-[#171A1F]/70">
+                  Os encargos sociais trabalhistas seguem a tabela base sem desoneração (não se
+                  aplica CPRB). Os tributos do BDI passam a incidir pela alíquota efetiva do DAS da
+                  empresa.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <label className="text-xs font-bold text-[#171A1F] whitespace-nowrap">
+                  Alíquota DAS:
+                </label>
+                <div className="relative w-28">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="40"
+                    disabled={disabled}
+                    placeholder="0.00"
+                    value={simplesDasRate > 0 ? simplesDasRate : ''}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0
+                      if (onTaxRegimeChange) {
+                        onTaxRegimeChange('simples_nacional', val)
+                      }
+                    }}
+                    className="w-full pl-2.5 pr-7 py-1 rounded-lg bg-white border border-[#171A1F]/30 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                  />
+                  <span className="absolute right-2 top-1.5 text-[11px] text-[#171A1F]/50 font-bold">
+                    %
+                  </span>
+                </div>
+                {simplesDasRate === 0 && (
+                  <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-semibold whitespace-nowrap">
+                    Preencher manualmente
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -334,8 +449,13 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
             )}
           </div>
           <p className="text-xs text-white/70">
-            Regime: {isRelieved ? 'Com Desoneração (CPRB)' : 'Sem Desoneração (CLT integral)'} • Mão
-            de Obra
+            Regime:{' '}
+            {effectiveRegime === 'simples_nacional'
+              ? 'Simples Nacional (DAS • base sem desoneração)'
+              : effectiveRegime === 'com_desoneracao'
+                ? 'Com Desoneração (CPRB Lei 12.546)'
+                : 'Sem Desoneração (CLT integral)'}{' '}
+            • Mão de Obra
           </p>
         </div>
 

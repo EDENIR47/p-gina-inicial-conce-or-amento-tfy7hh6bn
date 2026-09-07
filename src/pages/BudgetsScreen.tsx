@@ -220,6 +220,32 @@ export const BudgetsScreen: React.FC = () => {
       return
     }
 
+    // Identifica se houve alteração de regime para auditoria detalhada
+    const previousBudget = budgetsList.find((b) => b.id === activeBudget.id)
+    if (previousBudget) {
+      const prevReg =
+        previousBudget.chargesConfig?.taxRegime ||
+        (previousBudget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
+      const currReg =
+        activeBudget.chargesConfig?.taxRegime ||
+        (activeBudget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
+      if (prevReg !== currReg) {
+        const regimeLabels: Record<string, string> = {
+          simples_nacional: 'Simples Nacional',
+          sem_desoneracao: 'Sem Desoneração',
+          com_desoneracao: 'Com Desoneração',
+        }
+        logAuditEvent({
+          budgetId: activeBudget.id,
+          action: 'edicao_regime_tributario',
+          title: 'Regime Tributário Alterado',
+          details: `Regime alterado de "${regimeLabels[prevReg] || prevReg}" para "${regimeLabels[currReg] || currReg}".`,
+          oldValue: prevReg,
+          newValue: currReg,
+        })
+      }
+    }
+
     setIsSaving(true)
     saveSingleBudget(activeBudget)
 
@@ -418,11 +444,14 @@ export const BudgetsScreen: React.FC = () => {
               <SocialChargesSelector
                 uf={activeBudget.chargesConfig?.uf || 'SP'}
                 isRelieved={activeBudget.chargesConfig?.isRelieved || false}
+                taxRegime={activeBudget.chargesConfig?.taxRegime}
+                simplesDasRate={activeBudget.chargesConfig?.simplesDasRate}
                 customGroupA={activeBudget.chargesConfig?.customGroupA}
                 customGroupB={activeBudget.chargesConfig?.customGroupB}
                 customGroupC={activeBudget.chargesConfig?.customGroupC}
                 customGroupD={activeBudget.chargesConfig?.customGroupD}
-                onUfChange={(newUf) =>
+                onUfChange={(newUf) => {
+                  const oldUf = activeBudget.chargesConfig?.uf
                   handleUpdateActiveBudget({
                     ...activeBudget,
                     chargesConfig: {
@@ -430,16 +459,77 @@ export const BudgetsScreen: React.FC = () => {
                       uf: newUf,
                     },
                   })
-                }
+                  if (oldUf !== newUf) {
+                    logAuditEvent({
+                      budgetId: activeBudget.id,
+                      action: 'edicao_encargos',
+                      title: 'UF de Encargos Alterada',
+                      details: `UF de encargos alterada de ${oldUf || 'SP'} para ${newUf}.`,
+                    })
+                  }
+                }}
                 onRelievedChange={(newRelieved) =>
                   handleUpdateActiveBudget({
                     ...activeBudget,
                     chargesConfig: {
                       ...activeBudget.chargesConfig,
                       isRelieved: newRelieved,
+                      taxRegime: newRelieved ? 'com_desoneracao' : 'sem_desoneracao',
                     },
                   })
                 }
+                onTaxRegimeChange={(newRegime, dasRate) => {
+                  const oldRegime =
+                    activeBudget.chargesConfig?.taxRegime ||
+                    (activeBudget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
+                  const isRel = newRegime === 'com_desoneracao'
+                  const activeDas =
+                    dasRate !== undefined
+                      ? dasRate
+                      : (activeBudget.chargesConfig?.simplesDasRate ?? 0)
+
+                  handleUpdateActiveBudget({
+                    ...activeBudget,
+                    chargesConfig: {
+                      ...activeBudget.chargesConfig,
+                      taxRegime: newRegime,
+                      isRelieved: isRel,
+                      simplesDasRate:
+                        newRegime === 'simples_nacional'
+                          ? activeDas
+                          : activeBudget.chargesConfig?.simplesDasRate,
+                    },
+                    bdiConfig: {
+                      ...activeBudget.bdiConfig,
+                      taxes: {
+                        ...activeBudget.bdiConfig.taxes,
+                        inssOrCprb: newRegime === 'com_desoneracao' ? 4.5 : 0.0,
+                        simplesDas: newRegime === 'simples_nacional' ? activeDas : undefined,
+                        totalTaxes:
+                          newRegime === 'simples_nacional'
+                            ? activeDas
+                            : (activeBudget.bdiConfig.taxes.iss || 0) +
+                              (activeBudget.bdiConfig.taxes.pis || 0) +
+                              (activeBudget.bdiConfig.taxes.cofins || 0) +
+                              (newRegime === 'com_desoneracao' ? 4.5 : 0.0),
+                      },
+                    },
+                  })
+
+                  if (oldRegime !== newRegime) {
+                    const regimeLabels: Record<string, string> = {
+                      simples_nacional: 'Simples Nacional',
+                      sem_desoneracao: 'Sem Desoneração',
+                      com_desoneracao: 'Com Desoneração',
+                    }
+                    logAuditEvent({
+                      budgetId: activeBudget.id,
+                      action: 'edicao_regime_tributario',
+                      title: 'Regime Tributário Alterado',
+                      details: `Regime alterado de "${regimeLabels[oldRegime] || oldRegime}" para "${regimeLabels[newRegime] || newRegime}".`,
+                    })
+                  }
+                }}
                 onCustomGroupsChange={(groups) =>
                   handleUpdateActiveBudget({
                     ...activeBudget,
@@ -457,6 +547,26 @@ export const BudgetsScreen: React.FC = () => {
             <div className="space-y-4 animate-fade-in">
               <BdiEditor
                 bdiConfig={activeBudget.bdiConfig}
+                taxRegime={activeBudget.chargesConfig?.taxRegime}
+                simplesDasRate={activeBudget.chargesConfig?.simplesDasRate}
+                onSimplesDasChange={(rate) => {
+                  const oldRate = activeBudget.chargesConfig?.simplesDasRate ?? 0
+                  handleUpdateActiveBudget({
+                    ...activeBudget,
+                    chargesConfig: {
+                      ...activeBudget.chargesConfig,
+                      simplesDasRate: rate,
+                    },
+                  })
+                  if (oldRate !== rate) {
+                    logAuditEvent({
+                      budgetId: activeBudget.id,
+                      action: 'edicao_bdi',
+                      title: 'Alíquota DAS Atualizada no Simples Nacional',
+                      details: `Alíquota efetiva do DAS alterada de ${oldRate.toFixed(2)}% para ${rate.toFixed(2)}%.`,
+                    })
+                  }
+                }}
                 onChange={(newBdi) =>
                   handleUpdateActiveBudget({
                     ...activeBudget,
@@ -658,7 +768,12 @@ export const BudgetsScreen: React.FC = () => {
                           <span className="text-xs text-[#171A1F]/60">
                             Regime:{' '}
                             <strong className="text-[#171A1F]">
-                              {b.chargesConfig?.isRelieved ? 'Desonerado' : 'Sem desoneração'}
+                              {b.chargesConfig?.taxRegime === 'simples_nacional'
+                                ? 'Simples Nacional'
+                                : b.chargesConfig?.taxRegime === 'com_desoneracao' ||
+                                    b.chargesConfig?.isRelieved
+                                  ? 'Com Desoneração'
+                                  : 'Sem Desoneração'}
                             </strong>
                           </span>
                           {b.publicWork.enabled && (

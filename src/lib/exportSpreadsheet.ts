@@ -68,17 +68,22 @@ export function exportBudgetSpreadsheet(
     ['Cliente:', budget.client.name, 'CNPJ/CPF:', budget.client.document],
     ['Responsável Técnico:', budget.author, 'Data:', dateStr],
     [
-      'Encargos Sociais:',
-      `${summary.socialChargesRate.toFixed(2)}% (${budget.chargesConfig.isRelieved ? 'Desonerado' : 'Sem desoneração'})`,
-      'UF:',
+      'Regime Tributário:',
+      budget.chargesConfig?.taxRegime === 'simples_nacional'
+        ? `Simples Nacional (DAS: ${(budget.chargesConfig?.simplesDasRate ?? 0).toFixed(2)}%)`
+        : budget.chargesConfig?.taxRegime === 'com_desoneracao' || budget.chargesConfig.isRelieved
+          ? 'Com Desoneração (CPRB Lei 12.546)'
+          : 'Sem Desoneração (CLT)',
+      'UF de Encargos:',
       budget.chargesConfig.uf,
     ],
     [
+      'Encargos Sociais:',
+      `${summary.socialChargesRate.toFixed(2)}% (${budget.chargesConfig?.taxRegime === 'simples_nacional' ? 'Base Sem Desoneração' : budget.chargesConfig.isRelieved ? 'Desonerado' : 'Sem Desoneração'})`,
       'BDI TCU (Acórdão 2.622/2013):',
       `${summary.bdiRate.toFixed(2)}%`,
-      'Preço Total da Obra:',
-      summary.finalSalePrice,
     ],
+    ['Preço Total Fechado:', summary.finalSalePrice, 'Data de Emissão:', dateStr],
     [],
     ['PLANILHA ORÇAMENTÁRIA DETALHADA (4 NÍVEIS)'],
     [
@@ -232,15 +237,26 @@ export function exportBudgetSpreadsheet(
       '0,59% a 1,39%',
     ],
     ['Lucro Bruto Operacional', 'L', `${budget.bdiConfig.profit.toFixed(2)}%`, '6,16% a 8,96%'],
-    ['Tributos: ISS', 'ISS', `${budget.bdiConfig.taxes.iss.toFixed(2)}%`, '2,00% a 5,00%'],
-    ['Tributos: PIS', 'PIS', `${budget.bdiConfig.taxes.pis.toFixed(2)}%`, '0,65%'],
-    ['Tributos: COFINS', 'COFINS', `${budget.bdiConfig.taxes.cofins.toFixed(2)}%`, '3,00%'],
-    [
-      'Tributos: CPRB (se desonerado)',
-      'CPRB',
-      `${budget.bdiConfig.taxes.inssOrCprb.toFixed(2)}%`,
-      '0,00% a 4,50%',
-    ],
+    ...(budget.chargesConfig?.taxRegime === 'simples_nacional'
+      ? [
+          [
+            'Tributos: Simples Nacional (DAS)',
+            'DAS',
+            `${(budget.chargesConfig?.simplesDasRate ?? budget.bdiConfig.taxes?.simplesDas ?? 0).toFixed(2)}%`,
+            'Alíquota efetiva informada pela empresa CONCE',
+          ],
+        ]
+      : [
+          ['Tributos: ISS', 'ISS', `${budget.bdiConfig.taxes.iss.toFixed(2)}%`, '2,00% a 5,00%'],
+          ['Tributos: PIS', 'PIS', `${budget.bdiConfig.taxes.pis.toFixed(2)}%`, '0,65%'],
+          ['Tributos: COFINS', 'COFINS', `${budget.bdiConfig.taxes.cofins.toFixed(2)}%`, '3,00%'],
+          [
+            'Tributos: CPRB (se desonerado)',
+            'CPRB',
+            `${budget.bdiConfig.taxes.inssOrCprb.toFixed(2)}%`,
+            '0,00% a 4,50%',
+          ],
+        ]),
     ['Total de Tributos', 'T', `${summary.totalTaxesRate.toFixed(2)}%`, '---'],
     [
       'RESULTADO FINAL DO BDI CALCULADO:',

@@ -62,6 +62,8 @@ export function createCanonicalDemoBudget(): FullBudget {
     chargesConfig: {
       uf: 'SP',
       isRelieved: false, // Sem desoneração (84.53% em SP)
+      taxRegime: 'simples_nacional', // CONCE trabalha hoje no Simples Nacional
+      simplesDasRate: 0, // Alíquota DAS editável pelo usuário
     },
     bdiConfig: {
       ...DEFAULT_BDI_CONFIG,
@@ -216,6 +218,8 @@ export function createPublicDemoBudget(): FullBudget {
     chargesConfig: {
       uf: 'SP',
       isRelieved: true, // Com desoneração (77.97% em SP)
+      taxRegime: 'com_desoneracao',
+      simplesDasRate: 0,
     },
     bdiConfig: {
       administrationCentral: 3.8,
