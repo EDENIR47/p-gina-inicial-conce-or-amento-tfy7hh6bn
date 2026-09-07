@@ -36,7 +36,8 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
   )
   const [version, setVersion] = useState(initialComposition?.version || 'v1.0')
   const [author, setAuthor] = useState(
-    initialComposition?.versionsHistory?.[0]?.author || 'Eng. Denir Souza - CREA/SP',
+    initialComposition?.versionsHistory?.[0]?.author ||
+      'Eng. Edenir Souza da Rosa - CREA/RS-252397',
   )
   const [changeNote, setChangeNote] = useState('')
   const [inputs, setInputs] = useState<BudgetInput[]>(initialComposition?.inputs || [])
@@ -77,7 +78,7 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
     const newVersionEntry = {
       version: version.trim() || 'v1.0',
       date: new Date().toISOString().split('T')[0],
-      author: author.trim() || 'Eng. Denir Souza - CREA/SP',
+      author: author.trim() || 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
       changelog:
         changeNote.trim() ||
         (isEditing ? 'Atualização de insumos e coeficientes' : 'Criação inicial'),
@@ -243,7 +244,7 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
                   type="text"
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="Eng. Denir Souza - CREA/SP"
+                  placeholder="Eng. Edenir Souza da Rosa - CREA/RS-252397"
                   className="w-full px-3 py-1.5 rounded-lg border border-[#171A1F]/20 text-xs focus:outline-none"
                 />
               </div>

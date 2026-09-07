@@ -35,7 +35,7 @@ export interface BudgetInput {
 export interface CompositionVersion {
   version: string // "v1.0", "v1.1", "v2.0"
   date: string // ISO date
-  author: string // ex.: "Eng. Denir Souza - CREA/SP"
+  author: string // ex.: "Eng. Edenir Souza da Rosa - CREA/RS-252397"
   changelog: string
 }
 

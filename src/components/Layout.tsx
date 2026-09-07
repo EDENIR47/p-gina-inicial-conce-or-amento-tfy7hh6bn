@@ -215,7 +215,7 @@ export default function Layout() {
             {/* Usuário e Logout no Mobile */}
             <div className="pt-3 border-t border-white/10 flex items-center justify-between">
               <div className="text-xs text-white/80">
-                <div className="font-semibold text-white">Eng. Edenir Souza</div>
+                <div className="font-semibold text-white">Eng. Edenir Souza da Rosa</div>
                 <div className="text-[10px] text-[#FF6B1F]">engedenirsouza@gmail.com</div>
               </div>
 

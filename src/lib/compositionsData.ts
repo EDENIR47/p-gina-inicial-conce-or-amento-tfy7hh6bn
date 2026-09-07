@@ -19,13 +19,13 @@ export const CONCE_CANONICAL_COMPOSITIONS: BudgetComposition[] = [
       {
         version: 'v1.0',
         date: '2024-01-10',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Criação inicial base SINAPI SP',
       },
       {
         version: 'v2.1',
         date: '2025-02-15',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Atualização de insumos cimento CP II-E e brita basáltica',
       },
     ],
@@ -99,7 +99,7 @@ export const CONCE_CANONICAL_COMPOSITIONS: BudgetComposition[] = [
       {
         version: 'v1.0',
         date: '2024-03-01',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Base oficial SINAPI',
       },
       {
@@ -161,13 +161,13 @@ export const CONCE_CANONICAL_COMPOSITIONS: BudgetComposition[] = [
       {
         version: 'v1.0',
         date: '2024-02-12',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Composição padrão SINAPI SP',
       },
       {
         version: 'v2.0',
         date: '2025-03-05',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Inclusão de tela metálica eletrosoldada para amarração',
       },
     ],
@@ -223,13 +223,13 @@ export const CONCE_CANONICAL_COMPOSITIONS: BudgetComposition[] = [
       {
         version: 'v1.0',
         date: '2024-04-18',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Versão preliminar de emboço',
       },
       {
         version: 'v1.1',
         date: '2024-11-20',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Revisão de rendimento do pedreiro',
       },
     ],
@@ -282,7 +282,7 @@ export const CONCE_CANONICAL_COMPOSITIONS: BudgetComposition[] = [
       {
         version: 'v1.3',
         date: '2025-01-15',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Substituição por tinta acrílica premium standard ABNT NBR 15079',
       },
     ],
@@ -338,7 +338,7 @@ export const CONCE_CANONICAL_COMPOSITIONS: BudgetComposition[] = [
       {
         version: 'v1.0',
         date: '2024-06-01',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Criação inicial de ponto elétrico completo',
       },
     ],
@@ -403,19 +403,19 @@ export const CONCE_CANONICAL_COMPOSITIONS: BudgetComposition[] = [
       {
         version: 'v1.0',
         date: '2023-08-10',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Procedimento técnico CONCE para coberturas expostas',
       },
       {
         version: 'v2.5',
         date: '2024-05-14',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Adição de ensaio de estanqueidade 72h',
       },
       {
         version: 'v3.0',
         date: '2025-02-18',
-        author: 'Eng. Denir Souza - CREA/SP',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         changelog: 'Manta asfáltica polimérica classe B conforme NBR 9952',
       },
     ],

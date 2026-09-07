@@ -232,7 +232,7 @@ export const BudgetsScreen: React.FC = () => {
       budgetId: activeBudget.id,
       action: 'edicao_geral',
       title: 'Alterações Salvas no Orçamento',
-      details: `Orçamento ${activeBudget.code} atualizado por ${activeBudget.author || 'Eng. Denir Souza'}. Valor: ${formatCurrencyBRL(activeSummary?.finalSalePrice || 0)}`,
+      details: `Orçamento ${activeBudget.code} atualizado por ${activeBudget.author || 'Eng. Edenir Souza da Rosa'}. Valor: ${formatCurrencyBRL(activeSummary?.finalSalePrice || 0)}`,
     })
 
     setTimeout(() => {

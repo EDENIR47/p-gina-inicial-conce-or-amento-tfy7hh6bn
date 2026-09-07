@@ -39,7 +39,9 @@ export const RevisionsModal: React.FC<RevisionsModalProps> = ({
   const [revisions, setRevisions] = useState<BudgetRevision[]>(() => getStoredRevisions(budget.id))
   const [isCreating, setIsCreating] = useState(false)
   const [description, setDescription] = useState('')
-  const [authorName, setAuthorName] = useState(budget.author || 'Eng. Denir Souza - CREA/SP')
+  const [authorName, setAuthorName] = useState(
+    budget.author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+  )
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   if (!isOpen) return null

@@ -87,7 +87,7 @@ export const CompositionsLibraryPage: React.FC = () => {
         {
           version: 'v1.0',
           date: new Date().toISOString().split('T')[0],
-          author: 'Eng. Denir Souza - CREA/SP',
+          author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
           changelog: `Duplicada a partir de ${comp.code} (${comp.version})`,
         },
       ],

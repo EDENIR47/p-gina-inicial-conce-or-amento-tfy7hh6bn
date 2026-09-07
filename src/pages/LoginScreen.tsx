@@ -78,14 +78,14 @@ export const LoginScreen: React.FC = () => {
         // Grava sessão no localStorage
         setAuthSession({
           user: validEmail,
-          name: 'Denir',
+          name: 'Edenir',
           role: 'Engenheiro Civil & Orçamentista Responsável',
-          crea: 'CREA-SP 506.942/D',
+          crea: 'CREA/RS-252397',
           loggedIn: true,
           loginTime: new Date().toISOString(),
         })
 
-        // Toast de boas-vindas "Bem-vindo(a), Denir!"
+        // Toast de boas-vindas "Bem-vindo(a), Edenir!"
         setWelcomeToast(true)
 
         setTimeout(() => {
@@ -141,7 +141,7 @@ export const LoginScreen: React.FC = () => {
         <div className="fixed top-6 z-50 animate-fade-in-down flex items-center gap-3 px-6 py-3 rounded-full bg-[#294C87] text-white shadow-2xl border border-white/20">
           <CheckCircle2 className="w-5 h-5 text-[#FF6B1F] animate-pulse" />
           <span className="text-sm sm:text-base font-semibold tracking-wide">
-            Bem-vindo(a), Denir! Acessando sistema CONCE...
+            Bem-vindo(a), Edenir! Acessando sistema CONCE...
           </span>
         </div>
       )}

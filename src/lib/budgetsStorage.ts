@@ -27,7 +27,7 @@ export function createCanonicalDemoBudget(): FullBudget {
     status: 'em_andamento',
     createdAt: '2025-04-10',
     updatedAt: new Date().toISOString(),
-    author: 'Eng. Denir Souza - CREA/SP 506214589',
+    author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
     client: {
       name: 'Incorporadora Horizonte Empreendimentos S/A',
       document: '42.871.932/0001-50',
@@ -181,7 +181,7 @@ export function createPublicDemoBudget(): FullBudget {
     status: 'em_analise',
     createdAt: '2025-04-14',
     updatedAt: new Date().toISOString(),
-    author: 'Eng. Denir Souza - CREA/SP',
+    author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
     client: {
       name: 'Secretaria de Obras e Serviços Públicos do Estado',
       document: '46.379.400/0001-50',

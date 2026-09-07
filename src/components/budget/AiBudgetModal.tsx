@@ -371,7 +371,7 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
         status: 'em_analise',
         createdAt: datePart,
         updatedAt: nowStr,
-        author: 'Eng. Edenir Souza - CREA/SP (Gerado com IA CONCE)',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Gerado com IA CONCE)',
         client: {
           name: parsedJson.clientName || 'Cliente Modelo CONCE',
           document: isPublic ? '46.379.400/0001-50' : '42.871.932/0001-50',
@@ -540,7 +540,7 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
       action: 'criacao_orcamento',
       title: '✨ Orçamento Gerado por Agente de IA',
       details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
-      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Agente IA CONCE)',
       newValue: draftSummary?.finalSalePrice,
       metadata: {
         aiAgentSlug: 'conce-budget-agent',
@@ -558,7 +558,7 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
     saveBudgetRevision(
       draftBudget,
       `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
-      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Agente IA CONCE)',
     )
 
     if (onBudgetCreated) {

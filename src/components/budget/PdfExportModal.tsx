@@ -101,7 +101,7 @@ const EXPORT_MODE_OPTIONS: ExportModeOption[] = [
       'Composições CPU analíticas (insumos, índices e coeficientes)',
       'Curva ABC Pareto de Insumos (classes A, B e C destacadas)',
       'Memória oficial de cálculo do BDI (TCU) e Leis Sociais UF',
-      'Condições técnicas, ART CREA/SP e assinaturas formais',
+      'Condições técnicas, ART CREA/RS-252397 e assinaturas formais',
     ],
     recommendedFor:
       'Licitações públicas, auditorias, fiscais de obra e arquivo técnico permanente.',
@@ -351,7 +351,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
               </p>
               <p className="text-[10px] text-[#171A1F]/60">
-                CNPJ: 42.109.876/0001-33 • CREA/SP: 219803-SP
+                CNPJ: 42.109.876/0001-33 • CREA/RS: 252397
               </p>
             </div>
 
@@ -445,7 +445,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 Prazo de Execução: {budget.work.deadlineMonths} meses
               </p>
               <p className="font-semibold text-[#171A1F] pt-1">
-                Responsável Técnico: {budget.author || 'Eng. Denir Souza - CREA/SP'}
+                Responsável Técnico: {budget.author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397'}
               </p>
             </div>
           </div>
@@ -1351,7 +1351,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </span>
               <p className="text-[#171A1F]/80">
                 • Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) junto ao
-                CREA/SP.
+                CREA/RS.
               </p>
               <p className="text-[#171A1F]/80">
                 • Garantia quinquenal conforme previsto no Artigo 618 do Código Civil Brasileiro.
@@ -1367,11 +1367,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             <div className="space-y-2">
               <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
               <p className="font-bold text-sm text-[#171A1F]">
-                {budget.author || 'Eng. Denir Souza'}
+                {budget.author || 'Eng. Edenir Souza da Rosa'}
               </p>
               <p className="text-[#171A1F]/70">CONCE — Serviço de Engenharia e Consultoria LTDA</p>
               <p className="text-[11px] text-[#294C87] font-semibold">
-                Responsável Técnico • CREA/SP
+                Responsável Técnico • CREA/RS-252397
               </p>
             </div>
 

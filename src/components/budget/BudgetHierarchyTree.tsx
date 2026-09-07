@@ -276,7 +276,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         action: 'edicao_insumo',
         title: `Edição Inline de ${field === 'unitCost' ? 'Custo Unitário' : 'Coeficiente'}: ${changedInputName}`,
         details: `Alterado ${field === 'unitCost' ? 'custo unitário' : 'coeficiente'} de ${prevVal} para ${newVal}. Fonte atualizada para "Usuário".`,
-        userName: 'Eng. Denir Souza - CREA/SP (Usuário)',
+        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Usuário)',
         oldValue: prevVal,
         newValue: newVal,
         metadata: {
@@ -315,7 +315,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         action: 'edicao_servico',
         title: `Ajuste de Quantidade de Serviço: ${serviceDesc}`,
         details: `Quantidade alterada de ${prevQty} para ${newQty}.`,
-        userName: 'Eng. Denir Souza - CREA/SP (Usuário)',
+        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Usuário)',
         oldValue: prevQty,
         newValue: newQty,
         metadata: { stageId, serviceId },
