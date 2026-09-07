@@ -258,8 +258,8 @@ export default function Layout() {
 
           <div className="text-center sm:text-right text-white/50 space-y-0.5">
             <p>© {new Date().getFullYear()} CONCE — Serviço de Engenharia e Consultoria LTDA.</p>
-            <p className="text-[11px] text-white/35">
-              Todos os direitos reservados. CNPJ sob consulta cadastral.
+            <p className="text-[11px] text-white/45">
+              CNPJ: 57.149.101/0001-46 • RT: Eng. Edenir Souza da Rosa - CREA/RS-252397
             </p>
           </div>
         </div>

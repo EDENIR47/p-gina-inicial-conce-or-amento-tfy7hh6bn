@@ -168,7 +168,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   const cleanPaymentTerms =
     budget.paymentTerms ||
     'Medições quinzenais com base no avanço físico comprovado em diário de obra; liquidação em até 10 dias após emissão da NF.'
-  const cleanValidityDays = budget.validityDays || 30
+  const cleanValidityDays = budget.validityDays ?? 5
+  const cleanValidityDaysType =
+    budget.validityDaysType || (budget.validityDays === 5 ? 'uteis' : 'corridos')
+  const cleanExecutionDeadline =
+    budget.executionDeadline ||
+    budget.work?.executionDeadline ||
+    'PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA'
 
   return (
     <div className="fixed inset-0 z-50 bg-[#171A1F]/80 backdrop-blur-sm flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:fixed-none">
@@ -368,8 +374,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-2">
                 SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
               </p>
-              <p className="text-[10px] text-[#171A1F]/60">
-                CNPJ: 42.109.876/0001-33 • CREA/RS: 252397
+              <p className="text-[10px] text-[#171A1F]/70 font-medium">
+                CNPJ: 57.149.101/0001-46 • RT: Eng. Edenir Souza da Rosa - CREA/RS-252397
               </p>
             </div>
 
@@ -490,15 +496,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   ? ` • Área: ${budget.work.totalAreaM2.toLocaleString('pt-BR')} m²`
                   : ''}
               </p>
-              <p className="text-[11px] font-semibold text-[#294C87] pt-0.5">
-                Regime Tributário:{' '}
-                {budget.chargesConfig?.taxRegime === 'simples_nacional'
-                  ? 'Simples Nacional (Padrão CONCE — sem encargos trabalhistas)'
-                  : budget.chargesConfig?.taxRegime === 'com_desoneracao' ||
-                      budget.chargesConfig?.isRelieved
-                    ? 'Com Desoneração (Lei 12.546)'
-                    : 'Sem Desoneração (CLT)'}
-              </p>
+              {/* O regime tributário foi removido dos dados da obra a pedido do usuário */}
               <p className="font-semibold text-[#171A1F] text-[11px]">
                 Responsável Técnico: {cleanAuthor}
               </p>
@@ -1442,8 +1440,9 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 block">
                 Validade da Proposta
               </span>
-              <span className="text-xs sm:text-sm font-bold text-[#171A1F] block">
-                {cleanValidityDays} dias corridos
+              <span className="text-xs sm:text-sm font-bold text-[#294C87] block">
+                {cleanValidityDays}{' '}
+                {cleanValidityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'}
               </span>
               <span className="text-[10px] text-[#171A1F]/50 block">
                 A contar da data de emissão: {new Date().toLocaleDateString('pt-BR')}
@@ -1452,18 +1451,34 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            {/* Bloco 1: Forma de Pagamento e Faturamento */}
-            <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2">
-              <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
-                Forma & Condições de Pagamento
-              </span>
-              <p className="text-[#171A1F]/90 leading-relaxed font-medium">• {cleanPaymentTerms}</p>
-              <p className="text-[#171A1F]/70">
-                • Faturamento e emissão de Notas Fiscais emitidas pela CONCE — Serviço de Engenharia
-                e Consultoria LTDA sob o CNPJ 42.109.876/0001-33.
-              </p>
+            {/* Bloco 1: Forma de Pagamento e Prazo de Execução */}
+            <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-3">
+              <div>
+                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block mb-1">
+                  Forma & Condições de Pagamento
+                </span>
+                <p className="text-[#171A1F]/90 leading-relaxed font-medium">
+                  • {cleanPaymentTerms}
+                </p>
+                <p className="text-[#171A1F]/70 text-[11px] mt-1">
+                  • Faturamento e emissão de Notas Fiscais emitidas pela CONCE — Serviço de
+                  Engenharia e Consultoria LTDA sob o CNPJ 57.149.101/0001-46.
+                </p>
+              </div>
+
+              {cleanExecutionDeadline && (
+                <div className="pt-2 border-t border-[#171A1F]/10">
+                  <span className="font-bold uppercase tracking-wider text-[#FF6B1F] text-[10px] block mb-1">
+                    Prazo de Execução & Condições de Gestão
+                  </span>
+                  <p className="text-[#171A1F]/90 leading-relaxed font-medium">
+                    • {cleanExecutionDeadline}
+                  </p>
+                </div>
+              )}
+
               {budget.commercialNotes && (
-                <p className="text-[#171A1F]/80 pt-1 border-t border-[#171A1F]/10">
+                <p className="text-[#171A1F]/80 pt-2 border-t border-[#171A1F]/10">
                   <strong className="text-[#171A1F]">Notas:</strong> {budget.commercialNotes}
                 </p>
               )}

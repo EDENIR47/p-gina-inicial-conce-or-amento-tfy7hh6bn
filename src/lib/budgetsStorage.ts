@@ -31,30 +31,35 @@ export function createCanonicalDemoBudget(): FullBudget {
     updatedAt: new Date().toISOString(),
     author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
     paymentTerms:
-      'Entrada de 30% na assinatura do contrato + saldo dividido em medições quinzenais conforme avanço físico.',
-    validityDays: 30,
+      '30% de entrada; 30% na entrega dos projetos base; 20% após montagem das estruturas metálicas; saldo após vistoria de entrega.',
+    validityDays: 5,
+    validityDaysType: 'uteis',
+    executionDeadline:
+      'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA',
     commercialNotes:
       'Preços com impostos inclusos (Simples Nacional). Emissão de ART vinculada ao CREA/RS-252397.',
     client: {
-      name: 'Incorporadora Horizonte Empreendimentos S/A',
-      document: '42.871.932/0001-50',
-      email: 'engenharia@horizonteimoveis.com.br',
-      phone: '(11) 3455-8900',
-      address: 'Avenida Brigadeiro Faria Lima, 2800 - Itaim Bibi',
-      city: 'São Paulo',
-      state: 'SP',
+      name: 'Andreia de Oliveira da Costa e Jader da Costa',
+      document: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: 'Porto Alegre',
+      state: 'RS',
     },
     work: {
-      name: 'Edifício Residencial Horizonte Jardins — Bloco A',
-      address: 'Rua Oscar Freire, 1420 - Cerqueira César',
-      city: 'São Paulo',
-      state: 'SP',
+      name: 'Reforma e Estrutura Residencial — Apto 1803',
+      address: 'Rua Tomaz Gonzaga, 610, Apartamento 1803',
+      city: 'Porto Alegre',
+      state: 'RS',
       description:
-        'Construção de edifício residencial multifamiliar com 18 pavimentos tipo, subsolo de garagens e área de lazer suspensa no rooftop.',
-      deadlineMonths: 18,
-      startDate: '2025-06-01',
-      expectedEndDate: '2026-11-30',
-      totalAreaM2: 6450.0,
+        'Reforma e execução estrutural residencial, projetos complementares e gestão de montagem de estrutura metálica.',
+      deadlineMonths: 6,
+      startDate: '2025-05-01',
+      expectedEndDate: '2025-11-01',
+      totalAreaM2: 185.0,
+      executionDeadline:
+        'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA',
     },
     publicWork: {
       enabled: false,
@@ -370,7 +375,48 @@ export function getStoredFullBudgets(): FullBudget[] {
             }
           }
 
-          // 1.1 Garantir valores padrão para novos campos de proposta comercial
+          // 1.1 Garantir valores padrão para novos campos de proposta comercial e sanitização solicitada
+          // Se for o orçamento ativo padrão (budget-conce-001 ou ORC-2025-001) e ainda estiver com dados legados de demonstração, sincroniza com os dados exatos pedidos pelo Eng. Edenir:
+          if (
+            (updatedBudget.id === 'budget-conce-001' || updatedBudget.code === 'ORC-2025-001') &&
+            (!updatedBudget.client?.name ||
+              updatedBudget.client.name.includes('Horizonte') ||
+              updatedBudget.client.name.includes('Dr. Roberto') ||
+              !updatedBudget.client.name.includes('Andreia de Oliveira da Costa'))
+          ) {
+            hasFixed = true
+            updatedBudget = {
+              ...updatedBudget,
+              title: 'Reforma e Estrutura Residencial — Apto 1803',
+              client: {
+                ...updatedBudget.client,
+                name: 'Andreia de Oliveira da Costa e Jader da Costa',
+                document: '',
+                email: '',
+                phone: '',
+                address: '',
+                city: 'Porto Alegre',
+                state: 'RS',
+              },
+              work: {
+                ...updatedBudget.work,
+                name: 'Reforma e Estrutura Residencial — Apto 1803',
+                address: 'Rua Tomaz Gonzaga, 610, Apartamento 1803',
+                city: 'Porto Alegre',
+                state: 'RS',
+                deadlineMonths: 6,
+                executionDeadline:
+                  'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA',
+              },
+              executionDeadline:
+                'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA',
+              paymentTerms:
+                '30% de entrada; 30% na entrega dos projetos base; 20% após montagem das estruturas metálicas; saldo após vistoria de entrega.',
+              validityDays: 5,
+              validityDaysType: 'uteis',
+            }
+          }
+
           if (!updatedBudget.title) {
             hasFixed = true
             updatedBudget = {
@@ -383,14 +429,31 @@ export function getStoredFullBudgets(): FullBudget[] {
             updatedBudget = {
               ...updatedBudget,
               paymentTerms:
-                'Medições quinzenais com base no avanço físico comprovado em diário de obra; pagamento em até 10 dias.',
+                '30% de entrada; 30% na entrega dos projetos base; 20% após montagem das estruturas metálicas; saldo após vistoria de entrega.',
             }
           }
           if (!updatedBudget.validityDays) {
             hasFixed = true
             updatedBudget = {
               ...updatedBudget,
-              validityDays: 30,
+              validityDays: 5,
+              validityDaysType: 'uteis',
+            }
+          }
+          if (!updatedBudget.validityDaysType) {
+            hasFixed = true
+            updatedBudget = {
+              ...updatedBudget,
+              validityDaysType: updatedBudget.validityDays === 5 ? 'uteis' : 'corridos',
+            }
+          }
+          if (!updatedBudget.executionDeadline) {
+            hasFixed = true
+            updatedBudget = {
+              ...updatedBudget,
+              executionDeadline:
+                updatedBudget.work?.executionDeadline ||
+                'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA',
             }
           }
 

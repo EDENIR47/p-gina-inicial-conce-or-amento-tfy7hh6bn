@@ -13,6 +13,7 @@ import { calculateFullBudget, getServiceEffectiveUnitCost } from './budgetEngine
 import { computeAbcCurve } from './abcAnalysis'
 import { formatCurrencyBRL, sanitizeDocumentText } from './formatters'
 import { logAuditEvent } from './intelligenceStorage'
+import { CONCE_COMPANY } from './conceCompany'
 
 /**
  * Escapa valores para CSV conforme padrão RFC 4180 (com ponto e vírgula para Excel em pt-BR)
@@ -69,11 +70,26 @@ export function exportBudgetSpreadsheet(
   // 1. Planilha Orçamentária e Resumo
   const budgetRows: (string | number)[][] = [
     ['CONCE — SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA'],
-    ['Slogan:', 'Conce é conceito. Conce é concreto.'],
+    [
+      'CNPJ:',
+      CONCE_COMPANY.cnpjFormatado,
+      'Responsável Técnico:',
+      CONCE_COMPANY.responsavelTecnicoCompleto,
+    ],
+    ['Slogan:', CONCE_COMPANY.slogan],
     ['Código do Orçamento:', cleanCode, 'Status:', budget.status.toUpperCase()],
     ['Obra:', cleanWorkName, 'Local:', `${budget.work.city}/${budget.work.state}`],
-    ['Cliente:', cleanClient, 'CNPJ/CPF:', budget.client.document],
+    ['Cliente:', cleanClient, 'CNPJ/CPF:', budget.client.document || 'Não informado'],
     ['Responsável Técnico:', cleanAuthor, 'Data:', dateStr],
+    ...(budget.executionDeadline || budget.work?.executionDeadline
+      ? [['Prazo de Execução:', budget.executionDeadline || budget.work?.executionDeadline || '']]
+      : []),
+    [
+      'Validade da Proposta:',
+      `${budget.validityDays || 30} ${budget.validityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'}`,
+      'Condições de Pagamento:',
+      budget.paymentTerms || 'Conforme proposta comercial',
+    ],
     [
       'Regime Tributário:',
       budget.chargesConfig?.taxRegime === 'simples_nacional'

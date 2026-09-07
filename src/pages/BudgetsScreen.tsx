@@ -53,11 +53,14 @@ export const BudgetsScreen: React.FC = () => {
   // Lista de todos os orçamentos persistidos
   const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
 
-  // Orçamento atualmente em edição (ou null se estiver na listagem)
-  const [activeBudget, setActiveBudget] = useState<FullBudget | null>(null)
+  // Orçamento atualmente em edição (por padrão abre o primeiro orçamento se existir)
+  const [activeBudget, setActiveBudget] = useState<FullBudget | null>(() => {
+    const stored = getStoredFullBudgets()
+    return stored.length > 0 ? stored[0] : null
+  })
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
 
-  // Ao navegar com state.openBudgetId, abre imediatamente
+  // Ao navegar com state.openBudgetId, abre imediatamente o selecionado
   useEffect(() => {
     const targetId = (location.state as any)?.openBudgetId
     if (targetId) {
@@ -184,9 +187,8 @@ export const BudgetsScreen: React.FC = () => {
     if (!budget.client.name.trim()) {
       errors['client.name'] = 'Nome do cliente é obrigatório'
     }
-    if (!budget.client.document.trim()) {
-      errors['client.document'] = 'CPF/CNPJ do cliente é obrigatório'
-    }
+    // Observação do usuário: "ANDREIA DE OLIVEIRA DA COSTA E JADER DA COSTA PARA A PROPOSTA SOMENTE ESTES DADOS."
+    // CPF/CNPJ, telefone e e-mail são opcionais para não bloquear propostas preliminares quando o cliente não tiver informado
     if (!budget.work.name.trim()) {
       errors['work.name'] = 'Nome da obra é obrigatório'
     }
@@ -896,20 +898,9 @@ export const BudgetsScreen: React.FC = () => {
                             {badge.label}
                           </span>
                           <span className="text-xs text-[#171A1F]/60">
-                            UF:{' '}
+                            UF da Obra:{' '}
                             <strong className="text-[#171A1F]">
-                              {b.chargesConfig?.uf || 'SP'}
-                            </strong>
-                          </span>
-                          <span className="text-xs text-[#171A1F]/60">
-                            Regime:{' '}
-                            <strong className="text-[#171A1F]">
-                              {b.chargesConfig?.taxRegime === 'simples_nacional'
-                                ? 'Simples Nacional'
-                                : b.chargesConfig?.taxRegime === 'com_desoneracao' ||
-                                    b.chargesConfig?.isRelieved
-                                  ? 'Com Desoneração'
-                                  : 'Sem Desoneração'}
+                              {b.chargesConfig?.uf || b.work.state || 'RS'}
                             </strong>
                           </span>
                           {b.publicWork.enabled && (

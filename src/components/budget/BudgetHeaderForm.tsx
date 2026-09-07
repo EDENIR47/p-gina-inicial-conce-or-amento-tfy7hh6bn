@@ -222,25 +222,20 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-bold text-[#171A1F] block mb-1">CPF ou CNPJ *</label>
+            <label className="text-xs font-bold text-[#171A1F] block mb-1">
+              CPF ou CNPJ <span className="text-[#171A1F]/50 font-normal">(Opcional)</span>
+            </label>
             <input
               type="text"
               disabled={disabled}
               value={budget.client.document}
               onChange={(e) => handleClientChange('document', e.target.value)}
-              placeholder="00.000.000/0001-00"
-              className={`w-full px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-mono focus:outline-none ${
-                validationErrors['client.document']
-                  ? 'border-red-500 bg-red-50/50'
-                  : 'border-[#171A1F]/20 bg-[#F8F9FA] focus:border-[#294C87]'
-              }`}
+              placeholder="00.000.000/0001-00 (opcional)"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-mono focus:outline-none focus:border-[#294C87]"
             />
-            {validationErrors['client.document'] && (
-              <span className="text-[11px] text-red-600 font-semibold mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                {validationErrors['client.document']}
-              </span>
-            )}
+            <span className="text-[10px] text-[#171A1F]/50 mt-1 block">
+              Não obrigatório para emissão de proposta comercial preliminar.
+            </span>
           </div>
 
           <div>
@@ -500,15 +495,29 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
               disabled={disabled}
               value={
                 budget.paymentTerms ??
-                'Medições quinzenais com base no avanço físico comprovado em diário de obra; pagamento em até 10 dias após emissão da NF.'
+                '30% de entrada; 30% na entrega dos projetos base; 20% após montagem das estruturas metálicas; saldo após vistoria de entrega.'
               }
               onChange={(e) => onChange({ ...budget, paymentTerms: e.target.value })}
-              placeholder="Ex.: 30% de entrada na assinatura do contrato + 40% na conclusão da alvenaria + 30% na entrega das chaves."
+              placeholder="Ex.: 30% de entrada; 30% na entrega dos projetos base; 20% após montagem das estruturas metálicas; saldo após vistoria de entrega."
               className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-medium focus:outline-none focus:border-[#294C87]"
             />
             {/* Atalhos rápidos para preenchimento ágil */}
             <div className="flex flex-wrap items-center gap-1.5 mt-2">
               <span className="text-[10px] font-bold text-[#171A1F]/60">Sugestões rápidas:</span>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...budget,
+                    paymentTerms:
+                      '30% de entrada; 30% na entrega dos projetos base; 20% após montagem das estruturas metálicas; saldo após vistoria de entrega.',
+                  })
+                }
+                className="text-[10px] px-2 py-0.5 rounded-md bg-[#FF6B1F]/15 text-[#FF6B1F] hover:bg-[#FF6B1F]/25 font-bold border border-[#FF6B1F]/30"
+                title="Padrão do Engenheiro Edenir Souza da Rosa"
+              >
+                ★ 30% entrada + 30% projetos + 20% estruturas + saldo vistoria
+              </button>
               <button
                 type="button"
                 onClick={() =>
@@ -553,9 +562,43 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
 
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-bold text-[#171A1F] block mb-1">
-                Validade da Proposta (Dias Corridos)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-[#171A1F] block">
+                  Validade da Proposta
+                </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...budget,
+                        validityDays: 5,
+                        validityDaysType: 'uteis',
+                      })
+                    }
+                    className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${
+                      budget.validityDays === 5 && budget.validityDaysType === 'uteis'
+                        ? 'bg-[#FF6B1F] text-white'
+                        : 'bg-[#171A1F]/5 text-[#171A1F]/70 hover:bg-[#171A1F]/10'
+                    }`}
+                  >
+                    5 dias úteis
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...budget,
+                        validityDaysType:
+                          budget.validityDaysType === 'uteis' ? 'corridos' : 'uteis',
+                      })
+                    }
+                    className="text-[9px] px-1.5 py-0.5 rounded bg-[#294C87]/10 text-[#294C87] font-semibold"
+                  >
+                    Alternar ({budget.validityDaysType === 'uteis' ? 'Úteis' : 'Corridos'})
+                  </button>
+                </div>
+              </div>
               <div className="relative">
                 <Clock className="w-3.5 h-3.5 text-[#171A1F]/40 absolute left-3 top-3" />
                 <input
@@ -563,15 +606,18 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
                   min="1"
                   max="180"
                   disabled={disabled}
-                  value={budget.validityDays ?? 30}
+                  value={budget.validityDays ?? 5}
                   onChange={(e) =>
-                    onChange({ ...budget, validityDays: parseInt(e.target.value, 10) || 30 })
+                    onChange({ ...budget, validityDays: parseInt(e.target.value, 10) || 5 })
                   }
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-bold focus:outline-none focus:border-[#294C87]"
+                  className="w-full pl-9 pr-24 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-bold focus:outline-none focus:border-[#294C87]"
                 />
+                <span className="absolute right-3 top-2.5 text-xs font-semibold text-[#294C87]">
+                  {budget.validityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'}
+                </span>
               </div>
               <span className="text-[10px] text-[#171A1F]/50 mt-1 block">
-                Padrão da engenharia: 15, 30 ou 60 dias.
+                Solicitado: 5 dias úteis (ou selecione 15/30 dias).
               </span>
             </div>
 
@@ -585,6 +631,82 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
                 value={budget.author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397'}
                 className="w-full px-3 py-2 rounded-xl border border-[#171A1F]/10 bg-[#171A1F]/5 text-xs font-bold text-[#171A1F]/80"
               />
+            </div>
+          </div>
+
+          {/* Campo de Prazo de Execução detalhado com sugestão rápida de 1 clique */}
+          <div className="sm:col-span-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
+              <label className="text-xs font-bold text-[#171A1F] block">
+                Prazo de Execução (Condição Técnica / Escopo de Gestão)
+              </label>
+              <span className="text-[10px] text-[#171A1F]/60">
+                Consta na proposta e PDF oficial na seção de condições
+              </span>
+            </div>
+            <textarea
+              rows={2}
+              disabled={disabled}
+              value={
+                budget.executionDeadline ??
+                budget.work?.executionDeadline ??
+                'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA'
+              }
+              onChange={(e) => {
+                const val = e.target.value
+                onChange({
+                  ...budget,
+                  executionDeadline: val,
+                  work: {
+                    ...budget.work,
+                    executionDeadline: val,
+                  },
+                })
+              }}
+              placeholder="Descreva o prazo de projetos, contratação e etapas executivas..."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-medium focus:outline-none focus:border-[#294C87]"
+            />
+            {/* Botão de sugestão rápida pronta com 1 clique */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <span className="text-[10px] font-bold text-[#171A1F]/60">
+                Sugestão rápida (1 clique):
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const sugestao =
+                    'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA'
+                  onChange({
+                    ...budget,
+                    executionDeadline: sugestao,
+                    work: {
+                      ...budget.work,
+                      executionDeadline: sugestao,
+                    },
+                  })
+                }}
+                className="text-[10px] px-2.5 py-1 rounded-md bg-[#294C87]/10 text-[#294C87] hover:bg-[#294C87]/20 font-bold border border-[#294C87]/30"
+              >
+                Projetos 15 dias úteis + Gestão de estrutura metálica
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const sugestao =
+                    'Projetos executivos em até 20 dias úteis após assinatura contratual; execução física de acordo com cronograma físico-financeiro aprovado.'
+                  onChange({
+                    ...budget,
+                    executionDeadline: sugestao,
+                    work: {
+                      ...budget.work,
+                      executionDeadline: sugestao,
+                    },
+                  })
+                }}
+                className="text-[10px] px-2 py-0.5 rounded-md bg-[#171A1F]/5 text-[#171A1F]/70 hover:bg-[#171A1F]/10 font-medium"
+              >
+                Projetos 20 dias úteis + cronograma
+              </button>
             </div>
           </div>
 

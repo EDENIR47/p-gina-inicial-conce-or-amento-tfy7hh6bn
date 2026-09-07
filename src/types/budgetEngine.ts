@@ -97,6 +97,7 @@ export interface WorkData {
   startDate: string
   expectedEndDate?: string
   totalAreaM2?: number
+  executionDeadline?: string // Prazo de execução descritivo detalhado (ex: projetos 15 dias úteis, etc.)
 }
 
 export interface PublicWorkData {
@@ -182,6 +183,8 @@ export interface FullBudget {
   publicWork: PublicWorkData
   paymentTerms?: string // Condições/Forma de pagamento (ex.: "30% de entrada + 3 parcelas conforme medição quinzenal")
   validityDays?: number // Validade da proposta em dias (default: 30)
+  validityDaysType?: 'corridos' | 'uteis' // Tipo de contagem de dias: 'corridos' ou 'uteis' (default: 'uteis' ou 'corridos')
+  executionDeadline?: string // Prazo de execução da proposta / escopo de gestão
   commercialNotes?: string // Observações e condições comerciais adicionais
   stages: BudgetStage[]
   chargesConfig: {
