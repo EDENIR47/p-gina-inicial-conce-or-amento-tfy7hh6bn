@@ -320,13 +320,60 @@ export function getOrCreateDemoData(): ConceDemoData {
 /**
  * Retorna a sessão autenticada atual ou null
  */
+/**
+ * Normaliza qualquer ocorrência da palavra isolada "Denir" para "Edenir",
+ * preservando o restante do texto (ex.: "Denir" -> "Edenir", "Denir Souza da Rosa" -> "Edenir Souza da Rosa").
+ * Cuidado: "Edenir" contém "denir" como substring, por isso usa \b com lookbehind/lookahead
+ * ou limites de palavra estritos que não alteram "Edenir".
+ */
+export function normalizeUserName(name?: string | null): string {
+  if (!name) return 'Edenir'
+  const str = String(name).trim()
+  if (!str) return 'Edenir'
+  // Substitui a palavra isolada "Denir" (case-insensitive ou capitalizada), mantendo limites
+  // Ex: "Denir" -> "Edenir", "Eng. Denir Souza" -> "Eng. Edenir Souza"
+  // Não altera "Edenir" pois a letra 'E' antecede imediatamente 'denir'.
+  const normalized = str.replace(/(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/g, 'Edenir')
+  return normalized || 'Edenir'
+}
+
+/**
+ * Retorna a sessão autenticada atual ou null, aplicando sanitização de runtime
+ * para garantir que sessões salvas com o nome "Denir" em navegadores antigos
+ * sejam automaticamente corrigidas para "Edenir" e persistidas.
+ */
 export function getAuthSession(): ConceAuthSession | null {
   if (typeof window === 'undefined') return null
   const raw = localStorage.getItem(STORAGE_KEYS.AUTH)
   if (!raw) return null
   try {
-    const parsed = JSON.parse(raw)
-    return parsed.loggedIn ? parsed : null
+    const parsed = JSON.parse(raw) as ConceAuthSession
+    if (!parsed || !parsed.loggedIn) return null
+
+    // Sanitização e normalização de runtime para 'Edenir'
+    let hasChanged = false
+    const currentName = parsed.name || ''
+    const cleanName = normalizeUserName(currentName)
+
+    if (cleanName !== currentName) {
+      parsed.name = cleanName
+      hasChanged = true
+    }
+
+    if (parsed.role && /(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/.test(parsed.role)) {
+      parsed.role = normalizeUserName(parsed.role)
+      hasChanged = true
+    }
+
+    if (hasChanged) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(parsed))
+      } catch {
+        // Ignora eventual falha de quota
+      }
+    }
+
+    return parsed
   } catch {
     return null
   }
@@ -336,7 +383,12 @@ export function getAuthSession(): ConceAuthSession | null {
  * Registra a sessão autenticada no localStorage e garante semente dos dados
  */
 export function setAuthSession(session: ConceAuthSession): void {
-  localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(session))
+  // Garante que o nome gravado esteja sempre normalizado como "Edenir"
+  const sanitizedSession: ConceAuthSession = {
+    ...session,
+    name: normalizeUserName(session.name),
+  }
+  localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(sanitizedSession))
   // Garante semente de dados se ausente
   if (!localStorage.getItem(STORAGE_KEYS.DEMO_DATA)) {
     getOrCreateDemoData()

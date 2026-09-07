@@ -140,7 +140,7 @@ export default function Layout() {
             {session && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-white">
                 <div className="w-5 h-5 rounded-full bg-[#294C87] text-white flex items-center justify-center font-bold text-[10px]">
-                  D
+                  {(session.name?.trim()?.[0] || 'E').toUpperCase()}
                 </div>
                 <span className="font-semibold">{session.name}</span>
                 <span className="text-[10px] text-[#FF6B1F] font-mono hidden lg:inline">

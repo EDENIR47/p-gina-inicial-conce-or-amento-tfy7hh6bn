@@ -321,11 +321,12 @@ export function getStoredFullBudgets(): FullBudget[] {
 
           let updatedBudget = b
 
-          // 1. Sanitização de referências a IA em author, code, workName e tenderNumber
+          // 1. Sanitização de referências a IA e correção de "Denir" -> "Edenir" em author, code, workName e tenderNumber
           const rawAuthor = b.author || ''
-          const cleanAuthor = rawAuthor
+          let cleanAuthor = rawAuthor
             .replace(/\s*\([^)]*(?:ia|agente|gerad|inteligên)[^)]*\)/gi, '')
             .trim()
+          cleanAuthor = cleanAuthor.replace(/(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/g, 'Edenir')
           const rawCode = b.code || ''
           const cleanCode = rawCode.replace(/\bORC-IA-/gi, 'ORC-')
           const rawWorkName = b.work?.name || ''

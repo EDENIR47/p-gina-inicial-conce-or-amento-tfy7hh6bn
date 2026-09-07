@@ -207,5 +207,7 @@ export function sanitizeDocumentText(text?: string): string {
   if (sanitized.toLowerCase().includes('obra planejada via agente')) {
     sanitized = 'Empreendimento de Engenharia Civil'
   }
+  // Normaliza ocorrências antigas de 'Denir' como palavra isolada para 'Edenir'
+  sanitized = sanitized.replace(/(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/g, 'Edenir')
   return sanitized.trim()
 }

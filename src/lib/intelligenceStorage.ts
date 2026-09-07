@@ -33,10 +33,30 @@ export function getStoredAuditLogs(budgetId?: string): AuditLogEntry[] {
   if (!raw) return []
   try {
     const list: AuditLogEntry[] = JSON.parse(raw)
-    if (budgetId) {
-      return list.filter((l) => l.budgetId === budgetId)
+    if (!Array.isArray(list)) return []
+    // Sanitização de runtime para normalizar "Denir" -> "Edenir" em registros antigos
+    let hasChanged = false
+    const sanitized = list.map((l) => {
+      if (l.userName && /(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/.test(l.userName)) {
+        hasChanged = true
+        return {
+          ...l,
+          userName: l.userName.replace(/(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/g, 'Edenir'),
+        }
+      }
+      return l
+    })
+    if (hasChanged) {
+      try {
+        localStorage.setItem(STORAGE_KEYS_INTELLIGENCE.AUDIT_LOGS, JSON.stringify(sanitized))
+      } catch {
+        /* intentionally ignored */
+      }
     }
-    return list
+    if (budgetId) {
+      return sanitized.filter((l) => l.budgetId === budgetId)
+    }
+    return sanitized
   } catch {
     return []
   }
@@ -83,10 +103,30 @@ export function getStoredRevisions(budgetId?: string): BudgetRevision[] {
   if (!raw) return []
   try {
     const list: BudgetRevision[] = JSON.parse(raw)
-    if (budgetId) {
-      return list.filter((r) => r.budgetId === budgetId)
+    if (!Array.isArray(list)) return []
+    // Sanitização de runtime para normalizar "Denir" -> "Edenir" em revisões antigas
+    let hasChanged = false
+    const sanitized = list.map((r) => {
+      if (r.author && /(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/.test(r.author)) {
+        hasChanged = true
+        return {
+          ...r,
+          author: r.author.replace(/(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/g, 'Edenir'),
+        }
+      }
+      return r
+    })
+    if (hasChanged) {
+      try {
+        localStorage.setItem(STORAGE_KEYS_INTELLIGENCE.REVISIONS, JSON.stringify(sanitized))
+      } catch {
+        /* intentionally ignored */
+      }
     }
-    return list
+    if (budgetId) {
+      return sanitized.filter((r) => r.budgetId === budgetId)
+    }
+    return sanitized
   } catch {
     return []
   }
