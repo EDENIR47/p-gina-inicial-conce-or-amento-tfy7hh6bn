@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   Download,
 } from 'lucide-react'
-import { BudgetComposition, BudgetInput } from '@/types/budgetEngine'
+import { BudgetComposition, BudgetInput, InputCategory } from '@/types/budgetEngine'
 
 interface ImportCompositionsModalProps {
   isOpen: boolean

@@ -39,6 +39,7 @@ import {
   BudgetService,
   BudgetComposition,
   BudgetInput,
+  InputCategory,
   TaxRegime,
 } from '@/types/budgetEngine'
 import { BRAZIL_STATES_LIST, BRAZIL_STATES_CHARGES } from '@/lib/chargesData'

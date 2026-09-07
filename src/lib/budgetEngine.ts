@@ -190,7 +190,7 @@ export function getServiceCostBreakdown(service: BudgetService): {
           laborDirectCost: laborCost,
           materialDirectCost: materialCost,
           equipmentDirectCost: equipmentCost,
-          subcontractCost: subcontractCost,
+          subcontractDirectCost: subcontractCost,
           effectiveLaborSharePercent:
             serviceTotal > 0 ? Number(((laborCost / serviceTotal) * 100).toFixed(2)) : 0,
           isEstimatedLabor: false,

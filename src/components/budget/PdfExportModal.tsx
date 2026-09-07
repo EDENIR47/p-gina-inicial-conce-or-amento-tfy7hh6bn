@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { ConceLogo } from '@/components/ConceLogo'
 import { FullBudget } from '@/types/budgetEngine'
-import { calculateFullBudget } from '@/lib/budgetEngine'
+import { calculateFullBudget, getServiceEffectiveUnitCost } from '@/lib/budgetEngine'
 import { computeAbcCurve } from '@/lib/abcAnalysis'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
@@ -536,11 +536,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         {/* Linhas dos Serviços da Etapa: apenas item, nome, unid, qtd e valor final */}
                         {stage.services.map((service) => {
                           const sQty = Number(service.quantity) || 0
-                          const laborMult = 1 + summary.socialChargesRate / 100
-                          const compUnit =
-                            service.unitPrice !== undefined && service.unitPrice !== null
-                              ? Number(service.unitPrice)
-                              : service.composition?.unitCost || 0
+                          const laborMult = 1 + (summary.socialChargesRate || 0) / 100
+                          const compUnit = getServiceEffectiveUnitCost(service, laborMult)
                           const serviceBdi = service.customBdiPercent ?? summary.bdiRate
                           const unitWithBdi = compUnit * (1 + serviceBdi / 100)
                           const totalWithBdi = unitWithBdi * sQty
@@ -900,10 +897,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                           {/* Linhas dos Serviços da Etapa */}
                           {stage.services.map((service) => {
                             const sQty = Number(service.quantity) || 0
-                            const compUnit =
-                              service.unitPrice !== undefined && service.unitPrice !== null
-                                ? Number(service.unitPrice)
-                                : service.composition?.unitCost || 0
+                            const laborMult = 1 + (summary.socialChargesRate || 0) / 100
+                            const compUnit = getServiceEffectiveUnitCost(service, laborMult)
                             const serviceBdi = service.customBdiPercent ?? summary.bdiRate
                             const unitWithBdi = compUnit * (1 + serviceBdi / 100)
                             const totalWithBdi = unitWithBdi * sQty
