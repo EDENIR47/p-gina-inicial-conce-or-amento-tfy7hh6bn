@@ -12,7 +12,7 @@ migrate(
       rec.setEmail('engedenirsouza@gmail.com')
       rec.setPassword('Skip@Pass123')
       rec.setVerified(true)
-      rec.set('name', 'Eng. Denir Souza')
+      rec.set('name', 'Eng. Edenir Souza')
       app.save(rec)
       serviceUserId = rec.id
     }
