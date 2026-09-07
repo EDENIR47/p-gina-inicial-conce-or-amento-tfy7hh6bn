@@ -24,13 +24,26 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
 
   const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
 
-  const chargesRate =
-    budget.chargesConfig?.customGroupA !== undefined
-      ? (budget.chargesConfig.customGroupA || 0) +
-        (budget.chargesConfig.customGroupB || 0) +
-        (budget.chargesConfig.customGroupC || 0) +
-        (budget.chargesConfig.customGroupD || 0)
-      : stateCharges.total
+  let chargesRate: number
+  if (budget.chargesConfig?.customGroupA !== undefined) {
+    const customSum =
+      (budget.chargesConfig.customGroupA || 0) +
+      (budget.chargesConfig.customGroupB || 0) +
+      (budget.chargesConfig.customGroupC || 0) +
+      (budget.chargesConfig.customGroupD || 0)
+
+    if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
+      chargesRate = stateCharges.total
+    } else {
+      chargesRate = customSum
+    }
+  } else {
+    chargesRate = stateCharges.total
+  }
+
+  if (chargesRate === 0 && !budget.chargesConfig?.isExplicitZero) {
+    chargesRate = getChargesForState(budget.chargesConfig?.uf || 'SP', false).total
+  }
 
   const laborMultiplier = 1 + chargesRate / 100
 

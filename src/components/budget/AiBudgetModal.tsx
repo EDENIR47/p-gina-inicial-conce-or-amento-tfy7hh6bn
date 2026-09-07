@@ -41,7 +41,7 @@ import {
   BudgetInput,
   TaxRegime,
 } from '@/types/budgetEngine'
-import { BRAZIL_STATES_LIST } from '@/lib/chargesData'
+import { BRAZIL_STATES_LIST, BRAZIL_STATES_CHARGES } from '@/lib/chargesData'
 import { DEFAULT_BDI_CONFIG, calculateFullBudget } from '@/lib/budgetEngine'
 import { getStoredCompositions, saveSingleBudget, getStoredFullBudgets } from '@/lib/budgetsStorage'
 import { logAuditEvent, saveBudgetRevision } from '@/lib/intelligenceStorage'
@@ -422,6 +422,26 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
           isRelieved: taxRegime === 'com_desoneracao',
           taxRegime,
           simplesDasRate: taxRegime === 'simples_nacional' ? simplesDasRate : 0,
+          customGroupA:
+            taxRegime === 'com_desoneracao'
+              ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupA
+              : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
+                  .groupA,
+          customGroupB:
+            taxRegime === 'com_desoneracao'
+              ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupB
+              : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
+                  .groupB,
+          customGroupC:
+            taxRegime === 'com_desoneracao'
+              ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupC
+              : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
+                  .groupC,
+          customGroupD:
+            taxRegime === 'com_desoneracao'
+              ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupD
+              : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
+                  .groupD,
         },
         bdiConfig: {
           ...DEFAULT_BDI_CONFIG,

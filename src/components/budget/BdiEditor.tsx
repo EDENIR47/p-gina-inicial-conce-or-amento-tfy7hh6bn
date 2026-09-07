@@ -411,13 +411,14 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({
                     Simples Nacional
                   </span>
                   <span className="font-bold text-sm text-[#171A1F]">
-                    Alíquota Efetiva do DAS (Documento de Arrecadação do Simples Nacional)
+                    Regime Simples Nacional — Base de Encargos Sem Desoneração (CLT) & Alíquota DAS
                   </span>
                 </div>
                 <p className="text-xs text-[#171A1F]/70 mt-1">
-                  Empresas do Simples Nacional recolhem IRPJ, CSLL, PIS, COFINS, ISS e CPP de forma
-                  unificada. No cálculo do BDI (T), aplica-se a alíquota efetiva do Anexo IV/III
-                  correspondente à receita bruta dos últimos 12 meses.
+                  Empresas do Simples Nacional recolhem tributos unificados no DAS (T do BDI),
+                  enquanto os encargos sociais trabalhistas sobre a folha seguem a tabela oficial
+                  SINAPI sem desoneração (CLT integral). No cálculo do BDI (T), aplica-se a alíquota
+                  efetiva do Anexo IV/III correspondente à receita bruta.
                 </p>
               </div>
 

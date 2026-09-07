@@ -64,6 +64,10 @@ export function createCanonicalDemoBudget(): FullBudget {
       isRelieved: false, // Sem desoneração (84.53% em SP)
       taxRegime: 'simples_nacional', // CONCE trabalha hoje no Simples Nacional
       simplesDasRate: 0, // Alíquota DAS editável pelo usuário
+      customGroupA: 16.8,
+      customGroupB: 44.15,
+      customGroupC: 16.48,
+      customGroupD: 7.1,
     },
     bdiConfig: {
       ...DEFAULT_BDI_CONFIG,
@@ -300,7 +304,39 @@ export function getStoredFullBudgets(): FullBudget[] {
     try {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
+        // Migração de sanitização: se houver orçamento no Simples Nacional com grupos zerados,
+        // repara para não persistir taxa de encargos zerada
+        let hasFixed = false
+        const sanitized = parsed.map((b: FullBudget) => {
+          if (
+            b.chargesConfig?.taxRegime === 'simples_nacional' &&
+            b.chargesConfig.customGroupA !== undefined
+          ) {
+            const sum =
+              (b.chargesConfig.customGroupA || 0) +
+              (b.chargesConfig.customGroupB || 0) +
+              (b.chargesConfig.customGroupC || 0) +
+              (b.chargesConfig.customGroupD || 0)
+            if (sum === 0 && !b.chargesConfig.isExplicitZero) {
+              hasFixed = true
+              return {
+                ...b,
+                chargesConfig: {
+                  ...b.chargesConfig,
+                  customGroupA: 16.8,
+                  customGroupB: 44.15,
+                  customGroupC: 16.48,
+                  customGroupD: 7.1,
+                },
+              }
+            }
+          }
+          return b
+        })
+        if (hasFixed) {
+          saveFullBudgets(sanitized)
+        }
+        return sanitized
       }
     } catch {
       // Ignora erro e regenera

@@ -181,6 +181,7 @@ export interface FullBudget {
     customGroupB?: number
     customGroupC?: number
     customGroupD?: number
+    isExplicitZero?: boolean // indica se o usuário editou intencionalmente para 0%
   }
   bdiConfig: BdiConfig
   createdAt: string

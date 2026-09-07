@@ -58,24 +58,55 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
   const stateData = BRAZIL_STATES_CHARGES[currentUf] || BRAZIL_STATES_CHARGES['SP']
   const defaultCharges = usesRelievedCharges ? stateData.relieved : stateData.nonRelieved
 
-  const activeA = customGroupA !== undefined ? customGroupA : defaultCharges.groupA
-  const activeB = customGroupB !== undefined ? customGroupB : defaultCharges.groupB
-  const activeC = customGroupC !== undefined ? customGroupC : defaultCharges.groupC
-  const activeD = customGroupD !== undefined ? customGroupD : defaultCharges.groupD
-
-  const currentTotal = Number((activeA + activeB + activeC + activeD).toFixed(2))
+  // Se os grupos customizados somam zero mas não foram marcados intencionalmente,
+  // ou se foram salvos como 0 por erro anterior, usa os defaults oficiais da UF (base sem desoneração)
   const isCustomized =
     customGroupA !== undefined ||
     customGroupB !== undefined ||
     customGroupC !== undefined ||
     customGroupD !== undefined
 
+  const rawSum =
+    (customGroupA ?? defaultCharges.groupA) +
+    (customGroupB ?? defaultCharges.groupB) +
+    (customGroupC ?? defaultCharges.groupC) +
+    (customGroupD ?? defaultCharges.groupD)
+
+  // Se a soma for 0 e os grupos estiverem zerados por omissão ou inferência errônea, restaura os defaults da UF
+  const shouldUseDefaults = isCustomized && rawSum === 0
+
+  const activeA = shouldUseDefaults
+    ? defaultCharges.groupA
+    : customGroupA !== undefined
+      ? customGroupA
+      : defaultCharges.groupA
+  const activeB = shouldUseDefaults
+    ? defaultCharges.groupB
+    : customGroupB !== undefined
+      ? customGroupB
+      : defaultCharges.groupB
+  const activeC = shouldUseDefaults
+    ? defaultCharges.groupC
+    : customGroupC !== undefined
+      ? customGroupC
+      : defaultCharges.groupC
+  const activeD = shouldUseDefaults
+    ? defaultCharges.groupD
+    : customGroupD !== undefined
+      ? customGroupD
+      : defaultCharges.groupD
+
+  const currentTotal = Number((activeA + activeB + activeC + activeD).toFixed(2))
+
   const handleResetToUfDefault = () => {
+    // Restaura explicitamente os valores padrão da UF para o regime selecionado
+    // (no Simples Nacional, são os mesmos percentuais de Sem Desoneração)
+    const targetDefaults = defaultCharges
     onCustomGroupsChange({
-      customGroupA: undefined,
-      customGroupB: undefined,
-      customGroupC: undefined,
-      customGroupD: undefined,
+      customGroupA: targetDefaults.groupA,
+      customGroupB: targetDefaults.groupB,
+      customGroupC: targetDefaults.groupC,
+      customGroupD: targetDefaults.groupD,
     })
   }
 
@@ -156,6 +187,26 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
               type="button"
               disabled={disabled}
               onClick={() => {
+                // Ao selecionar simples_nacional, os grupos DEVEM carregar os defaults de stateData.nonRelieved
+                // (o Simples NÃO zera encargos trabalhistas — usa a base Sem Desoneração da SINAPI/UF).
+                // Preservar edições reais do usuário se já existirem valores positivos (> 0).
+                const hasExistingPositiveValues =
+                  customGroupA !== undefined &&
+                  (customGroupA || 0) +
+                    (customGroupB || 0) +
+                    (customGroupC || 0) +
+                    (customGroupD || 0) >
+                    0
+
+                if (!hasExistingPositiveValues) {
+                  onCustomGroupsChange({
+                    customGroupA: stateData.nonRelieved.groupA,
+                    customGroupB: stateData.nonRelieved.groupB,
+                    customGroupC: stateData.nonRelieved.groupC,
+                    customGroupD: stateData.nonRelieved.groupD,
+                  })
+                }
+
                 if (onTaxRegimeChange) {
                   onTaxRegimeChange('simples_nacional', simplesDasRate)
                 } else {
@@ -188,6 +239,23 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
               type="button"
               disabled={disabled}
               onClick={() => {
+                const hasExistingPositiveValues =
+                  customGroupA !== undefined &&
+                  (customGroupA || 0) +
+                    (customGroupB || 0) +
+                    (customGroupC || 0) +
+                    (customGroupD || 0) >
+                    0
+
+                if (!hasExistingPositiveValues) {
+                  onCustomGroupsChange({
+                    customGroupA: stateData.nonRelieved.groupA,
+                    customGroupB: stateData.nonRelieved.groupB,
+                    customGroupC: stateData.nonRelieved.groupC,
+                    customGroupD: stateData.nonRelieved.groupD,
+                  })
+                }
+
                 if (onTaxRegimeChange) {
                   onTaxRegimeChange('sem_desoneracao', simplesDasRate)
                 } else {
@@ -215,6 +283,23 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
               type="button"
               disabled={disabled}
               onClick={() => {
+                const hasExistingPositiveValues =
+                  customGroupA !== undefined &&
+                  (customGroupA || 0) +
+                    (customGroupB || 0) +
+                    (customGroupC || 0) +
+                    (customGroupD || 0) >
+                    0
+
+                if (!hasExistingPositiveValues) {
+                  onCustomGroupsChange({
+                    customGroupA: stateData.relieved.groupA,
+                    customGroupB: stateData.relieved.groupB,
+                    customGroupC: stateData.relieved.groupC,
+                    customGroupD: stateData.relieved.groupD,
+                  })
+                }
+
                 if (onTaxRegimeChange) {
                   onTaxRegimeChange('com_desoneracao', simplesDasRate)
                 } else {

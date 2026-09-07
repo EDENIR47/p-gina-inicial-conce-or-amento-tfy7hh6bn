@@ -239,9 +239,10 @@ export const BudgetsScreen: React.FC = () => {
           budgetId: activeBudget.id,
           action: 'edicao_regime_tributario',
           title: 'Regime Tributário Alterado',
-          details: `Regime alterado de "${regimeLabels[prevReg] || prevReg}" para "${regimeLabels[currReg] || currReg}".`,
+          details: `Regime alterado de "${regimeLabels[prevReg] || prevReg}" para "${regimeLabels[currReg] || currReg}". Base de encargos: ${currReg === 'com_desoneracao' ? 'Com Desoneração (CPRB)' : 'Sem Desoneração (CLT)'}.`,
           oldValue: prevReg,
           newValue: currReg,
+          userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         })
       }
     }
@@ -258,7 +259,8 @@ export const BudgetsScreen: React.FC = () => {
       budgetId: activeBudget.id,
       action: 'edicao_geral',
       title: 'Alterações Salvas no Orçamento',
-      details: `Orçamento ${activeBudget.code} atualizado por ${activeBudget.author || 'Eng. Edenir Souza da Rosa'}. Valor: ${formatCurrencyBRL(activeSummary?.finalSalePrice || 0)}`,
+      details: `Orçamento ${activeBudget.code} atualizado por ${activeBudget.author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397'}. Valor: ${formatCurrencyBRL(activeSummary?.finalSalePrice || 0)}`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
     })
 
     setTimeout(() => {
@@ -526,7 +528,10 @@ export const BudgetsScreen: React.FC = () => {
                       budgetId: activeBudget.id,
                       action: 'edicao_regime_tributario',
                       title: 'Regime Tributário Alterado',
-                      details: `Regime alterado de "${regimeLabels[oldRegime] || oldRegime}" para "${regimeLabels[newRegime] || newRegime}".`,
+                      details: `Regime alterado de "${regimeLabels[oldRegime] || oldRegime}" para "${regimeLabels[newRegime] || newRegime}". Base de encargos: ${newRegime === 'com_desoneracao' ? 'Com Desoneração (CPRB)' : 'Sem Desoneração (CLT)'}.`,
+                      oldValue: oldRegime,
+                      newValue: newRegime,
+                      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
                     })
                   }
                 }}

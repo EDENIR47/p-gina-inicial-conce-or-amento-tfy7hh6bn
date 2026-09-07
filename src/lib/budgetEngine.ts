@@ -179,19 +179,38 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
 
   // 1. Determina taxa de encargos sociais pela UF e regime:
   // No Simples Nacional, os percentuais de encargos usam o regime SEM desoneração como base
-  // (a desoneração da folha da Lei 12.546 não se aplica a empresas do Simples Nacional).
+  // (o Simples NÃO zera encargos trabalhistas — usa a base Sem Desoneração da SINAPI/UF).
   const isRelievedForCharges = taxRegime === 'com_desoneracao'
 
   const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
 
   // Percentual total de encargos sociais (pode ser customizado ou default da UF)
-  const chargesRate =
-    budget.chargesConfig?.customGroupA !== undefined
-      ? (budget.chargesConfig.customGroupA || 0) +
-        (budget.chargesConfig.customGroupB || 0) +
-        (budget.chargesConfig.customGroupC || 0) +
-        (budget.chargesConfig.customGroupD || 0)
-      : stateCharges.total
+  // REGRA DE SEGURANÇA / GUARD: No Simples Nacional (ou qualquer regime sem desoneração),
+  // encargos sociais NUNCA devem ser zerados por omissão ou inferência errônea.
+  // Taxa zero só é legítima se explicitamente marcada como isExplicitZero === true.
+  // Se a soma dos grupos customizados resultar em 0 (ou estiverem ausentes), usa a tabela oficial da UF.
+  let chargesRate: number
+  if (budget.chargesConfig?.customGroupA !== undefined) {
+    const customSum =
+      (budget.chargesConfig.customGroupA || 0) +
+      (budget.chargesConfig.customGroupB || 0) +
+      (budget.chargesConfig.customGroupC || 0) +
+      (budget.chargesConfig.customGroupD || 0)
+
+    if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
+      chargesRate = stateCharges.total
+    } else {
+      chargesRate = customSum
+    }
+  } else {
+    chargesRate = stateCharges.total
+  }
+
+  // Fallback extra: se o regime for Simples Nacional ou Sem Desoneração e chargesRate for 0 sem flag explícita,
+  // garante o valor da UF sem desoneração
+  if (chargesRate === 0 && !budget.chargesConfig?.isExplicitZero) {
+    chargesRate = getChargesForState(budget.chargesConfig?.uf || 'SP', false).total
+  }
 
   // 2. Determina o BDI pela fórmula TCU
   // No Simples Nacional, os tributos sobre faturamento são unificados no DAS (alíquota efetiva informada pelo usuário).
@@ -246,6 +265,7 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
         // Se há unitPrice definido (manual / direto no serviço)
         if (hasInputs) {
           // Se tem insumos na CPU, varre os insumos para catalogar categorias
+          let hasMaoDeObraInput = false
           service.composition.inputs.forEach((input: BudgetInput) => {
             inputsCount++
             const itemCost =
@@ -254,6 +274,7 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
             switch (input.category) {
               case 'mao_de_obra':
                 laborDirectCost += itemCost
+                hasMaoDeObraInput = true
                 break
               case 'material':
                 materialDirectCost += itemCost
@@ -268,12 +289,31 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
                 break
             }
           })
+          // Se não havia insumo categorizado como mão de obra, mas há unitPrice manual e encargos vigentes,
+          // aloca a fração proporcional em mão de obra para que encargos sociais não fiquem zerados
+          const serviceTotalCost = Number(service.unitPrice) * serviceQty
+          if (!hasMaoDeObraInput && chargesRate > 0) {
+            // Em serviços sem insumo específico de MO, aloca 40% como mão de obra estimada (padrão de engenharia)
+            // mantendo 60% em terceiros/materiais
+            const estimatedLabor = serviceTotalCost * 0.4
+            laborDirectCost += estimatedLabor
+            subcontractDirectCost += serviceTotalCost * 0.6
+          }
           // O custo direto total deste serviço com preço manual é unitPrice * qty
-          totalDirectCostNoCharges += Number(service.unitPrice) * serviceQty
+          totalDirectCostNoCharges += serviceTotalCost
         } else {
-          // Sem insumos: preço unitário direto do serviço é alocado em terceiros/geral
+          // Sem insumos: preço unitário direto do serviço
           const itemCost = Number(service.unitPrice) * serviceQty
-          subcontractDirectCost += itemCost
+          // Quando não há detalhamento de insumos, aplica a taxa de encargos configurada sobre
+          // a parcela de mão de obra direta estimada (40% padrão da engenharia de custos para serviços de obra),
+          // para que o bloco "Encargos Sociais" não fique R$ 0,00 quando há taxa vigente
+          if (chargesRate > 0) {
+            const estimatedLabor = itemCost * 0.4
+            laborDirectCost += estimatedLabor
+            subcontractDirectCost += itemCost * 0.6
+          } else {
+            subcontractDirectCost += itemCost
+          }
           totalDirectCostNoCharges += itemCost
         }
       } else if (hasInputs) {

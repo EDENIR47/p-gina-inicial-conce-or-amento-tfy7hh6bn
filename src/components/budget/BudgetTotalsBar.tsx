@@ -180,8 +180,17 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
           <span className="text-sm sm:text-base font-bold text-white block mt-0.5">
             {formatCurrencyBRL(summary.socialChargesAmount)}
           </span>
-          <span className="text-[10px] text-white/40">
-            Sobre MO ({formatCurrencyBRL(summary.laborDirectCost)})
+          <span
+            className="text-[10px] text-white/60 line-clamp-1"
+            title={
+              budget.chargesConfig?.taxRegime === 'simples_nacional'
+                ? 'Regime Simples Nacional — Base de Encargos Sem Desoneração (CLT)'
+                : `Sobre MO (${formatCurrencyBRL(summary.laborDirectCost)})`
+            }
+          >
+            {budget.chargesConfig?.taxRegime === 'simples_nacional'
+              ? 'Regime Simples Nacional — Base Sem Desoneração (CLT)'
+              : `Sobre MO (${formatCurrencyBRL(summary.laborDirectCost)})`}
           </span>
         </div>
 

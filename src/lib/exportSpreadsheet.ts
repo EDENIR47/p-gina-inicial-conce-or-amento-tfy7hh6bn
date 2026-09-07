@@ -80,7 +80,7 @@ export function exportBudgetSpreadsheet(
     ],
     [
       'Encargos Sociais:',
-      `${summary.socialChargesRate.toFixed(2)}% (${budget.chargesConfig?.taxRegime === 'simples_nacional' ? 'Base Sem Desoneração' : budget.chargesConfig.isRelieved ? 'Desonerado' : 'Sem Desoneração'})`,
+      `${summary.socialChargesRate.toFixed(2)}% (${budget.chargesConfig?.taxRegime === 'simples_nacional' ? 'Regime Simples Nacional — Base de Encargos Sem Desoneração (CLT)' : budget.chargesConfig.isRelieved ? 'Desonerado' : 'Sem Desoneração'})`,
       'BDI TCU (Acórdão 2.622/2013):',
       `${summary.bdiRate.toFixed(2)}%`,
     ],
