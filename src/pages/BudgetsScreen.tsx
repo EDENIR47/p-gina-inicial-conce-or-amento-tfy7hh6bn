@@ -23,7 +23,10 @@ import {
   AlertTriangle,
   RotateCcw,
   Award,
+  Sparkles,
 } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { AiBudgetModal } from '@/components/budget/AiBudgetModal'
 import { FullBudget } from '@/types/budgetEngine'
 import {
   getStoredFullBudgets,
@@ -46,11 +49,27 @@ import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
 import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
 
 export const BudgetsScreen: React.FC = () => {
+  const location = useLocation()
   // Lista de todos os orçamentos persistidos
   const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
 
   // Orçamento atualmente em edição (ou null se estiver na listagem)
   const [activeBudget, setActiveBudget] = useState<FullBudget | null>(null)
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false)
+
+  // Ao navegar com state.openBudgetId, abre imediatamente
+  useEffect(() => {
+    const targetId = (location.state as any)?.openBudgetId
+    if (targetId) {
+      const all = getStoredFullBudgets()
+      const found = all.find((b) => b.id === targetId)
+      if (found) {
+        setBudgetsList(all)
+        setActiveBudget(found)
+        setEditorTab('arvore')
+      }
+    }
+  }, [location.state])
 
   // Aba ativa dentro do editor do orçamento: 'geral' | 'arvore' | 'encargos' | 'bdi' | 'abc'
   const [editorTab, setEditorTab] = useState<'geral' | 'arvore' | 'encargos' | 'bdi' | 'abc'>(
@@ -490,14 +509,26 @@ export const BudgetsScreen: React.FC = () => {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleCreateNewBudget}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs sm:text-sm font-bold transition-all shadow-md hover:-translate-y-0.5 active:scale-95 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Novo Orçamento</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsAiModalOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs sm:text-sm font-bold transition-all shadow-md hover:-translate-y-0.5 active:scale-95 cursor-pointer border border-white/20"
+                title="Criar proposta estruturada por inteligência artificial"
+              >
+                <Sparkles className="w-4 h-4 animate-pulse" />
+                <span>✨ Gerar com IA</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCreateNewBudget}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#294C87] hover:bg-[#1f3b6c] text-white text-xs sm:text-sm font-bold transition-all shadow-md hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-[#FF6B1F]" />
+                <span>Novo Orçamento</span>
+              </button>
+            </div>
           </div>
 
           {/* Barra de Filtros da Lista */}
@@ -534,16 +565,27 @@ export const BudgetsScreen: React.FC = () => {
               <FileSpreadsheet className="w-12 h-12 text-[#171A1F]/30 mx-auto" />
               <h4 className="text-base font-bold text-[#171A1F]">Nenhum orçamento encontrado</h4>
               <p className="text-xs text-[#171A1F]/60 max-w-sm mx-auto">
-                Crie um novo orçamento técnico para começar a compor as etapas e serviços.
+                Crie um novo orçamento técnico ou descreva o projeto para o agente de inteligência
+                artificial.
               </p>
-              <button
-                type="button"
-                onClick={handleCreateNewBudget}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#294C87] text-white text-xs font-bold"
-              >
-                <Plus className="w-4 h-4 text-[#FF6B1F]" />
-                <span>Criar Novo Orçamento</span>
-              </button>
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B1F] text-white text-xs font-bold shadow-md hover:bg-[#FF6B1F]/90"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>✨ Gerar com IA</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateNewBudget}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#294C87] text-white text-xs font-bold"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Criar Manualmente</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
@@ -705,6 +747,19 @@ export const BudgetsScreen: React.FC = () => {
               })}
             </div>
           )}
+
+          {/* Modal de geração por IA */}
+          <AiBudgetModal
+            isOpen={isAiModalOpen}
+            onClose={() => setIsAiModalOpen(false)}
+            onBudgetCreated={(created) => {
+              const updated = getStoredFullBudgets()
+              setBudgetsList(updated)
+              setActiveBudget(created)
+              setEditorTab('arvore')
+              showToast(`Orçamento ${created.code} gerado com sucesso por IA!`)
+            }}
+          />
 
           {/* Modal de PDF também acessível a partir da listagem geral */}
           {isPdfModalOpen && activeBudget && (

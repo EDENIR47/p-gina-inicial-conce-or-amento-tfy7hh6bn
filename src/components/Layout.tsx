@@ -11,9 +11,12 @@ import {
   User,
   Shield,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react'
 import { ConceLogo } from '@/components/ConceLogo'
 import { getAuthSession, clearAuthSession } from '@/lib/mockData'
+import { AiBudgetModal } from '@/components/budget/AiBudgetModal'
+import { FullBudget } from '@/types/budgetEngine'
 
 export default function Layout() {
   const navigate = useNavigate()
@@ -21,6 +24,7 @@ export default function Layout() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [logoutToast, setLogoutToast] = useState(false)
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false)
 
   const session = getAuthSession()
 
@@ -121,6 +125,17 @@ export default function Layout() {
 
           {/* Lado Direito: Perfil e Botão Sair */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Botão de Destaque ✨ Gerar com IA no Header Desktop */}
+            <button
+              type="button"
+              onClick={() => setIsAiModalOpen(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs font-bold tracking-wide shadow-md shadow-[#FF6B1F]/20 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer border border-white/20"
+              title="Gerar orçamento técnico por prompt com inteligência artificial"
+            >
+              <Sparkles className="w-3.5 h-3.5 animate-pulse text-white" />
+              <span>✨ Gerar com IA</span>
+            </button>
+
             {/* Identificação do Usuário */}
             {session && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-white">
@@ -160,6 +175,21 @@ export default function Layout() {
         {/* DRAWER / MENU MOBILE SLIDE-DOWN */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-[#171A1F] border-t border-white/10 px-4 pt-3 pb-5 shadow-2xl animate-fade-in-down">
+            {/* Botão de Destaque Mobile ✨ Gerar com IA */}
+            <div className="mb-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  setIsAiModalOpen(true)
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] text-white text-xs font-bold shadow-md active:scale-95 transition-all"
+              >
+                <Sparkles className="w-4 h-4 animate-pulse" />
+                <span>✨ Gerar Orçamento com IA</span>
+              </button>
+            </div>
+
             <div className="space-y-1 mb-4">
               {navLinks.map((link, idx) => {
                 const Icon = link.icon
@@ -205,6 +235,15 @@ export default function Layout() {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-12">
         <Outlet />
       </main>
+
+      {/* MODAL GLOBAL DE GERAÇÃO POR PROMPT COM IA */}
+      <AiBudgetModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        onBudgetCreated={(createdBudget: FullBudget) => {
+          navigate('/orcamentos', { state: { openBudgetId: createdBudget.id } })
+        }}
+      />
 
       {/* RODAPÉ GLOBAL DO DASHBOARD */}
       <footer className="w-full bg-[#171A1F] text-white border-t border-[#294C87]/40 py-6">
