@@ -117,14 +117,19 @@ export const InputEditModal: React.FC<InputEditModalProps> = ({
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[#171A1F] block mb-1">Categoria</label>
+              <label className="text-xs font-bold text-[#171A1F] block mb-1">
+                Categoria{' '}
+                <span className="text-[10px] text-[#171A1F]/60 font-normal">
+                  (Encargos incidem só em MO)
+                </span>
+              </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as InputCategory)}
-                className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs focus:outline-none focus:border-[#294C87]"
+                className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-semibold focus:outline-none focus:border-[#294C87]"
               >
-                <option value="material">Material</option>
-                <option value="mao_de_obra">Mão de Obra</option>
+                <option value="material">Material (Padrão)</option>
+                <option value="mao_de_obra">Mão de Obra (Aplica Encargos Sociais)</option>
                 <option value="equipamento">Equipamento</option>
                 <option value="servico_terceiro">Serviço de Terceiros</option>
                 <option value="outros">Outros</option>

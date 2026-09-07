@@ -534,13 +534,13 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
     })
   }
 
-  // Ajuste inline de insumo na revisão (custo ou coeficiente) -> Fonte passa a ser "Usuário"
+  // Ajuste inline de insumo na revisão (custo, coeficiente ou categoria)
   const handleReviewInputUpdate = (
     stageId: string,
     serviceId: string,
     inputId: string,
-    field: 'unitCost' | 'coefficient',
-    value: number,
+    field: 'unitCost' | 'coefficient' | 'category',
+    value: any,
   ) => {
     if (!draftBudget) return
     const updatedStages = draftBudget.stages.map((stg) => {
@@ -551,9 +551,15 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
           if (srv.id !== serviceId) return srv
           const updatedInputs = (srv.composition.inputs || []).map((inp) => {
             if (inp.id !== inputId) return inp
+            if (field === 'category') {
+              return {
+                ...inp,
+                category: value as InputCategory,
+              }
+            }
             return {
               ...inp,
-              [field]: Math.max(0, value),
+              [field]: Math.max(0, Number(value) || 0),
               source: 'Usuário',
               sourceStatus: 'valido' as const,
             }
@@ -1254,7 +1260,7 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                                               : 'bg-[#171A1F]/[0.03] border border-[#171A1F]/10 hover:bg-[#171A1F]/[0.06]'
                                           }`}
                                         >
-                                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap sm:flex-nowrap">
                                             <span className="font-mono text-[10px] text-[#294C87] font-bold">
                                               {inp.code}
                                             </span>
@@ -1264,6 +1270,39 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                                             >
                                               {inp.description}
                                             </span>
+
+                                            {/* Badge e Seletor Editável de Categoria */}
+                                            <select
+                                              value={inp.category || 'material'}
+                                              onChange={(e) =>
+                                                handleReviewInputUpdate(
+                                                  stage.id,
+                                                  srv.id,
+                                                  inp.id,
+                                                  'category',
+                                                  e.target.value,
+                                                )
+                                              }
+                                              className={`text-[10px] font-bold px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                                                inp.category === 'mao_de_obra'
+                                                  ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                                  : inp.category === 'equipamento'
+                                                    ? 'bg-purple-100 text-purple-800 border-purple-300'
+                                                    : inp.category === 'servico_terceiro'
+                                                      ? 'bg-cyan-100 text-cyan-800 border-cyan-300'
+                                                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                              }`}
+                                              title="Clique para alterar a categoria do insumo (encargos sociais incidem apenas sobre Mão de Obra)"
+                                            >
+                                              <option value="material">📦 Material</option>
+                                              <option value="mao_de_obra">👷 Mão de Obra</option>
+                                              <option value="equipamento">🚜 Equipamento</option>
+                                              <option value="servico_terceiro">
+                                                🤝 Serv. Terceiros
+                                              </option>
+                                              <option value="outros">📌 Outros</option>
+                                            </select>
+
                                             {/* Badge da Fonte */}
                                             <span
                                               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] whitespace-nowrap ${badgeInfo.badgeClass}`}

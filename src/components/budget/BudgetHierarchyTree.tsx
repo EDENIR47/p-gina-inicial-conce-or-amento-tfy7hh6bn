@@ -248,11 +248,18 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         },
       })
     } else {
+      const laborShareChanged =
+        prevService?.laborSharePercent !== savedService.laborSharePercent &&
+        savedService.laborSharePercent !== undefined
+      const laborShareDetail = laborShareChanged
+        ? ` Fração de mão de obra para preço direto ajustada de ${prevService?.laborSharePercent ?? 40}% para ${savedService.laborSharePercent}%.`
+        : ''
+
       logAuditEvent({
         budgetId: budget.id,
         action: 'edicao_servico',
         title: `Serviço Editado: ${savedService.description}`,
-        details: `Serviço ${savedService.code} "${savedService.description}" atualizado. Custo anterior: ${formatCurrencyBRL(prevCost)}, novo custo: ${formatCurrencyBRL(newCost)}.`,
+        details: `Serviço ${savedService.code} "${savedService.description}" atualizado. Custo anterior: ${formatCurrencyBRL(prevCost)}, novo custo: ${formatCurrencyBRL(newCost)}.${laborShareDetail}`,
         userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         oldValue: prevCost,
         newValue: newCost,
@@ -260,6 +267,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
           stageId,
           serviceId: savedService.id,
           serviceCode: savedService.code,
+          laborSharePercent: savedService.laborSharePercent,
         },
       })
     }
@@ -953,9 +961,9 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                     {isManualPrice && (
                                       <span
                                         className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200"
-                                        title="Preço unitário fixado/editado manualmente pelo usuário"
+                                        title={`Preço unitário manual. Base MO: ${service.laborSharePercent ?? 40}%`}
                                       >
-                                        Preço manual
+                                        Preço manual (MO: {service.laborSharePercent ?? 40}%)
                                       </span>
                                     )}
                                   </div>

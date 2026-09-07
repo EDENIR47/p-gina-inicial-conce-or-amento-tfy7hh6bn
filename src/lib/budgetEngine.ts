@@ -119,37 +119,210 @@ export function calculateCompositionUnitCost(
  * - Se service.unitPrice !== undefined (preço manual / digitado pelo usuário), usa service.unitPrice
  * - Caso contrário, calcula pela Composição: Σ(coeficiente × custo_unitario)
  */
-export function getServiceEffectiveUnitCost(
-  service: BudgetService,
-  laborMultiplier: number = 1.0,
-): number {
+/**
+ * Retorna os detalhes de custo e encargos de um serviço:
+ * - baseDirectCost: custo direto base (sem encargos)
+ * - laborDirectCost: base de mão de obra direta (sobre a qual incidem encargos)
+ * - otherDirectCost: outros custos (material, equipamento, terceiros)
+ * - effectiveLaborSharePercent: percentual de mão de obra aplicado no caso de preço direto (default 40% ou customizado)
+ * - isEstimatedLabor: se a mão de obra foi estimada por percentual (preço direto) ou calculada por insumos
+ */
+export function getServiceCostBreakdown(service: BudgetService): {
+  baseUnitCost: number
+  baseDirectCost: number
+  laborDirectCost: number
+  materialDirectCost: number
+  equipmentDirectCost: number
+  subcontractDirectCost: number
+  effectiveLaborSharePercent: number
+  isEstimatedLabor: boolean
+  hasLaborInputs: boolean
+} {
+  const sQty = Number(service.quantity) || 0
   const hasInputs =
     service.composition &&
     Array.isArray(service.composition.inputs) &&
     service.composition.inputs.length > 0
 
+  const customLaborShare =
+    service.laborSharePercent !== undefined && service.laborSharePercent !== null
+      ? Math.max(0, Math.min(100, Number(service.laborSharePercent)))
+      : 40
+
+  let laborCost = 0
+  let materialCost = 0
+  let equipmentCost = 0
+  let subcontractCost = 0
+  let hasLaborInputs = false
+
   if (service.unitPrice !== undefined && service.unitPrice !== null) {
-    return Number(service.unitPrice) || 0
+    const manualUnit = Number(service.unitPrice) || 0
+    const serviceTotal = manualUnit * sQty
+
+    if (hasInputs) {
+      service.composition.inputs.forEach((input: BudgetInput) => {
+        const itemCost = (Number(input.coefficient) || 0) * (Number(input.unitCost) || 0) * sQty
+        switch (input.category) {
+          case 'mao_de_obra':
+            laborCost += itemCost
+            hasLaborInputs = true
+            break
+          case 'material':
+            materialCost += itemCost
+            break
+          case 'equipamento':
+            equipmentCost += itemCost
+            break
+          case 'servico_terceiro':
+          case 'outros':
+          default:
+            subcontractCost += itemCost
+            break
+        }
+      })
+
+      if (hasLaborInputs) {
+        // Possui insumos com mão de obra real: a base de mão de obra é a dos insumos
+        const otherCost = Math.max(0, serviceTotal - laborCost)
+        return {
+          baseUnitCost: manualUnit,
+          baseDirectCost: serviceTotal,
+          laborDirectCost: laborCost,
+          materialDirectCost: materialCost,
+          equipmentDirectCost: equipmentCost,
+          subcontractCost: subcontractCost,
+          effectiveLaborSharePercent:
+            serviceTotal > 0 ? Number(((laborCost / serviceTotal) * 100).toFixed(2)) : 0,
+          isEstimatedLabor: false,
+          hasLaborInputs: true,
+        }
+      } else {
+        // Não há insumos de mão de obra: aplica a regra da mão de obra estimada (laborSharePercent, default 40%)
+        const estimatedLabor = (serviceTotal * customLaborShare) / 100
+        const otherCost = serviceTotal - estimatedLabor
+        return {
+          baseUnitCost: manualUnit,
+          baseDirectCost: serviceTotal,
+          laborDirectCost: estimatedLabor,
+          materialDirectCost: materialCost,
+          equipmentDirectCost: equipmentCost,
+          subcontractDirectCost: otherCost,
+          effectiveLaborSharePercent: customLaborShare,
+          isEstimatedLabor: true,
+          hasLaborInputs: false,
+        }
+      }
+    } else {
+      // Sem insumos: serviço de preço direto puro
+      const estimatedLabor = (serviceTotal * customLaborShare) / 100
+      const otherCost = serviceTotal - estimatedLabor
+      return {
+        baseUnitCost: manualUnit,
+        baseDirectCost: serviceTotal,
+        laborDirectCost: estimatedLabor,
+        materialDirectCost: 0,
+        equipmentDirectCost: 0,
+        subcontractDirectCost: otherCost,
+        effectiveLaborSharePercent: customLaborShare,
+        isEstimatedLabor: true,
+        hasLaborInputs: false,
+      }
+    }
   }
 
+  // Preço derivado da composição CPU
   if (hasInputs) {
-    return calculateCompositionUnitCost(service.composition, laborMultiplier)
+    let cpuUnit = 0
+    service.composition.inputs.forEach((input: BudgetInput) => {
+      const coeff = Number(input.coefficient) || 0
+      const unitC = Number(input.unitCost) || 0
+      const itemCost = coeff * unitC * sQty
+      cpuUnit += coeff * unitC
+
+      switch (input.category) {
+        case 'mao_de_obra':
+          laborCost += itemCost
+          hasLaborInputs = true
+          break
+        case 'material':
+          materialCost += itemCost
+          break
+        case 'equipamento':
+          equipmentCost += itemCost
+          break
+        case 'servico_terceiro':
+        case 'outros':
+        default:
+          subcontractCost += itemCost
+          break
+      }
+    })
+
+    const totalCost = cpuUnit * sQty
+    return {
+      baseUnitCost: cpuUnit,
+      baseDirectCost: totalCost,
+      laborDirectCost: laborCost,
+      materialDirectCost: materialCost,
+      equipmentDirectCost: equipmentCost,
+      subcontractDirectCost: subcontractCost,
+      effectiveLaborSharePercent:
+        totalCost > 0 ? Number(((laborCost / totalCost) * 100).toFixed(2)) : 0,
+      isEstimatedLabor: false,
+      hasLaborInputs,
+    }
   }
 
-  return 0
+  return {
+    baseUnitCost: 0,
+    baseDirectCost: 0,
+    laborDirectCost: 0,
+    materialDirectCost: 0,
+    equipmentDirectCost: 0,
+    subcontractDirectCost: 0,
+    effectiveLaborSharePercent: customLaborShare,
+    isEstimatedLabor: false,
+    hasLaborInputs: false,
+  }
+}
+
+/**
+ * Retorna o preço/custo unitário efetivo do Serviço:
+ * - Se laborMultiplier !== 1.0 (ou chargesRate > 0), os encargos sociais incidentes sobre a parcela
+ *   de mão de obra do serviço (seja calculada via CPU ou estimada pelo laborSharePercent do preço direto)
+ *   são computados de forma consistente, evitando discrepâncias entre totais globais e subtotais por etapa.
+ */
+export function getServiceEffectiveUnitCost(
+  service: BudgetService,
+  laborMultiplier: number = 1.0,
+): number {
+  const breakdown = getServiceCostBreakdown(service)
+  const sQty = Number(service.quantity) || 0
+
+  if (sQty <= 0 || breakdown.baseDirectCost <= 0) {
+    return Number(breakdown.baseUnitCost.toFixed(4))
+  }
+
+  // Encargos incidentes sobre a parcela de mão de obra deste serviço
+  const chargesRateDecimal = Math.max(0, laborMultiplier - 1.0)
+  const serviceSocialCharges = breakdown.laborDirectCost * chargesRateDecimal
+  const totalWithCharges = breakdown.baseDirectCost + serviceSocialCharges
+
+  return Number((totalWithCharges / sQty).toFixed(4))
 }
 
 /**
  * Calcula o custo direto do Serviço:
- * Custo do Serviço = Preço Unitário Efetivo × Quantidade
+ * Custo do Serviço = Preço Unitário Efetivo × Quantidade (incluindo encargos proporcionais se laborMultiplier > 1)
  */
 export function calculateServiceDirectCost(
   service: BudgetService,
   laborMultiplier: number = 1.0,
 ): number {
-  const unitCost = getServiceEffectiveUnitCost(service, laborMultiplier)
-  const qty = Number(service.quantity) || 0
-  return Number((unitCost * qty).toFixed(2))
+  const breakdown = getServiceCostBreakdown(service)
+  const chargesRateDecimal = Math.max(0, laborMultiplier - 1.0)
+  const serviceSocialCharges = breakdown.laborDirectCost * chargesRateDecimal
+  return Number((breakdown.baseDirectCost + serviceSocialCharges).toFixed(2))
 }
 
 /**
@@ -258,6 +431,8 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
   const generalBdiRate = tcuResult.bdiPercent
 
   // 3. Varre etapas -> serviços -> composições -> insumos
+  // Usa getServiceCostBreakdown para assegurar correspondência estrita e única
+  // entre o cálculo global e os subtotais por etapa
   let laborDirectCost = 0
   let materialDirectCost = 0
   let equipmentDirectCost = 0
@@ -269,93 +444,20 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
   budget.stages.forEach((stage) => {
     stage.services.forEach((service) => {
       servicesCount++
-      const serviceQty = Number(service.quantity) || 0
       const hasInputs =
         service.composition &&
         Array.isArray(service.composition.inputs) &&
         service.composition.inputs.length > 0
-
-      if (service.unitPrice !== undefined && service.unitPrice !== null) {
-        // Se há unitPrice definido (manual / direto no serviço)
-        if (hasInputs) {
-          // Se tem insumos na CPU, varre os insumos para catalogar categorias
-          let hasMaoDeObraInput = false
-          service.composition.inputs.forEach((input: BudgetInput) => {
-            inputsCount++
-            const itemCost =
-              (Number(input.coefficient) || 0) * (Number(input.unitCost) || 0) * serviceQty
-
-            switch (input.category) {
-              case 'mao_de_obra':
-                laborDirectCost += itemCost
-                hasMaoDeObraInput = true
-                break
-              case 'material':
-                materialDirectCost += itemCost
-                break
-              case 'equipamento':
-                equipmentDirectCost += itemCost
-                break
-              case 'servico_terceiro':
-              case 'outros':
-              default:
-                subcontractDirectCost += itemCost
-                break
-            }
-          })
-          // Se não havia insumo categorizado como mão de obra, mas há unitPrice manual e encargos vigentes,
-          // aloca a fração proporcional em mão de obra para que encargos sociais não fiquem zerados
-          const serviceTotalCost = Number(service.unitPrice) * serviceQty
-          if (!hasMaoDeObraInput && chargesRate > 0) {
-            // Em serviços sem insumo específico de MO, aloca 40% como mão de obra estimada (padrão de engenharia)
-            // mantendo 60% em terceiros/materiais
-            const estimatedLabor = serviceTotalCost * 0.4
-            laborDirectCost += estimatedLabor
-            subcontractDirectCost += serviceTotalCost * 0.6
-          }
-          // O custo direto total deste serviço com preço manual é unitPrice * qty
-          totalDirectCostNoCharges += serviceTotalCost
-        } else {
-          // Sem insumos: preço unitário direto do serviço
-          const itemCost = Number(service.unitPrice) * serviceQty
-          // Quando não há detalhamento de insumos, aplica a taxa de encargos configurada sobre
-          // a parcela de mão de obra direta estimada (40% padrão da engenharia de custos para serviços de obra),
-          // para que o bloco "Encargos Sociais" não fique R$ 0,00 quando há taxa vigente
-          if (chargesRate > 0) {
-            const estimatedLabor = itemCost * 0.4
-            laborDirectCost += estimatedLabor
-            subcontractDirectCost += itemCost * 0.6
-          } else {
-            subcontractDirectCost += itemCost
-          }
-          totalDirectCostNoCharges += itemCost
-        }
-      } else if (hasInputs) {
-        // Serviço normal calculado a partir dos insumos da CPU
-        service.composition.inputs.forEach((input: BudgetInput) => {
-          inputsCount++
-          const itemCost =
-            (Number(input.coefficient) || 0) * (Number(input.unitCost) || 0) * serviceQty
-
-          switch (input.category) {
-            case 'mao_de_obra':
-              laborDirectCost += itemCost
-              break
-            case 'material':
-              materialDirectCost += itemCost
-              break
-            case 'equipamento':
-              equipmentDirectCost += itemCost
-              break
-            case 'servico_terceiro':
-            case 'outros':
-            default:
-              subcontractDirectCost += itemCost
-              break
-          }
-          totalDirectCostNoCharges += itemCost
-        })
+      if (hasInputs) {
+        inputsCount += service.composition.inputs.length
       }
+
+      const breakdown = getServiceCostBreakdown(service)
+      laborDirectCost += breakdown.laborDirectCost
+      materialDirectCost += breakdown.materialDirectCost
+      equipmentDirectCost += breakdown.equipmentDirectCost
+      subcontractDirectCost += breakdown.subcontractDirectCost
+      totalDirectCostNoCharges += breakdown.baseDirectCost
     })
   })
 

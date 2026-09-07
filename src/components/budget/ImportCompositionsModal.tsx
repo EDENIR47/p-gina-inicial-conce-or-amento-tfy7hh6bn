@@ -171,6 +171,20 @@ SINAPI-74209;Alvenaria bloco concreto 14x19x39;Alvenaria & Vedações;m²;72.50;
 
           // Se tiver colunas de insumos vinculadas
           if (cols.length >= 10 && cols[6]) {
+            const rawCat = cols[11]?.toLowerCase()?.trim()
+            let validCat: InputCategory = 'material'
+            if (rawCat === 'mao_de_obra' || rawCat === 'mão de obra' || rawCat === 'mo') {
+              validCat = 'mao_de_obra'
+            } else if (rawCat === 'equipamento' || rawCat === 'equip') {
+              validCat = 'equipamento'
+            } else if (rawCat === 'servico_terceiro' || rawCat === 'terceiros') {
+              validCat = 'servico_terceiro'
+            } else if (rawCat === 'outros') {
+              validCat = 'outros'
+            } else {
+              validCat = 'material'
+            }
+
             compsMap[code].inputs.push({
               id: `inp-csv-${Date.now()}-${i}`,
               code: cols[6],
@@ -178,7 +192,7 @@ SINAPI-74209;Alvenaria bloco concreto 14x19x39;Alvenaria & Vedações;m²;72.50;
               unit: cols[8] || 'un',
               coefficient: parseFloat(cols[9]?.replace(',', '.')) || 1,
               unitCost: parseFloat(cols[10]?.replace(',', '.')) || 0,
-              category: (cols[11] as any) || 'material',
+              category: validCat,
             })
           }
         }

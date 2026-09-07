@@ -64,6 +64,7 @@ export interface BudgetService {
   unitPrice?: number // Preço unitário direto / manual do serviço (em R$). Se informado ou quando a composição está vazia, prevalece no custo direto
   unitPriceSource?: 'Composição' | 'Usuário' | string // Fonte comprovada do preço unitário do serviço (regra CONCE: nenhum valor sem fonte)
   customBdiPercent?: number // Opcional: BDI diferenciado para este serviço (ex.: fornecimento de equipamentos)
+  laborSharePercent?: number // Fração estimada de mão de obra (%) para serviços de preço direto (default 40%)
   notes?: string
 }
 

@@ -64,6 +64,11 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
   const [customBdiPercent, setCustomBdiPercent] = useState<string>(
     initialService?.customBdiPercent !== undefined ? String(initialService.customBdiPercent) : '',
   )
+  const [laborSharePercent, setLaborSharePercent] = useState<string>(
+    initialService?.laborSharePercent !== undefined
+      ? String(initialService.laborSharePercent)
+      : '40',
+  )
   const [notes, setNotes] = useState(initialService?.notes || '')
   const [unitPrice, setUnitPrice] = useState<string>(
     initialService?.unitPrice !== undefined ? String(initialService.unitPrice) : '',
@@ -145,6 +150,11 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
     const parsedUnitPrice =
       unitPrice.trim() !== '' ? Math.max(0, parseFloat(unitPrice) || 0) : undefined
 
+    const parsedLaborShare =
+      laborSharePercent.trim() !== ''
+        ? Math.max(0, Math.min(100, parseFloat(laborSharePercent) || 40))
+        : 40
+
     onSave(
       {
         id: initialService?.id || `serv-${Date.now()}`,
@@ -157,6 +167,7 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
         unitPrice: parsedUnitPrice,
         unitPriceSource: parsedUnitPrice !== undefined ? unitPriceSource || 'Usuário' : undefined,
         customBdiPercent: customBdi,
+        laborSharePercent: parsedLaborShare,
         notes: notes.trim(),
       },
       selectedStageId,
@@ -385,18 +396,40 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
               </div>
             </div>
 
-            {/* BDI Diferenciado Opcional */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Bloco de Estimativa de Mão de Obra e BDI Diferenciado */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs font-bold text-[#171A1F] block mb-1">
-                  BDI Diferenciado (%){' '}
-                  <span className="text-[10px] text-[#171A1F]/50">(Opcional)</span>
+                  Fração Mão de Obra (%)
+                  <span className="text-[10px] text-[#171A1F]/50 block font-normal">
+                    (Base de encargos em preço direto)
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="100"
+                  placeholder="40"
+                  value={laborSharePercent}
+                  onChange={(e) => setLaborSharePercent(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-bold text-[#294C87] focus:outline-none focus:border-[#294C87]"
+                  title="Fração de mão de obra sobre a qual incidirão os encargos sociais quando o serviço usa preço direto sem insumos de MO"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#171A1F] block mb-1">
+                  BDI Diferenciado (%)
+                  <span className="text-[10px] text-[#171A1F]/50 block font-normal">
+                    (Opcional / diferenciado)
+                  </span>
                 </label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="Deixar em branco para usar o BDI geral"
+                  placeholder="Usar BDI geral"
                   value={customBdiPercent}
                   onChange={(e) => setCustomBdiPercent(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs focus:outline-none focus:border-[#294C87]"
@@ -406,6 +439,9 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
               <div>
                 <label className="text-xs font-bold text-[#171A1F] block mb-1">
                   Observações / Especificação
+                  <span className="text-[10px] text-[#171A1F]/50 block font-normal">
+                    (Detalhe técnico)
+                  </span>
                 </label>
                 <input
                   type="text"
