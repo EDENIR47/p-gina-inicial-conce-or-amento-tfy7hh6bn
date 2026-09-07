@@ -65,6 +65,12 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
     initialService?.customBdiPercent !== undefined ? String(initialService.customBdiPercent) : '',
   )
   const [notes, setNotes] = useState(initialService?.notes || '')
+  const [unitPrice, setUnitPrice] = useState<string>(
+    initialService?.unitPrice !== undefined ? String(initialService.unitPrice) : '',
+  )
+  const [unitPriceSource, setUnitPriceSource] = useState<string>(
+    initialService?.unitPriceSource || 'Usuário',
+  )
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [error, setError] = useState('')
 
@@ -77,6 +83,12 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
       setDescription(comp.description)
     }
     setUnit(comp.unit)
+    // Se selecionou composição com insumos, podemos limpar o unitPrice manual para calcular pela composição
+    if (comp.inputs && comp.inputs.length > 0) {
+      const calculatedCost = calculateCompositionUnitCost(comp)
+      setUnitPrice(String(calculatedCost))
+      setUnitPriceSource(comp.source || 'Composição')
+    }
   }
 
   const handleClearComposition = () => {
@@ -129,6 +141,10 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
       code: composition.code.trim() || `CPU-${code.trim()}`,
     }
 
+    // Se o usuário digitou preço unitário manual ou se a composição não tem insumos
+    const parsedUnitPrice =
+      unitPrice.trim() !== '' ? Math.max(0, parseFloat(unitPrice) || 0) : undefined
+
     onSave(
       {
         id: initialService?.id || `serv-${Date.now()}`,
@@ -138,6 +154,8 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
         unit: unit.trim() || 'un',
         quantity: Number(quantity) || 0,
         composition: finalComposition,
+        unitPrice: parsedUnitPrice,
+        unitPriceSource: parsedUnitPrice !== undefined ? unitPriceSource || 'Usuário' : undefined,
         customBdiPercent: customBdi,
         notes: notes.trim(),
       },
@@ -147,8 +165,10 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
     onClose()
   }
 
-  const unitCost = calculateCompositionUnitCost(composition)
-  const totalDirectCost = unitCost * quantity
+  const compCalculatedCost = calculateCompositionUnitCost(composition)
+  const effectiveUnitCost =
+    unitPrice.trim() !== '' ? Math.max(0, parseFloat(unitPrice) || 0) : compCalculatedCost
+  const totalDirectCost = effectiveUnitCost * quantity
 
   // Validação: alerta se unidade do serviço for incompatível com a composição
   const unitMismatch = unit.trim().toLowerCase() !== composition.unit.trim().toLowerCase()
@@ -218,7 +238,7 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div>
                 <label className="text-xs font-bold text-[#171A1F] block mb-1">
                   Item / Código *
@@ -253,6 +273,29 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
                   onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-bold focus:outline-none focus:border-[#294C87]"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#171A1F] block mb-1">
+                  Preço Unitário (R$)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#171A1F]/50">
+                    R$
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={compCalculatedCost > 0 ? compCalculatedCost.toFixed(2) : '0,00'}
+                    value={unitPrice}
+                    onChange={(e) => {
+                      setUnitPrice(e.target.value)
+                      setUnitPriceSource('Usuário')
+                    }}
+                    className="w-full pl-8 pr-3 py-2 rounded-lg border-2 border-[#294C87]/40 text-xs font-mono font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87] bg-white"
+                  />
+                </div>
               </div>
             </div>
 
@@ -375,11 +418,29 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
             </div>
 
             {/* Totalizador Prévio */}
-            <div className="p-3 rounded-xl bg-[#171A1F]/5 border border-[#171A1F]/10 flex items-center justify-between text-xs">
-              <span className="text-[#171A1F]/70">
-                Subtotal Direto Previsto: {quantity} {unit} × {formatCurrencyBRL(unitCost)}
-              </span>
-              <span className="font-extrabold text-[#FF6B1F] text-sm">
+            <div className="p-3.5 rounded-xl bg-[#171A1F]/5 border border-[#171A1F]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="space-y-0.5">
+                <span className="text-[#171A1F]/80 block font-medium">
+                  Subtotal Direto Previsto:{' '}
+                  <strong>
+                    {quantity} {unit}
+                  </strong>{' '}
+                  ×{' '}
+                  <strong className="text-[#294C87]">{formatCurrencyBRL(effectiveUnitCost)}</strong>
+                </span>
+                <span className="text-[11px] text-[#171A1F]/60 block">
+                  Fonte do preço:{' '}
+                  <span className="font-semibold text-[#294C87]">
+                    {unitPrice.trim() !== '' ? unitPriceSource : composition.source || 'CPU'}
+                  </span>
+                  {unitPrice.trim() !== '' && (
+                    <span className="ml-1 text-[10px] text-[#FF6B1F] font-bold">
+                      (Preço manual definido pelo usuário)
+                    </span>
+                  )}
+                </span>
+              </div>
+              <span className="font-extrabold text-[#FF6B1F] text-base text-right">
                 = {formatCurrencyBRL(totalDirectCost)}
               </span>
             </div>

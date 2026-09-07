@@ -534,7 +534,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         {/* Linhas dos Serviços da Etapa: apenas item, nome, unid, qtd e valor final */}
                         {stage.services.map((service) => {
                           const sQty = Number(service.quantity) || 0
-                          const compUnit = service.composition?.unitCost || 0
+                          const laborMult = 1 + summary.socialChargesRate / 100
+                          const compUnit =
+                            service.unitPrice !== undefined && service.unitPrice !== null
+                              ? Number(service.unitPrice)
+                              : service.composition?.unitCost || 0
                           const serviceBdi = service.customBdiPercent ?? summary.bdiRate
                           const unitWithBdi = compUnit * (1 + serviceBdi / 100)
                           const totalWithBdi = unitWithBdi * sQty
@@ -894,7 +898,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                           {/* Linhas dos Serviços da Etapa */}
                           {stage.services.map((service) => {
                             const sQty = Number(service.quantity) || 0
-                            const compUnit = service.composition?.unitCost || 0
+                            const compUnit =
+                              service.unitPrice !== undefined && service.unitPrice !== null
+                                ? Number(service.unitPrice)
+                                : service.composition?.unitCost || 0
                             const serviceBdi = service.customBdiPercent ?? summary.bdiRate
                             const unitWithBdi = compUnit * (1 + serviceBdi / 100)
                             const totalWithBdi = unitWithBdi * sQty

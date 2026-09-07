@@ -9,7 +9,7 @@
  */
 
 import { FullBudget } from '@/types/budgetEngine'
-import { calculateFullBudget } from './budgetEngine'
+import { calculateFullBudget, getServiceEffectiveUnitCost } from './budgetEngine'
 import { computeAbcCurve } from './abcAnalysis'
 import { formatCurrencyBRL } from './formatters'
 import { logAuditEvent } from './intelligenceStorage'
@@ -119,7 +119,7 @@ export function exportBudgetSpreadsheet(
 
     stage.services.forEach((service) => {
       const sQty = Number(service.quantity) || 0
-      const compUnit = service.composition?.unitCost || 0
+      const compUnit = getServiceEffectiveUnitCost(service, laborMultiplier)
       const sDirect = compUnit * sQty
       const serviceBdi = service.customBdiPercent ?? summary.bdiRate
       const sUnitWithBdi = compUnit * (1 + serviceBdi / 100)

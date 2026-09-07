@@ -36,6 +36,7 @@ import {
   calculateCompositionUnitCost,
   calculateServiceDirectCost,
   calculateStageDirectCost,
+  getServiceEffectiveUnitCost,
 } from '@/lib/budgetEngine'
 import { formatCurrencyBRL, getSourceBadgeInfo } from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
@@ -349,6 +350,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       order: stage.services.length + 1,
       code: `${stage.code}.${String(stage.services.length + 1).padStart(2, '0')}`,
       description: `${service.description} (CÓPIA)`,
+      unitPrice: service.unitPrice,
+      unitPriceSource: service.unitPriceSource || 'Usuário',
     }
 
     const newStages = budget.stages.map((st) => {
@@ -628,6 +631,55 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     onChange({ ...budget, stages: newStages })
   }
 
+  // Edição inline de Preço Unitário do Serviço com auditoria e recálculo imediato
+  const handleInlineServiceUnitPriceUpdate = (
+    stageId: string,
+    serviceId: string,
+    newPrice: number,
+  ) => {
+    let serviceDesc = ''
+    let prevPrice = 0
+    const clampedPrice = Math.max(0, Number(newPrice) || 0)
+
+    const newStages = budget.stages.map((st) => {
+      if (st.id !== stageId) return st
+      const updatedServices = st.services.map((srv) => {
+        if (srv.id !== serviceId) return srv
+        serviceDesc = srv.description
+        prevPrice =
+          srv.unitPrice !== undefined && srv.unitPrice !== null
+            ? Number(srv.unitPrice)
+            : calculateCompositionUnitCost(srv.composition)
+        return {
+          ...srv,
+          unitPrice: clampedPrice,
+          unitPriceSource: 'Usuário',
+        }
+      })
+      return { ...st, services: updatedServices }
+    })
+
+    if (prevPrice !== clampedPrice) {
+      logAuditEvent({
+        budgetId: budget.id,
+        action: 'edicao_preco_servico',
+        title: `Ajuste de Preço Unitário do Serviço: ${serviceDesc}`,
+        details: `Preço unitário alterado de ${formatCurrencyBRL(prevPrice)} para ${formatCurrencyBRL(clampedPrice)} (Fonte: Usuário).`,
+        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Usuário)',
+        oldValue: prevPrice,
+        newValue: clampedPrice,
+        metadata: {
+          stageId,
+          serviceId,
+          source: 'Usuário',
+          signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+        },
+      })
+    }
+
+    onChange({ ...budget, stages: newStages })
+  }
+
   return (
     <div className="space-y-4">
       {/* Barra de Ações do Nível Superior */}
@@ -829,11 +881,14 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                       stage.services.map((service) => {
                         const isServiceOpen = !!expandedServices[service.id]
                         const comp = service.composition
-                        const unitCost = calculateCompositionUnitCost(comp)
+                        const unitCost = getServiceEffectiveUnitCost(service)
                         const serviceTotal = calculateServiceDirectCost(service)
                         const hasCustomBdi =
                           service.customBdiPercent !== undefined &&
                           service.customBdiPercent !== null
+                        const hasNoInputs = !comp.inputs || comp.inputs.length === 0
+                        const isManualPrice =
+                          service.unitPrice !== undefined && service.unitPrice !== null
 
                         // Validação de unidade incompatível
                         const isUnitMismatch =
@@ -887,6 +942,22 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                         BDI: {service.customBdiPercent}%
                                       </span>
                                     )}
+                                    {hasNoInputs && (
+                                      <span
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300"
+                                        title="Serviço sem insumos na CPU — preço unitário digitado diretamente pelo orçamentista"
+                                      >
+                                        Sem composição (preço direto)
+                                      </span>
+                                    )}
+                                    {isManualPrice && (
+                                      <span
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200"
+                                        title="Preço unitário fixado/editado manualmente pelo usuário"
+                                      >
+                                        Preço manual
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -917,13 +988,54 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
 
                                   <span className="text-xs text-[#171A1F]/40 font-mono">×</span>
 
-                                  <div className="text-right">
-                                    <span className="text-[10px] text-[#171A1F]/50 block">
-                                      Unit.
-                                    </span>
-                                    <span className="text-xs font-bold text-[#171A1F]">
-                                      {formatCurrencyBRL(unitCost)}
-                                    </span>
+                                  <div className="flex flex-col items-end">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[10px] text-[#171A1F]/60 block font-semibold">
+                                        R$/{service.unit}
+                                      </span>
+                                      {service.unitPriceSource && (
+                                        <span
+                                          className={`text-[9px] px-1 py-0.2 rounded font-bold ${
+                                            service.unitPriceSource === 'Usuário'
+                                              ? 'bg-amber-100 text-amber-800'
+                                              : 'bg-blue-100 text-blue-800'
+                                          }`}
+                                          title={`Fonte: ${service.unitPriceSource}`}
+                                        >
+                                          {service.unitPriceSource}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="relative">
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        disabled={disabled}
+                                        value={
+                                          service.unitPrice !== undefined &&
+                                          service.unitPrice !== null
+                                            ? service.unitPrice
+                                            : unitCost
+                                        }
+                                        onChange={(e) =>
+                                          handleInlineServiceUnitPriceUpdate(
+                                            stage.id,
+                                            service.id,
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        title="Preço unitário do serviço editável inline (R$). Altera fonte para 'Usuário'."
+                                        className={`w-24 px-1.5 py-1 text-right rounded font-mono text-xs font-bold focus:outline-none transition-all ${
+                                          unitCost === 0 &&
+                                          (!service.unitPrice || service.unitPrice === 0)
+                                            ? 'border-2 border-[#FF6B1F] text-[#FF6B1F] bg-amber-50/50 ring-1 ring-[#FF6B1F]/30 focus:border-[#FF6B1F]'
+                                            : service.unitPriceSource === 'Usuário'
+                                              ? 'border-2 border-[#294C87] text-[#294C87] bg-blue-50/30 focus:border-[#171A1F]'
+                                              : 'border border-[#171A1F]/20 text-[#171A1F] focus:border-[#294C87]'
+                                        }`}
+                                      />
+                                    </div>
                                   </div>
 
                                   <span className="text-xs text-[#171A1F]/40 font-mono">=</span>
@@ -1271,7 +1383,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                             Custo Unitário da Composição ({comp.unit}):
                                           </td>
                                           <td className="py-2 px-3 text-right text-[#FF6B1F] font-extrabold">
-                                            {formatCurrencyBRL(unitCost)}
+                                            {formatCurrencyBRL(calculateCompositionUnitCost(comp))}
                                           </td>
                                           <td></td>
                                         </tr>

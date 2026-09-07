@@ -57,6 +57,54 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
   budget.stages.forEach((stage) => {
     stage.services.forEach((service) => {
       const sQty = Number(service.quantity) || 0
+      const hasInputs =
+        service.composition &&
+        Array.isArray(service.composition.inputs) &&
+        service.composition.inputs.length > 0
+
+      // Se o serviço tiver preço manual e NÃO tiver insumos, entra na Curva ABC como serviço de terceiro/item direto
+      if (!hasInputs && (Number(service.unitPrice) || 0) > 0) {
+        const key = `SERV-${service.code}`.toUpperCase()
+        const unitCost = Number(service.unitPrice) || 0
+        const itemTotalCost = unitCost * sQty
+
+        if (!map.has(key)) {
+          map.set(key, {
+            code: service.code || 'SRV',
+            description: service.description,
+            category: 'servico_terceiro',
+            unit: service.unit || 'un',
+            unitCost,
+            totalQuantity: sQty,
+            totalCost: itemTotalCost,
+            serviceOccurrences: [
+              {
+                stageCode: stage.code,
+                stageName: stage.name,
+                serviceCode: service.code,
+                serviceDescription: service.description,
+                quantity: sQty,
+              },
+            ],
+          })
+        } else {
+          const existing = map.get(key)!
+          existing.totalQuantity += sQty
+          existing.totalCost += itemTotalCost
+          if (existing.totalQuantity > 0) {
+            existing.unitCost = existing.totalCost / existing.totalQuantity
+          }
+          existing.serviceOccurrences.push({
+            stageCode: stage.code,
+            stageName: stage.name,
+            serviceCode: service.code,
+            serviceDescription: service.description,
+            quantity: sQty,
+          })
+        }
+        return
+      }
+
       if (!service.composition?.inputs) return
 
       service.composition.inputs.forEach((input) => {

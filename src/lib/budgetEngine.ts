@@ -114,11 +114,40 @@ export function calculateCompositionUnitCost(
  * Calcula o custo direto do Serviço:
  * Custo do Serviço = Composição × Quantidade
  */
+/**
+ * Retorna o preço/custo unitário efetivo do Serviço:
+ * - Se service.unitPrice !== undefined (preço manual / digitado pelo usuário), usa service.unitPrice
+ * - Caso contrário, calcula pela Composição: Σ(coeficiente × custo_unitario)
+ */
+export function getServiceEffectiveUnitCost(
+  service: BudgetService,
+  laborMultiplier: number = 1.0,
+): number {
+  const hasInputs =
+    service.composition &&
+    Array.isArray(service.composition.inputs) &&
+    service.composition.inputs.length > 0
+
+  if (service.unitPrice !== undefined && service.unitPrice !== null) {
+    return Number(service.unitPrice) || 0
+  }
+
+  if (hasInputs) {
+    return calculateCompositionUnitCost(service.composition, laborMultiplier)
+  }
+
+  return 0
+}
+
+/**
+ * Calcula o custo direto do Serviço:
+ * Custo do Serviço = Preço Unitário Efetivo × Quantidade
+ */
 export function calculateServiceDirectCost(
   service: BudgetService,
   laborMultiplier: number = 1.0,
 ): number {
-  const unitCost = calculateCompositionUnitCost(service.composition, laborMultiplier)
+  const unitCost = getServiceEffectiveUnitCost(service, laborMultiplier)
   const qty = Number(service.quantity) || 0
   return Number((unitCost * qty).toFixed(2))
 }
@@ -208,8 +237,47 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
     stage.services.forEach((service) => {
       servicesCount++
       const serviceQty = Number(service.quantity) || 0
+      const hasInputs =
+        service.composition &&
+        Array.isArray(service.composition.inputs) &&
+        service.composition.inputs.length > 0
 
-      if (service.composition && service.composition.inputs) {
+      if (service.unitPrice !== undefined && service.unitPrice !== null) {
+        // Se há unitPrice definido (manual / direto no serviço)
+        if (hasInputs) {
+          // Se tem insumos na CPU, varre os insumos para catalogar categorias
+          service.composition.inputs.forEach((input: BudgetInput) => {
+            inputsCount++
+            const itemCost =
+              (Number(input.coefficient) || 0) * (Number(input.unitCost) || 0) * serviceQty
+
+            switch (input.category) {
+              case 'mao_de_obra':
+                laborDirectCost += itemCost
+                break
+              case 'material':
+                materialDirectCost += itemCost
+                break
+              case 'equipamento':
+                equipmentDirectCost += itemCost
+                break
+              case 'servico_terceiro':
+              case 'outros':
+              default:
+                subcontractDirectCost += itemCost
+                break
+            }
+          })
+          // O custo direto total deste serviço com preço manual é unitPrice * qty
+          totalDirectCostNoCharges += Number(service.unitPrice) * serviceQty
+        } else {
+          // Sem insumos: preço unitário direto do serviço é alocado em terceiros/geral
+          const itemCost = Number(service.unitPrice) * serviceQty
+          subcontractDirectCost += itemCost
+          totalDirectCostNoCharges += itemCost
+        }
+      } else if (hasInputs) {
+        // Serviço normal calculado a partir dos insumos da CPU
         service.composition.inputs.forEach((input: BudgetInput) => {
           inputsCount++
           const itemCost =
@@ -251,17 +319,8 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
 
     stage.services.forEach((service) => {
       const sQty = Number(service.quantity) || 0
-      let sUnitCost = 0
-
-      if (service.composition && service.composition.inputs) {
-        sUnitCost = service.composition.inputs.reduce((acc, input) => {
-          let baseCost = Number(input.unitCost) || 0
-          if (input.category === 'mao_de_obra') {
-            baseCost = baseCost * (1 + chargesRate / 100)
-          }
-          return acc + (Number(input.coefficient) || 0) * baseCost
-        }, 0)
-      }
+      const laborMult = 1 + chargesRate / 100
+      const sUnitCost = getServiceEffectiveUnitCost(service, laborMult)
 
       const sDirect = sUnitCost * sQty
       const serviceBdi =
