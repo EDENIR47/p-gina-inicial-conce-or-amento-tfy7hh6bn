@@ -148,10 +148,10 @@ export const LoginScreen: React.FC = () => {
 
       {/* Container Centralizado */}
       <div className="relative z-10 w-full max-w-[460px] flex flex-col items-center">
-        {/* Bloco de marca acima do card com o wordmark oficial completo e animação suave */}
+        {/* Bloco de marca acima do card com o wordmark oficial e animação suave */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="relative mb-2">
-            <ConceLogo height={72} glow showSubtitle={true} variant="dark" />
+            <ConceLogo height={64} glow variant="dark" />
           </div>
 
           <p className="text-sm sm:text-base italic font-medium text-[#FF6B1F] mt-3 tracking-wide">

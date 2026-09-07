@@ -1,13 +1,12 @@
 import React from 'react'
 
 /**
- * CONCE — Wordmark oficial da marca (substitui o antigo símbolo dos dois 'C' entrelaçados):
+ * CONCE — Wordmark oficial da marca:
  * - Wordmark "conce" em minúsculas
  * - Tipografia geométrica extra-bold (Poppins) com espaçamento de letras ajustado
  * - Primeiro "c" em Pumpkin Orange (#FF6B1F)
  * - Letras "once" em branco (#FFFFFF) sobre fundos escuros ou Mirage (#171A1F) sobre fundos claros
- * - Subtítulo alinhado à esquerda: "serviço de engenharia e consultoria LTDA"
- *   com "LTDA" em caixa alta e demais palavras em minúsculas
+ * - Exibe exclusivamente a palavra "conce" (sem subtítulo / frase institucional)
  */
 export interface ConceLogoProps {
   /**
@@ -28,8 +27,7 @@ export interface ConceLogoProps {
    */
   glow?: boolean
   /**
-   * Se true, exibe o subtítulo institucional abaixo do wordmark:
-   * "serviço de engenharia e consultoria LTDA"
+   * Mantido apenas por retrocompatibilidade de tipagem (não exibe subtítulo em nenhum caso).
    */
   showSubtitle?: boolean
   /**
@@ -38,13 +36,13 @@ export interface ConceLogoProps {
   showWordmark?: boolean
   /**
    * Variante de cor de fundo:
-   * - "dark" (padrão): fundo escuro (Mirage #171A1F) -> letras "once" e subtítulo em branco
-   * - "light": fundo claro/branco -> letras "once" e subtítulo em Mirage (#171A1F)
+   * - "dark" (padrão): fundo escuro (Mirage #171A1F) -> letras "once" em branco
+   * - "light": fundo claro/branco -> letras "once" em Mirage (#171A1F)
    * O primeiro "c" permanece sempre em Pumpkin Orange (#FF6B1F).
    */
   variant?: 'dark' | 'light'
   /**
-   * Subtexto personalizado opcional (caso queira sobrescrever o oficial)
+   * Mantido por retrocompatibilidade de tipagem
    */
   subtext?: string
 }
@@ -54,28 +52,21 @@ export const ConceLogo: React.FC<ConceLogoProps> = ({
   size,
   className = '',
   glow = false,
-  showSubtitle = true,
-  showWordmark, // aceito para manter compatibilidade
   variant = 'dark',
-  subtext,
 }) => {
   // Define a altura base (padrão 48px)
   const baseHeight = height || size || 48
 
-  // As cores das letras complementares ("once") e do subtítulo dependem da variante
+  // As cores das letras complementares ("once") dependem da variante
   const textColor = variant === 'light' ? '#171A1F' : '#FFFFFF'
   const orangeColor = '#FF6B1F'
-  const subtitleColor = variant === 'light' ? 'rgba(23, 26, 31, 0.82)' : 'rgba(255, 255, 255, 0.92)'
 
-  // Determina se exibe o subtítulo
-  const shouldShowSubtitle = showSubtitle && showWordmark !== false
-
-  // Altura do SVG proporcional: se tem subtítulo, usamos proporção 360x120; se não, 360x82
-  const viewBox = shouldShowSubtitle ? '0 0 360 120' : '0 0 360 82'
+  // Proporção compacta e precisa para o wordmark "conce" (320x76, com baseline em y=62)
+  // Sem espaço morto inferior que era reservado para subtítulo
+  const viewBoxWidth = 320
+  const viewBoxHeight = 76
   const svgHeight = baseHeight
-  const svgWidth = shouldShowSubtitle
-    ? Math.round((baseHeight * 360) / 120)
-    : Math.round((baseHeight * 360) / 82)
+  const svgWidth = Math.round((baseHeight * viewBoxWidth) / viewBoxHeight)
 
   return (
     <div
@@ -87,17 +78,17 @@ export const ConceLogo: React.FC<ConceLogoProps> = ({
       <svg
         width={svgWidth}
         height={svgHeight}
-        viewBox={viewBox}
+        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        aria-label="Logo CONCE — serviço de engenharia e consultoria LTDA"
+        aria-label="Logo CONCE"
         className="transition-all duration-300 overflow-visible"
       >
         <g style={{ fontFamily: 'Poppins, system-ui, -apple-system, sans-serif' }}>
           {/* Wordmark Principal "conce" */}
           <text
             x="0"
-            y="68"
+            y="62"
             fontSize="82"
             fontWeight="800"
             letterSpacing="-0.04em"
@@ -108,26 +99,6 @@ export const ConceLogo: React.FC<ConceLogoProps> = ({
             {/* Restante "once" em Branco ou Mirage conforme a variante */}
             <tspan fill={textColor}>once</tspan>
           </text>
-
-          {/* Subtítulo Institucional oficial alinhado à esquerda */}
-          {shouldShowSubtitle && (
-            <text
-              x="2"
-              y="106"
-              fontSize="16.5"
-              fontWeight="300"
-              letterSpacing="0.015em"
-              fill={subtitleColor}
-              className="select-none"
-            >
-              {subtext || (
-                <>
-                  <tspan>serviço de engenharia e consultoria </tspan>
-                  <tspan fontWeight="500">LTDA</tspan>
-                </>
-              )}
-            </text>
-          )}
         </g>
       </svg>
     </div>
@@ -135,8 +106,7 @@ export const ConceLogo: React.FC<ConceLogoProps> = ({
 }
 
 /**
- * Marca d'água de fundo estrutural usando o novo wordmark "conce" a ~4% de opacidade.
- * Substitui a marca d'água antiga dos dois "C".
+ * Marca d'água de fundo estrutural usando exclusivamente o wordmark "conce" a ~4% de opacidade.
  */
 export const ConceWatermark: React.FC<{
   className?: string
@@ -158,27 +128,17 @@ export const ConceWatermark: React.FC<{
       className={`pointer-events-none absolute select-none opacity-[0.04] ${posClasses} ${className}`}
     >
       <svg
-        width="560"
-        height="190"
-        viewBox="0 0 360 120"
+        width="480"
+        height="114"
+        viewBox="0 0 320 76"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-[320px] sm:w-[480px] md:w-[580px] h-auto"
+        className="w-[280px] sm:w-[420px] md:w-[520px] h-auto"
       >
         <g style={{ fontFamily: 'Poppins, system-ui, -apple-system, sans-serif' }}>
-          <text x="0" y="70" fontSize="84" fontWeight="800" letterSpacing="-0.04em">
+          <text x="0" y="62" fontSize="82" fontWeight="800" letterSpacing="-0.04em">
             <tspan fill={orangeColor}>c</tspan>
             <tspan fill={textColor}>once</tspan>
-          </text>
-          <text
-            x="2"
-            y="108"
-            fontSize="16.5"
-            fontWeight="400"
-            letterSpacing="0.015em"
-            fill={textColor}
-          >
-            serviço de engenharia e consultoria LTDA
           </text>
         </g>
       </svg>

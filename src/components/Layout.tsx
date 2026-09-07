@@ -84,7 +84,7 @@ export default function Layout() {
             className="flex items-center gap-2 group cursor-pointer focus:outline-none transition-transform hover:opacity-95"
             aria-label="Ir para o Dashboard CONCE"
           >
-            <ConceLogo height={34} showSubtitle={true} variant="dark" />
+            <ConceLogo height={32} variant="dark" />
           </NavLink>
 
           {/* Menu Desktop */}
@@ -210,7 +210,7 @@ export default function Layout() {
       <footer className="w-full bg-[#171A1F] text-white border-t border-[#294C87]/40 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-            <ConceLogo height={22} showSubtitle={false} variant="dark" />
+            <ConceLogo height={22} variant="dark" />
             <span className="text-white/40 hidden sm:inline">•</span>
             <span className="italic text-[#FF6B1F] font-medium">
               "Conce é conceito. Conce é concreto."

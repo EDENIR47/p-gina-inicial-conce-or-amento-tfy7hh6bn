@@ -68,7 +68,7 @@ export const OnboardingScreen: React.FC = () => {
 
       {/* Topo / Header minimalista */}
       <header className="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between py-2 mb-6">
-        <ConceLogo height={42} showSubtitle={true} variant="dark" />
+        <ConceLogo height={36} variant="dark" />
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/70">
           <Building2 className="w-3.5 h-3.5 text-[#FF6B1F]" />
           <span>Portal de Demonstração Institucional</span>
