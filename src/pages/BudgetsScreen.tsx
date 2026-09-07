@@ -41,7 +41,7 @@ import { BudgetHierarchyTree } from '@/components/budget/BudgetHierarchyTree'
 import { SocialChargesSelector } from '@/components/budget/SocialChargesSelector'
 import { BdiEditor } from '@/components/budget/BdiEditor'
 import { BudgetTotalsBar } from '@/components/budget/BudgetTotalsBar'
-import { PdfExportModal } from '@/components/budget/PdfExportModal'
+import { PdfExportModal, PdfExportMode } from '@/components/budget/PdfExportModal'
 import { RevisionsModal } from '@/components/budget/RevisionsModal'
 import { AuditTrailModal } from '@/components/budget/AuditTrailModal'
 import { AbcCurveScreen } from '@/pages/AbcCurveScreen'
@@ -82,6 +82,7 @@ export const BudgetsScreen: React.FC = () => {
 
   // Modais de Inteligência e Exportação
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+  const [pdfInitialMode, setPdfInitialMode] = useState<PdfExportMode>('simplificado')
   const [isRevisionsModalOpen, setIsRevisionsModalOpen] = useState(false)
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
 
@@ -381,7 +382,10 @@ export const BudgetsScreen: React.FC = () => {
             summary={activeSummary}
             budget={activeBudget}
             onSave={handleSaveActiveBudget}
-            onOpenPdfModal={() => setIsPdfModalOpen(true)}
+            onOpenPdfModal={() => {
+              setPdfInitialMode('simplificado')
+              setIsPdfModalOpen(true)
+            }}
             onOpenExcelExport={() => exportBudgetSpreadsheet(activeBudget, 'completo')}
             onOpenRevisionsModal={() => {
               ensureInitialRevision(activeBudget)
@@ -475,6 +479,7 @@ export const BudgetsScreen: React.FC = () => {
               budget={activeBudget}
               isOpen={isPdfModalOpen}
               onClose={() => setIsPdfModalOpen(false)}
+              initialMode={pdfInitialMode}
             />
           )}
 
@@ -725,13 +730,14 @@ export const BudgetsScreen: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setActiveBudget(b)
+                              setPdfInitialMode('simplificado')
                               setIsPdfModalOpen(true)
                             }}
                             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#294C87] text-[#171A1F] hover:text-white text-xs font-bold transition-colors"
-                            title="Ver Proposta PDF"
+                            title="Exportar Proposta PDF (Simplificado ou Completo)"
                           >
                             <FileSpreadsheet className="w-3.5 h-3.5 text-[#FF6B1F]" />
-                            <span className="hidden sm:inline">PDF</span>
+                            <span className="hidden sm:inline">Exportar PDF</span>
                           </button>
 
                           <button
@@ -783,6 +789,7 @@ export const BudgetsScreen: React.FC = () => {
               budget={activeBudget}
               isOpen={isPdfModalOpen}
               onClose={() => setIsPdfModalOpen(false)}
+              initialMode={pdfInitialMode}
             />
           )}
         </div>
