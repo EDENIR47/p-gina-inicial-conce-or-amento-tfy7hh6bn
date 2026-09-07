@@ -25,7 +25,13 @@ import {
   Clock,
   Sparkles,
 } from 'lucide-react'
-import { BudgetInput, BudgetService, BudgetStage, FullBudget } from '@/types/budgetEngine'
+import {
+  BudgetComposition,
+  BudgetInput,
+  BudgetService,
+  BudgetStage,
+  FullBudget,
+} from '@/types/budgetEngine'
 import {
   calculateCompositionUnitCost,
   calculateServiceDirectCost,
@@ -33,6 +39,16 @@ import {
 } from '@/lib/budgetEngine'
 import { formatCurrencyBRL, getSourceBadgeInfo } from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { StageEditModal } from './StageEditModal'
 import { ServiceEditModal } from './ServiceEditModal'
 import { InputEditModal } from './InputEditModal'
@@ -87,6 +103,28 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     input: BudgetInput | null
   }>({ isOpen: false, stageId: null, serviceId: null, input: null })
 
+  // Modal de Confirmação de Exclusão Amigável (Etapa, Serviço, Composição/Insumos da CPU, Insumo)
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean
+    type: 'input' | 'composition' | 'service' | 'stage'
+    stageId: string
+    serviceId?: string
+    inputId?: string
+    title: string
+    itemCode?: string
+    itemName: string
+    itemCategory?: string
+    itemCost?: number
+    isLastItem?: boolean
+    emptyWarning?: string
+  }>({
+    isOpen: false,
+    type: 'input',
+    stageId: '',
+    title: '',
+    itemName: '',
+  })
+
   // Alterna expansão de Etapa
   const toggleStage = (stageId: string) => {
     setExpandedStages((prev) => ({ ...prev, [stageId]: !prev[stageId] }))
@@ -113,11 +151,42 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     onChange({ ...budget, stages: newStages })
   }
 
-  const handleDeleteStage = (stageId: string) => {
-    if (confirm('Tem certeza que deseja excluir esta etapa e todos os seus serviços?')) {
-      const newStages = budget.stages.filter((s) => s.id !== stageId)
-      onChange({ ...budget, stages: newStages })
-    }
+  const confirmDeleteStage = (stage: BudgetStage) => {
+    setDeleteDialog({
+      isOpen: true,
+      type: 'stage',
+      stageId: stage.id,
+      title: 'Excluir Etapa?',
+      itemCode: `Etapa ${stage.code}`,
+      itemName: stage.name,
+      isLastItem: budget.stages.length <= 1,
+      emptyWarning:
+        budget.stages.length <= 1
+          ? 'Atenção: ao excluir esta etapa, o orçamento ficará sem nenhuma etapa cadastrada.'
+          : undefined,
+    })
+  }
+
+  const executeDeleteStage = (stageId: string) => {
+    const stage = budget.stages.find((s) => s.id === stageId)
+    const stageName = stage?.name || stageId
+    const stageCost = stage ? calculateStageDirectCost(stage) : 0
+    const servicesCount = stage?.services?.length || 0
+
+    const newStages = budget.stages.filter((s) => s.id !== stageId)
+
+    logAuditEvent({
+      budgetId: budget.id,
+      action: 'exclusao_item',
+      title: `Exclusão de Etapa: ${stageName}`,
+      details: `Etapa ${stage?.code || ''} "${stageName}" excluída com ${servicesCount} serviço(s). Subtotal anterior: ${formatCurrencyBRL(stageCost)}.`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      oldValue: stageCost,
+      newValue: 0,
+      metadata: { stageId, stageCode: stage?.code, servicesCount },
+    })
+
+    onChange({ ...budget, stages: newStages })
   }
 
   const handleDuplicateStage = (stage: BudgetStage) => {
@@ -153,17 +222,58 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     onChange({ ...budget, stages: newStages })
   }
 
-  const handleDeleteService = (stageId: string, serviceId: string) => {
-    if (confirm('Deseja excluir este serviço?')) {
-      const newStages = budget.stages.map((st) => {
-        if (st.id !== stageId) return st
-        return {
-          ...st,
-          services: st.services.filter((s) => s.id !== serviceId),
-        }
-      })
-      onChange({ ...budget, stages: newStages })
-    }
+  const confirmDeleteService = (stageId: string, service: BudgetService) => {
+    const stage = budget.stages.find((s) => s.id === stageId)
+    const isLastInStage = (stage?.services.length || 0) <= 1
+
+    setDeleteDialog({
+      isOpen: true,
+      type: 'service',
+      stageId,
+      serviceId: service.id,
+      title: 'Excluir Serviço?',
+      itemCode: service.code,
+      itemName: service.description,
+      itemCost: calculateServiceDirectCost(service),
+      isLastItem: isLastInStage,
+      emptyWarning: isLastInStage
+        ? `Aviso: esta etapa (${stage?.name || 'Etapa'}) ficará sem nenhum serviço cadastrado.`
+        : undefined,
+    })
+  }
+
+  const executeDeleteService = (stageId: string, serviceId: string) => {
+    let serviceDesc = ''
+    let serviceCode = ''
+    let prevCost = 0
+    const stage = budget.stages.find((s) => s.id === stageId)
+
+    const newStages = budget.stages.map((st) => {
+      if (st.id !== stageId) return st
+      const srv = st.services.find((s) => s.id === serviceId)
+      if (srv) {
+        serviceDesc = srv.description
+        serviceCode = srv.code
+        prevCost = calculateServiceDirectCost(srv)
+      }
+      return {
+        ...st,
+        services: st.services.filter((s) => s.id !== serviceId),
+      }
+    })
+
+    logAuditEvent({
+      budgetId: budget.id,
+      action: 'exclusao_item',
+      title: `Exclusão de Serviço: ${serviceDesc}`,
+      details: `Serviço ${serviceCode} "${serviceDesc}" removido da etapa "${stage?.name || stageId}". Custo anterior: ${formatCurrencyBRL(prevCost)}.`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      oldValue: prevCost,
+      newValue: 0,
+      metadata: { stageId, serviceId, serviceCode },
+    })
+
+    onChange({ ...budget, stages: newStages })
   }
 
   const handleDuplicateService = (stageId: string, service: BudgetService) => {
@@ -215,11 +325,51 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     onChange({ ...budget, stages: newStages })
   }
 
-  const handleDeleteInput = (stageId: string, serviceId: string, inputId: string) => {
+  const confirmDeleteInput = (
+    stageId: string,
+    serviceId: string,
+    input: BudgetInput,
+    currentInputsCount: number,
+  ) => {
+    const isLast = currentInputsCount <= 1
+    const sub = (Number(input.coefficient) || 0) * (Number(input.unitCost) || 0)
+
+    setDeleteDialog({
+      isOpen: true,
+      type: 'input',
+      stageId,
+      serviceId,
+      inputId: input.id,
+      title: 'Excluir Insumo da Composição?',
+      itemCode: input.code,
+      itemName: input.description,
+      itemCategory: input.category,
+      itemCost: sub,
+      isLastItem: isLast,
+      emptyWarning: isLast
+        ? 'Atenção: ao excluir este insumo, a composição ficará sem nenhum item na CPU (custo unitário zerado). Você poderá adicionar novos insumos quando quiser.'
+        : undefined,
+    })
+  }
+
+  const executeDeleteInput = (stageId: string, serviceId: string, inputId: string) => {
+    let deletedInputDesc = ''
+    let deletedInputCode = ''
+    let deletedInputCost = 0
+    let serviceDesc = ''
+
     const newStages = budget.stages.map((st) => {
       if (st.id !== stageId) return st
       const updatedServices = st.services.map((srv) => {
         if (srv.id !== serviceId) return srv
+        serviceDesc = srv.description
+        const targetInput = (srv.composition.inputs || []).find((inp) => inp.id === inputId)
+        if (targetInput) {
+          deletedInputDesc = targetInput.description
+          deletedInputCode = targetInput.code
+          deletedInputCost =
+            (Number(targetInput.coefficient) || 0) * (Number(targetInput.unitCost) || 0)
+        }
         return {
           ...srv,
           composition: {
@@ -231,7 +381,96 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       return { ...st, services: updatedServices }
     })
 
+    logAuditEvent({
+      budgetId: budget.id,
+      action: 'exclusao_item',
+      title: `Exclusão de Insumo: ${deletedInputDesc}`,
+      details: `Insumo ${deletedInputCode} "${deletedInputDesc}" excluído do serviço "${serviceDesc}". Custo parcial anterior: ${formatCurrencyBRL(deletedInputCost)}. Recálculo automático executado.`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      oldValue: deletedInputCost,
+      newValue: 0,
+      metadata: {
+        stageId,
+        serviceId,
+        inputId,
+        inputCode: deletedInputCode,
+      },
+    })
+
     onChange({ ...budget, stages: newStages })
+  }
+
+  // Ação de exclusão / limpeza de todos os insumos da composição (Nível 3)
+  const confirmClearCompositionInputs = (stageId: string, service: BudgetService) => {
+    const inputsCount = service.composition.inputs?.length || 0
+    const compCost = calculateCompositionUnitCost(service.composition)
+
+    setDeleteDialog({
+      isOpen: true,
+      type: 'composition',
+      stageId,
+      serviceId: service.id,
+      title: 'Limpar Insumos da Composição?',
+      itemCode: service.composition.code,
+      itemName: `${service.composition.description} (${inputsCount} insumos)`,
+      itemCost: compCost,
+      isLastItem: true,
+      emptyWarning:
+        'Atenção: todos os insumos que compõem este serviço serão removidos, deixando a composição vazia (R$ 0,00). O serviço permanecerá no orçamento.',
+    })
+  }
+
+  const executeClearCompositionInputs = (stageId: string, serviceId: string) => {
+    let serviceDesc = ''
+    let compCode = ''
+    let prevCompCost = 0
+    let removedCount = 0
+
+    const newStages = budget.stages.map((st) => {
+      if (st.id !== stageId) return st
+      const updatedServices = st.services.map((srv) => {
+        if (srv.id !== serviceId) return srv
+        serviceDesc = srv.description
+        compCode = srv.composition.code
+        prevCompCost = calculateCompositionUnitCost(srv.composition)
+        removedCount = srv.composition.inputs?.length || 0
+        return {
+          ...srv,
+          composition: {
+            ...srv.composition,
+            inputs: [],
+          },
+        }
+      })
+      return { ...st, services: updatedServices }
+    })
+
+    logAuditEvent({
+      budgetId: budget.id,
+      action: 'exclusao_item',
+      title: `Limpeza de Insumos da Composição: ${compCode}`,
+      details: `Removidos todos os ${removedCount} insumos da composição ${compCode} no serviço "${serviceDesc}". Custo unitário anterior: ${formatCurrencyBRL(prevCompCost)}.`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      oldValue: prevCompCost,
+      newValue: 0,
+      metadata: { stageId, serviceId, compCode, removedCount },
+    })
+
+    onChange({ ...budget, stages: newStages })
+  }
+
+  // Despacho central do diálogo de exclusão confirmada
+  const handleConfirmDeleteDialog = () => {
+    if (deleteDialog.type === 'input' && deleteDialog.serviceId && deleteDialog.inputId) {
+      executeDeleteInput(deleteDialog.stageId, deleteDialog.serviceId, deleteDialog.inputId)
+    } else if (deleteDialog.type === 'composition' && deleteDialog.serviceId) {
+      executeClearCompositionInputs(deleteDialog.stageId, deleteDialog.serviceId)
+    } else if (deleteDialog.type === 'service' && deleteDialog.serviceId) {
+      executeDeleteService(deleteDialog.stageId, deleteDialog.serviceId)
+    } else if (deleteDialog.type === 'stage') {
+      executeDeleteStage(deleteDialog.stageId)
+    }
+    setDeleteDialog((prev) => ({ ...prev, isOpen: false }))
   }
 
   // Edição rápida de coeficiente ou custo do insumo inline com rastreamento de fonte "Usuário"
@@ -474,10 +713,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
 
                       <button
                         type="button"
-                        onClick={() => handleDeleteStage(stage.id)}
+                        onClick={() => confirmDeleteStage(stage)}
                         disabled={disabled}
-                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors"
-                        title="Excluir Etapa"
+                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                        title="Excluir Etapa (com confirmação)"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -653,10 +892,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
 
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteService(stage.id, service.id)}
+                                    onClick={() => confirmDeleteService(stage.id, service)}
                                     disabled={disabled}
-                                    className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
-                                    title="Excluir Serviço"
+                                    className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                                    title="Excluir Serviço (com confirmação)"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -683,6 +922,20 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                   </div>
 
                                   <div className="flex items-center gap-2">
+                                    {comp.inputs && comp.inputs.length > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          confirmClearCompositionInputs(stage.id, service)
+                                        }
+                                        disabled={disabled}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-[11px] font-medium transition-colors cursor-pointer"
+                                        title="Excluir todos os insumos desta composição"
+                                      >
+                                        <Trash2 className="w-3 h-3 text-red-500" />
+                                        <span>Limpar Insumos</span>
+                                      </button>
+                                    )}
                                     <button
                                       type="button"
                                       onClick={() =>
@@ -694,7 +947,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                         })
                                       }
                                       disabled={disabled}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#294C87] hover:bg-[#171A1F] text-white text-[11px] font-bold transition-colors"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#294C87] hover:bg-[#171A1F] text-white text-[11px] font-bold transition-colors cursor-pointer"
                                     >
                                       <Plus className="w-3 h-3 text-[#FF6B1F]" />
                                       <span>Adicionar Insumo à CPU</span>
@@ -727,10 +980,37 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                         {!comp.inputs || comp.inputs.length === 0 ? (
                                           <tr>
                                             <td
-                                              colSpan={8}
-                                              className="py-4 text-center text-[#171A1F]/50 text-xs"
+                                              colSpan={9}
+                                              className="py-6 px-4 text-center text-[#171A1F]/60 text-xs bg-amber-50/50"
                                             >
-                                              Nenhum insumo associado a esta composição.
+                                              <div className="inline-flex flex-col items-center gap-1.5 max-w-md mx-auto">
+                                                <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                                                  !
+                                                </div>
+                                                <p className="font-semibold text-[#171A1F]">
+                                                  Nenhum insumo associado a esta composição.
+                                                </p>
+                                                <p className="text-[11px] text-[#171A1F]/70">
+                                                  Os insumos foram removidos ou ainda não foram
+                                                  cadastrados. O custo unitário desta CPU é R$ 0,00.
+                                                </p>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setInputModalState({
+                                                      isOpen: true,
+                                                      stageId: stage.id,
+                                                      serviceId: service.id,
+                                                      input: null,
+                                                    })
+                                                  }
+                                                  disabled={disabled}
+                                                  className="mt-2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#294C87] text-white text-xs font-semibold hover:bg-[#171A1F] transition-colors cursor-pointer"
+                                                >
+                                                  <Plus className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                                                  <span>Adicionar Primeiro Insumo</span>
+                                                </button>
+                                              </div>
                                             </td>
                                           </tr>
                                         ) : (
@@ -878,25 +1158,26 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                                         })
                                                       }
                                                       disabled={disabled}
-                                                      className="p-1 text-[#171A1F]/50 hover:text-[#294C87] transition-colors"
+                                                      className="p-1 rounded text-[#171A1F]/50 hover:text-[#294C87] hover:bg-[#294C87]/10 transition-colors cursor-pointer sm:opacity-70 group-hover:opacity-100"
                                                       title="Editar Insumo"
                                                     >
-                                                      <Edit2 className="w-3 h-3" />
+                                                      <Edit2 className="w-3.5 h-3.5" />
                                                     </button>
                                                     <button
                                                       type="button"
                                                       onClick={() =>
-                                                        handleDeleteInput(
+                                                        confirmDeleteInput(
                                                           stage.id,
                                                           service.id,
-                                                          inp.id,
+                                                          inp,
+                                                          comp.inputs?.length || 0,
                                                         )
                                                       }
                                                       disabled={disabled}
-                                                      className="p-1 text-red-400 hover:text-red-600 transition-colors"
-                                                      title="Excluir Insumo"
+                                                      className="p-1 rounded text-red-400 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer sm:opacity-80 hover:opacity-100"
+                                                      title="Excluir este insumo (material/mão de obra)"
                                                     >
-                                                      <Trash2 className="w-3 h-3" />
+                                                      <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
                                                   </div>
                                                 </td>
@@ -983,6 +1264,100 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
           initialInput={inputModalState.input}
         />
       )}
+
+      {/* Diálogo Amigável de Confirmação de Exclusão (Paleta Mirage #171A1F, Cobalt #294C87, Pumpkin #FF6B1F) */}
+      <AlertDialog
+        open={deleteDialog.isOpen}
+        onOpenChange={(open) => !open && setDeleteDialog((prev) => ({ ...prev, isOpen: false }))}
+      >
+        <AlertDialogContent className="max-w-md bg-white border border-[#171A1F]/15 rounded-2xl shadow-2xl p-6">
+          <AlertDialogHeader className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-base sm:text-lg font-bold text-[#171A1F]">
+                  {deleteDialog.title}
+                </AlertDialogTitle>
+                <p className="text-xs text-[#171A1F]/60">
+                  Esta ação não pode ser desfeita e recalculará o orçamento imediatamente.
+                </p>
+              </div>
+            </div>
+
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-2 text-xs text-[#171A1F]/80">
+                {/* Cartão de Detalhes do Item a ser Removido */}
+                <div className="p-3.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1.5 font-sans">
+                  {deleteDialog.itemCode && (
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-[#171A1F]/60 uppercase font-semibold">Código:</span>
+                      <span className="font-mono font-bold text-[#294C87]">
+                        {deleteDialog.itemCode}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[#171A1F]/60 uppercase font-semibold shrink-0 text-[11px]">
+                      Item:
+                    </span>
+                    <span className="font-bold text-[#171A1F] text-right text-xs">
+                      {deleteDialog.itemName}
+                    </span>
+                  </div>
+                  {deleteDialog.itemCategory && (
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-[#171A1F]/60 uppercase font-semibold">Categoria:</span>
+                      <span className="font-medium text-[#171A1F]">
+                        {deleteDialog.itemCategory === 'material'
+                          ? 'Material'
+                          : deleteDialog.itemCategory === 'mao_de_obra'
+                            ? 'Mão de Obra'
+                            : deleteDialog.itemCategory === 'equipamento'
+                              ? 'Equipamento'
+                              : deleteDialog.itemCategory === 'servico_terceiro'
+                                ? 'Serviço de Terceiro'
+                                : deleteDialog.itemCategory}
+                      </span>
+                    </div>
+                  )}
+                  {deleteDialog.itemCost !== undefined && (
+                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-[#171A1F]/10">
+                      <span className="text-[#171A1F]/60 uppercase font-semibold">
+                        Subtotal/Impacto:
+                      </span>
+                      <span className="font-bold text-[#FF6B1F]">
+                        {formatCurrencyBRL(deleteDialog.itemCost)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Alerta de Segurança se Deixar Vazio */}
+                {deleteDialog.emptyWarning && (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-amber-900">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] leading-relaxed">{deleteDialog.emptyWarning}</p>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="mt-5 flex items-center justify-end gap-2 sm:gap-2">
+            <AlertDialogCancel className="px-4 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] hover:bg-[#171A1F]/5 cursor-pointer">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteDialog}
+              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+            >
+              Confirmar Exclusão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

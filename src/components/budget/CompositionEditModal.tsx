@@ -64,7 +64,11 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
   }
 
   const handleDeleteInput = (id: string) => {
-    setInputs(inputs.filter((inp) => inp.id !== id))
+    const target = inputs.find((inp) => inp.id === id)
+    const name = target?.description || 'este insumo'
+    if (window.confirm(`Excluir insumo "${name}"? Esta ação removerá o item da CPU.`)) {
+      setInputs(inputs.filter((inp) => inp.id !== id))
+    }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
