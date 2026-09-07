@@ -148,21 +148,13 @@ export const LoginScreen: React.FC = () => {
 
       {/* Container Centralizado */}
       <div className="relative z-10 w-full max-w-[460px] flex flex-col items-center">
-        {/* Bloco de marca acima do card */}
+        {/* Bloco de marca acima do card com o wordmark oficial completo e animação suave */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="relative mb-2">
-            <ConceLogo height={88} glow />
+            <ConceLogo height={72} glow showSubtitle={true} variant="dark" />
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-wider text-white mt-2">
-            CONCE
-          </h1>
-
-          <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase text-white/70 mt-0.5">
-            Serviço de Engenharia e Consultoria LTDA
-          </p>
-
-          <p className="text-sm sm:text-base italic font-medium text-[#FF6B1F] mt-2 tracking-wide">
+          <p className="text-sm sm:text-base italic font-medium text-[#FF6B1F] mt-3 tracking-wide">
             "Conce é conceito. Conce é concreto."
           </p>
         </div>

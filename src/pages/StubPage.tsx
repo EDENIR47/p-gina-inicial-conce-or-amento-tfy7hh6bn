@@ -116,9 +116,10 @@ export const StubPage: React.FC<StubModuleProps> = () => {
 
         {/* Ação de retorno */}
         <div className="mt-8 pt-6 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-xs text-[#171A1F]/50">
-            Identidade Visual Oficial CONCE — Engenharia & Consultoria
-          </span>
+          <div className="flex items-center gap-2">
+            <ConceLogo height={22} showSubtitle={false} variant="light" />
+            <span className="text-xs text-[#171A1F]/50">• Engenharia & Consultoria</span>
+          </div>
 
           <Link
             to="/dashboard"
