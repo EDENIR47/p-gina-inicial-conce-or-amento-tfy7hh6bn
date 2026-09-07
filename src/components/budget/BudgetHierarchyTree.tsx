@@ -94,6 +94,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     stageId: string | null
     stageCode: string
     service: BudgetService | null
+    targetStageId?: string | null
   }>({ isOpen: false, stageId: null, stageCode: '01', service: null })
 
   const [inputModalState, setInputModalState] = useState<{
@@ -204,9 +205,14 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
 
   // Ações em Serviços
   const handleSaveService = (savedService: BudgetService, stageId: string) => {
+    const stage = budget.stages.find((s) => s.id === stageId)
+    const exists = stage?.services.some((srv) => srv.id === savedService.id)
+    const prevService = stage?.services.find((srv) => srv.id === savedService.id)
+    const prevCost = prevService ? calculateServiceDirectCost(prevService) : 0
+    const newCost = calculateServiceDirectCost(savedService)
+
     const newStages = budget.stages.map((st) => {
       if (st.id !== stageId) return st
-      const exists = st.services.some((srv) => srv.id === savedService.id)
       let updatedServices: BudgetService[]
       if (exists) {
         updatedServices = st.services.map((srv) =>
@@ -214,12 +220,70 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         )
       } else {
         updatedServices = [...st.services, savedService]
+        // Abre automaticamente a etapa e o novo serviço inserido
+        setExpandedStages((prev) => ({ ...prev, [stageId]: true }))
         setExpandedServices((prev) => ({ ...prev, [savedService.id]: true }))
       }
       return { ...st, services: updatedServices }
     })
 
+    // Registra evento na trilha de auditoria
+    if (!exists) {
+      logAuditEvent({
+        budgetId: budget.id,
+        action: 'adicao_item',
+        title: `Novo Serviço Adicionado: ${savedService.description}`,
+        details: `Serviço ${savedService.code} "${savedService.description}" inserido na etapa "${stage?.name || stageId}" com quantidade ${savedService.quantity} ${savedService.unit}. Custo unitário inicial: ${formatCurrencyBRL(calculateCompositionUnitCost(savedService.composition))}.`,
+        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+        oldValue: 0,
+        newValue: newCost,
+        metadata: {
+          stageId,
+          serviceId: savedService.id,
+          serviceCode: savedService.code,
+          unit: savedService.unit,
+          quantity: savedService.quantity,
+          inputsCount: savedService.composition.inputs?.length || 0,
+        },
+      })
+    } else {
+      logAuditEvent({
+        budgetId: budget.id,
+        action: 'edicao_servico',
+        title: `Serviço Editado: ${savedService.description}`,
+        details: `Serviço ${savedService.code} "${savedService.description}" atualizado. Custo anterior: ${formatCurrencyBRL(prevCost)}, novo custo: ${formatCurrencyBRL(newCost)}.`,
+        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+        oldValue: prevCost,
+        newValue: newCost,
+        metadata: {
+          stageId,
+          serviceId: savedService.id,
+          serviceCode: savedService.code,
+        },
+      })
+    }
+
     onChange({ ...budget, stages: newStages })
+  }
+
+  // Handler para adicionar serviço a partir do botão global
+  const handleOpenGlobalAddService = () => {
+    if (budget.stages.length === 0) {
+      // Se não houver etapas, abre criação de etapa primeiro
+      setStageModalState({ isOpen: true, stage: null })
+      return
+    }
+
+    // Se houver etapa, usa a primeira etapa ou uma etapa aberta
+    const defaultStage = budget.stages.find((st) => expandedStages[st.id]) || budget.stages[0]
+
+    setServiceModalState({
+      isOpen: true,
+      stageId: defaultStage.id,
+      stageCode: defaultStage.code,
+      service: null,
+      targetStageId: defaultStage.id,
+    })
   }
 
   const confirmDeleteService = (stageId: string, service: BudgetService) => {
@@ -582,7 +646,18 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleOpenGlobalAddService}
+            disabled={disabled}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#294C87] hover:bg-[#1f3b6c] text-white text-xs font-bold transition-all shadow-sm cursor-pointer hover:-translate-y-0.5 active:scale-95"
+            title="Adicionar um novo serviço ao orçamento"
+          >
+            <Plus className="w-4 h-4 text-[#FF6B1F]" />
+            <span>＋ Adicionar Serviço</span>
+          </button>
+
           <button
             type="button"
             onClick={() =>
@@ -592,9 +667,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
               })
             }
             disabled={disabled}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white border border-[#171A1F]/20 hover:bg-[#171A1F]/5 text-[#171A1F] text-xs font-bold transition-all shadow-sm cursor-pointer"
+            title="Adicionar uma nova etapa de obra (Nível 1)"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-[#FF6B1F]" />
             <span>Adicionar Etapa</span>
           </button>
         </div>
@@ -684,11 +760,11 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                           })
                         }
                         disabled={disabled}
-                        className="p-1.5 rounded-lg bg-white/10 hover:bg-[#FF6B1F] text-white text-xs font-semibold transition-colors flex items-center gap-1"
-                        title="Adicionar serviço nesta etapa"
+                        className="px-2.5 py-1.5 rounded-lg bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+                        title={`Adicionar novo serviço na Etapa ${stage.code}`}
                       >
                         <Plus className="w-4 h-4" />
-                        <span className="hidden md:inline text-xs">Novo Serviço</span>
+                        <span className="text-xs">＋ Adicionar Serviço</span>
                       </button>
 
                       <button
@@ -743,10 +819,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                               service: null,
                             })
                           }
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#294C87] text-white text-xs font-semibold"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#294C87] hover:bg-[#1f3b6c] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
                         >
-                          <Plus className="w-3.5 h-3.5 text-[#FF6B1F]" />
-                          <span>Adicionar Serviço</span>
+                          <Plus className="w-4 h-4 text-[#FF6B1F]" />
+                          <span>＋ Adicionar Serviço Nesta Etapa</span>
                         </button>
                       </div>
                     ) : (
@@ -1229,6 +1305,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       {serviceModalState.stageId && (
         <ServiceEditModal
           isOpen={serviceModalState.isOpen}
+          stages={budget.stages}
+          currentStageId={serviceModalState.stageId}
           onClose={() =>
             setServiceModalState({
               isOpen: false,
@@ -1237,7 +1315,9 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
               service: null,
             })
           }
-          onSave={(srv) => handleSaveService(srv, serviceModalState.stageId!)}
+          onSave={(srv, selectedStageId) =>
+            handleSaveService(srv, selectedStageId || serviceModalState.stageId!)
+          }
           initialService={serviceModalState.service}
           nextOrder={
             (budget.stages.find((s) => s.id === serviceModalState.stageId)?.services.length || 0) +

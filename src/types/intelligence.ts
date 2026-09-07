@@ -99,6 +99,7 @@ export interface InputQuoteComparison {
 // 3. Histórico e Trilha de Auditoria
 export type AuditActionType =
   | 'criacao_orcamento'
+  | 'adicao_item'
   | 'edicao_geral'
   | 'edicao_etapa'
   | 'edicao_servico'
