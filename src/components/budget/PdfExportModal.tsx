@@ -57,14 +57,14 @@ const EXPORT_MODE_OPTIONS: ExportModeOption[] = [
     badge: 'Recomendado p/ Clientes',
     icon: Briefcase,
     description:
-      'Proposta comercial direta e limpa para negociação e aprovação de clientes. Tabela com itens discriminados e valor final de venda em destaque — sem coeficientes, sem composições, sem insumos e sem memória de cálculo.',
+      'Proposta comercial direta, sóbria e elegante para apresentação e aprovação com o cliente. Discriminação dos itens orçados, dados completos do cliente e da obra, condições formais de pagamento e fechamento com valor total discreto junto às condições comerciais.',
     features: [
-      'Capa institucional oficial com identificação e valor total',
-      'Tabela simplificada: Item | Discriminação | Qtd/Unid | Valor Final (R$)',
-      'Total final em destaque Pumpkin Orange oficial CONCE',
-      'Sem coeficientes, sem composições abertas e sem insumos',
-      'Sem memória interna de cálculo de BDI e encargos',
-      'Condições comerciais e campo oficial para assinaturas',
+      'Capa institucional limpa com identificação do cliente e endereço da obra',
+      'Tabela simplificada com zebra sutil: Item | Discriminação | Quantidade | Valor (R$)',
+      'Valor total sóbrio e discreto posicionado no fechamento da proposta',
+      'Condições de pagamento editáveis e validade da proposta expressa',
+      'Sem coeficientes internos, sem insumos e sem memória de cálculo técnica',
+      'Bloco de assinatura CREA/RS-252397 e rodapé institucional CONCE',
     ],
     recommendedFor: 'Envio para diretores, clientes finais e propostas contratuais simplificadas.',
   },
@@ -155,12 +155,20 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
   // Dados sanitizados contra vazamento de termos de IA
   const cleanCode = sanitizeDocumentText(budget.code)
+  const cleanProposalTitle =
+    sanitizeDocumentText(budget.title) ||
+    sanitizeDocumentText(budget.work.name) ||
+    'Proposta Comercial de Engenharia Civil'
   const cleanWorkName =
     sanitizeDocumentText(budget.work.name) || 'Empreendimento de Engenharia Civil'
   const cleanWorkDesc = sanitizeDocumentText(budget.work.description)
   const cleanAuthor =
     sanitizeDocumentText(budget.author) || 'Eng. Edenir Souza da Rosa - CREA/RS-252397'
   const cleanClientName = sanitizeDocumentText(budget.client.name) || 'Cliente Contratante'
+  const cleanPaymentTerms =
+    budget.paymentTerms ||
+    'Medições quinzenais com base no avanço físico comprovado em diário de obra; liquidação em até 10 dias após emissão da NF.'
+  const cleanValidityDays = budget.validityDays || 30
 
   return (
     <div className="fixed inset-0 z-50 bg-[#171A1F]/80 backdrop-blur-sm flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:fixed-none">
@@ -390,82 +398,108 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           </div>
 
           {/* Miolo da Capa: Título do Empreendimento e Proposta */}
-          <div className="my-auto py-12 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#FF6B1F]/10 border border-[#FF6B1F]/30 text-[#FF6B1F] text-xs font-bold uppercase tracking-wider">
-              <Award className="w-4 h-4" />
+          <div className="my-auto py-10 space-y-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-xs font-bold uppercase tracking-wider">
+              <Award className="w-4 h-4 text-[#FF6B1F]" />
               <span>{proposalTypeLabel}</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-extrabold text-[#171A1F] tracking-tight leading-tight">
-              {cleanWorkName}
-            </h1>
+            <div>
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-[#171A1F] tracking-tight leading-tight">
+                {cleanProposalTitle}
+              </h1>
+              {cleanProposalTitle !== cleanWorkName && (
+                <p className="text-sm font-semibold text-[#294C87] mt-1">Obra: {cleanWorkName}</p>
+              )}
+            </div>
 
-            <p className="text-sm sm:text-base text-[#171A1F]/80 max-w-2xl leading-relaxed">
+            <p className="text-sm text-[#171A1F]/80 max-w-2xl leading-relaxed">
               {cleanWorkDesc ||
                 (selectedMode === 'simplificado'
-                  ? 'Proposta comercial para execução de serviços de engenharia civil com relação discriminada de itens e preço global de fechamento.'
+                  ? 'Proposta comercial para execução de serviços de engenharia civil com relação discriminada de itens e escopo contratual.'
                   : 'Orçamento analítico e discriminado de obras civis com detalhamento de insumos, encargos sociais e cálculo do BDI em conformidade com o Acórdão 2.622/2013 do Plenário do Tribunal de Contas da União.')}
             </p>
 
-            {/* Caixa Destacada com Valor da Obra em Pumpkin Orange */}
-            <div className="p-6 rounded-2xl bg-[#171A1F] text-white border-l-8 border-[#FF6B1F] shadow-xl max-w-xl space-y-2">
-              <span className="text-xs uppercase font-extrabold tracking-wider text-[#FF6B1F]">
-                VALOR TOTAL GLOBAL DA PROPOSTA
-              </span>
-              <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                {formatCurrencyBRL(summary.finalSalePrice)}
+            {/* Apresentação sóbria e discreta na capa conforme pedido do usuário (sem megadestaque) */}
+            <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 tracking-wider block">
+                  Estimativa Global da Proposta
+                </span>
+                <span className="text-lg sm:text-xl font-bold text-[#171A1F] font-mono block">
+                  {formatCurrencyBRL(summary.finalSalePrice)}
+                </span>
+                <span className="text-[10px] text-[#171A1F]/50 block">
+                  Condições comerciais detalhadas ao final deste documento
+                </span>
               </div>
-              <p className="text-xs text-white/70">
-                {selectedMode === 'simplificado'
-                  ? 'Preço final fechado para execução integral do escopo orçado.'
-                  : `Preço de venda com BDI de ${summary.bdiRate.toFixed(
-                      2,
-                    )}% e Leis Sociais de ${summary.socialChargesRate.toFixed(2)}% (${
-                      budget.chargesConfig.uf
-                    })`}
-              </p>
+              <div className="text-right border-l border-[#171A1F]/10 pl-4 shrink-0">
+                <span className="text-[10px] uppercase font-semibold text-[#294C87] block">
+                  Prazo de Execução
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-[#171A1F]">
+                  {budget.work.deadlineMonths} meses
+                </span>
+                <span className="text-[10px] text-[#171A1F]/50 block mt-0.5">
+                  Validade: {cleanValidityDays} dias
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Dados de Identificação do Cliente e Obra */}
+          {/* Dados de Identificação Completos do Cliente e da Obra */}
           <div className="border-t-2 border-[#171A1F]/15 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
-            <div className="space-y-1">
-              <span className="font-bold uppercase tracking-wider text-[#294C87] block text-[10px]">
-                Contratante / Cliente
+            <div className="space-y-1.5 p-3.5 rounded-xl bg-white/70 border border-[#171A1F]/10">
+              <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+                <span>👤 Dados do Cliente / Contratante</span>
               </span>
               <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
-              <p className="text-[#171A1F]/70">CNPJ/CPF: {budget.client.document || '---'}</p>
-              <p className="text-[#171A1F]/70">{budget.client.address || '---'}</p>
-              <p className="text-[#171A1F]/70">
-                {budget.client.city}/{budget.client.state} • {budget.client.phone}
+              <p className="text-[#171A1F]/80">
+                <strong className="text-[#171A1F]">CPF/CNPJ:</strong>{' '}
+                {budget.client.document || 'Não informado'}
               </p>
+              <p className="text-[#171A1F]/80">
+                <strong className="text-[#171A1F]">Endereço:</strong>{' '}
+                {budget.client.address || 'Não informado'}
+              </p>
+              <p className="text-[#171A1F]/80">
+                <strong className="text-[#171A1F]">Cidade/UF:</strong>{' '}
+                {budget.client.city || 'São Paulo'}/{budget.client.state || 'SP'}
+                {budget.client.phone && ` • Tel.: ${budget.client.phone}`}
+              </p>
+              {budget.client.email && (
+                <p className="text-[#171A1F]/70">
+                  <strong className="text-[#171A1F]">E-mail:</strong> {budget.client.email}
+                </p>
+              )}
             </div>
 
-            <div className="space-y-1">
-              <span className="font-bold uppercase tracking-wider text-[#294C87] block text-[10px]">
-                Local e Responsável Técnico
+            <div className="space-y-1.5 p-3.5 rounded-xl bg-white/70 border border-[#171A1F]/10">
+              <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+                <span>🏗️ Dados & Local da Obra</span>
               </span>
-              <p className="font-bold text-sm text-[#171A1F]">
-                {budget.work.city} / {budget.work.state}
+              <p className="font-bold text-sm text-[#171A1F]">{cleanWorkName}</p>
+              <p className="text-[#171A1F]/80">
+                <strong className="text-[#171A1F]">Endereço da Obra:</strong>{' '}
+                {budget.work.address || 'A definir / Conforme memorial'}
               </p>
-              <p className="text-[#171A1F]/70">{budget.work.address || 'Endereço da obra'}</p>
-              <p className="text-[#171A1F]/70">
-                Prazo de Execução: {budget.work.deadlineMonths} meses
+              <p className="text-[#171A1F]/80">
+                <strong className="text-[#171A1F]">Localidade:</strong> {budget.work.city} /{' '}
+                {budget.work.state}
+                {budget.work.totalAreaM2
+                  ? ` • Área: ${budget.work.totalAreaM2.toLocaleString('pt-BR')} m²`
+                  : ''}
               </p>
-              <p className="text-xs font-semibold text-[#294C87] pt-0.5">
+              <p className="text-[11px] font-semibold text-[#294C87] pt-0.5">
                 Regime Tributário:{' '}
                 {budget.chargesConfig?.taxRegime === 'simples_nacional'
-                  ? 'Simples Nacional (Padrão CONCE)'
+                  ? 'Simples Nacional (Padrão CONCE — sem encargos trabalhistas)'
                   : budget.chargesConfig?.taxRegime === 'com_desoneracao' ||
                       budget.chargesConfig?.isRelieved
                     ? 'Com Desoneração (Lei 12.546)'
                     : 'Sem Desoneração (CLT)'}
-                {budget.chargesConfig?.taxRegime === 'simples_nacional' &&
-                  ((budget.chargesConfig?.simplesDasRate ?? 0) > 0
-                    ? ` • DAS: ${budget.chargesConfig.simplesDasRate.toFixed(2)}% (Manual)`
-                    : ' • DAS: Não preenchido (0,00%)')}
               </p>
-              <p className="font-semibold text-[#171A1F] pt-0.5">
+              <p className="font-semibold text-[#171A1F] text-[11px]">
                 Responsável Técnico: {cleanAuthor}
               </p>
             </div>
@@ -488,27 +522,37 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* NÍVEL 1: SIMPLIFICADO / COMERCIAL */}
         {/* Apenas lista de itens (Etapas e Serviços) com nome e Preço Final */}
         {/* Sem coeficientes, sem insumos, sem memória de BDI/encargos */}
+        {/* Tabela elegante com zebra sutil, cabeçalho sóbrio e fechamento discreto */}
         {/* ============================================================ */}
         {selectedMode === 'simplificado' && (
           <section className="space-y-6 print:page-break-after-always">
-            <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
+            {/* Cabeçalho da Seção com Identificação do Cliente e Obra */}
+            <div className="border-b-2 border-[#294C87] pb-3 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
-                  DISCRIMINAÇÃO COMERCIAL
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#294C87]">
+                  PLANILHA COMERCIAL DE SERVIÇOS
                 </span>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
-                  Relação de Itens e Valores
+                  Discriminação dos Serviços & Quantitativos
                 </h2>
                 <p className="text-xs text-[#171A1F]/70 mt-0.5">
-                  Preços finais por item contratual, com tributos, encargos e margem comercial
-                  inclusos.
+                  Proposta comercial para o cliente{' '}
+                  <strong className="text-[#171A1F]">{cleanClientName}</strong> • Obra:{' '}
+                  <strong className="text-[#171A1F]">{cleanWorkName}</strong>
                 </p>
               </div>
-              <ConceLogo height={22} variant="light" />
+              <div className="text-right shrink-0">
+                <span className="text-[11px] font-mono text-[#171A1F]/60 block">
+                  Ref.: {cleanCode}
+                </span>
+                <span className="text-[10px] text-[#294C87] font-semibold">
+                  Tributação: Simples Nacional
+                </span>
+              </div>
             </div>
 
-            {/* Tabela Limpa "Item | Discriminação | Qtd | Unid | Valor Final" */}
-            <div className="overflow-x-auto border-2 border-[#171A1F]/20 rounded-xl shadow-xs">
+            {/* Tabela Limpa e Elegante com Zebra Sutil */}
+            <div className="overflow-x-auto border border-[#171A1F]/20 rounded-xl shadow-xs bg-white">
               <table className="w-full text-left text-xs">
                 <thead className="bg-[#171A1F] text-white uppercase text-[10px] font-bold tracking-wider">
                   <tr>
@@ -516,7 +560,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     <th className="py-3 px-3">Discriminação dos Serviços Contratados</th>
                     <th className="py-3 px-3 w-16 text-center">Unid.</th>
                     <th className="py-3 px-3 w-24 text-right">Quantidade</th>
-                    <th className="py-3 px-4 w-40 text-right">Valor Final (R$)</th>
+                    <th className="py-3 px-4 w-40 text-right">Valor Total (R$)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#171A1F]/10">
@@ -527,42 +571,49 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     return (
                       <React.Fragment key={stage.id}>
                         {/* Linha de Macroetapa */}
-                        <tr className="bg-[#294C87]/10 font-extrabold text-[#171A1F] border-t-2 border-[#294C87]/40">
-                          <td className="py-3 px-3 font-mono text-[#294C87] text-center font-bold">
+                        <tr className="bg-[#294C87]/10 font-bold text-[#171A1F] border-t-2 border-[#294C87]/30">
+                          <td className="py-2.5 px-3 font-mono text-[#294C87] text-center font-bold">
                             {stage.code}
                           </td>
-                          <td className="py-3 px-3 uppercase text-xs" colSpan={3}>
+                          <td className="py-2.5 px-3 uppercase text-xs tracking-wide" colSpan={3}>
                             {stage.name}
                           </td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-[#294C87] text-sm">
+                          <td className="py-2.5 px-4 text-right font-mono font-bold text-[#294C87] text-xs">
                             {formatCurrencyBRL(stageTotalWithBdi)}
                           </td>
                         </tr>
 
-                        {/* Linhas dos Serviços da Etapa: apenas item, nome, unid, qtd e valor final */}
-                        {stage.services.map((service) => {
+                        {/* Linhas dos Serviços da Etapa com zebra sutil */}
+                        {stage.services.map((service, idx) => {
                           const sQty = Number(service.quantity) || 0
                           const laborMult = 1 + (summary.socialChargesRate || 0) / 100
                           const compUnit = getServiceEffectiveUnitCost(service, laborMult)
                           const serviceBdi = service.customBdiPercent ?? summary.bdiRate
                           const unitWithBdi = compUnit * (1 + serviceBdi / 100)
                           const totalWithBdi = unitWithBdi * sQty
+                          const isEven = idx % 2 === 0
 
                           return (
-                            <tr key={service.id} className="hover:bg-gray-50/80 transition-colors">
-                              <td className="py-2.5 px-3 font-mono text-[#171A1F]/70 text-center font-semibold">
+                            <tr
+                              key={service.id}
+                              className={`transition-colors ${isEven ? 'bg-white' : 'bg-[#F8F9FA]/70'} hover:bg-blue-50/40`}
+                            >
+                              <td className="py-2 px-3 font-mono text-[#171A1F]/70 text-center font-semibold">
                                 {service.code}
                               </td>
-                              <td className="py-2.5 px-3 font-semibold text-[#171A1F]">
+                              <td className="py-2 px-3 font-medium text-[#171A1F]">
                                 {service.description}
                               </td>
-                              <td className="py-2.5 px-3 text-center font-mono text-[#171A1F]/70">
+                              <td className="py-2 px-3 text-center font-mono text-[#171A1F]/70">
                                 {service.unit}
                               </td>
-                              <td className="py-2.5 px-3 text-right font-mono text-[#171A1F]/80">
-                                {sQty.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              <td className="py-2 px-3 text-right font-mono text-[#171A1F]/80">
+                                {sQty.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
                               </td>
-                              <td className="py-2.5 px-4 text-right font-mono font-bold text-[#171A1F]">
+                              <td className="py-2 px-4 text-right font-mono font-bold text-[#171A1F]">
                                 {formatCurrencyBRL(totalWithBdi)}
                               </td>
                             </tr>
@@ -572,40 +623,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     )
                   })}
                 </tbody>
-                <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs">
-                  <tr>
-                    <td className="py-3.5 px-3 uppercase text-right" colSpan={4}>
-                      VALOR TOTAL FINAL DA PROPOSTA:
-                    </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-base font-extrabold text-[#FF6B1F]">
-                      {formatCurrencyBRL(summary.finalSalePrice)}
-                    </td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
 
-            {/* Caixa Resumo Comercial Simplificada com Destaque Pumpkin Orange */}
-            <div className="p-5 rounded-2xl bg-[#F8F9FA] border-2 border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="space-y-1 text-center sm:text-left">
-                <span className="text-[10px] uppercase font-bold text-[#294C87] tracking-wider block">
-                  RESUMO DA PROPOSTA COMERCIAL
-                </span>
-                <p className="text-xs text-[#171A1F]/70">
-                  Total de {budget.stages.length} etapas e {summary.servicesCount} itens orçados.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#171A1F] text-white border-l-4 border-[#FF6B1F] text-center sm:text-right min-w-[240px]">
-                <span className="text-[10px] uppercase font-bold text-[#FF6B1F] block">
-                  PREÇO TOTAL FECHADO
-                </span>
-                <span className="text-xl sm:text-2xl font-extrabold text-[#FF6B1F] font-mono block">
-                  {formatCurrencyBRL(summary.finalSalePrice)}
-                </span>
-                <span className="text-[10px] text-white/60">Valores em Reais (BRL)</span>
-              </div>
-            </div>
+            {/* Nota de Escopo Comercial */}
+            <p className="text-[11px] text-[#171A1F]/60 italic">
+              * Os valores unitários dos serviços englobam mão de obra técnica especializada,
+              materiais básicos e acabamentos conforme projetos e especificações acordadas,
+              tributação sob regime do Simples Nacional e BDI padrão de engenharia.
+            </p>
           </section>
         )}
 
@@ -670,13 +696,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 </tbody>
                 <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs">
                   <tr>
-                    <td className="py-3.5 px-4 uppercase text-right" colSpan={3}>
+                    <td className="py-3 px-4 uppercase text-right" colSpan={3}>
                       TOTAL GLOBAL DA OBRA:
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-base text-[#FF6B1F]">
+                    <td className="py-3 px-4 text-right font-mono text-sm sm:text-base font-bold text-white">
                       {formatCurrencyBRL(summary.finalSalePrice)}
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-[#FF6B1F]">100%</td>
+                    <td className="py-3 px-4 text-right font-mono text-white/80">100%</td>
                   </tr>
                 </tfoot>
               </table>
@@ -960,10 +986,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                       <td className="py-3 px-3 uppercase text-right" colSpan={6}>
                         VALOR TOTAL GERAL DA PROPOSTA (PREÇO DE VENDA COM BDI):
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-sm text-[#FF6B1F]">
+                      <td className="py-3 px-3 text-right font-mono text-sm font-bold text-white">
                         {formatCurrencyBRL(summary.finalSalePrice)}
                       </td>
-                      <td className="py-3 px-2 text-right font-mono text-[#FF6B1F]">100%</td>
+                      <td className="py-3 px-2 text-right font-mono text-white/80">100%</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -1377,57 +1403,117 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* ============================================================ */}
         {/* SEÇÃO FINAL: CONDIÇÕES COMERCIAIS & ASSINATURAS OFICIAIS */}
         {/* Presente em todos os formatos (Simplificado, Etapas, Completo) */}
+        {/* Valor da proposta apresentado de forma sóbria e discreta no fechamento */}
         {/* ============================================================ */}
         <section className="space-y-6 print:page-break-inside-avoid">
           <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
             <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
-                FECHAMENTO CONTRATUAL
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#294C87]">
+                FECHAMENTO & CONDIÇÕES CONTRATUAIS
               </span>
               <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
-                Condições Comerciais e Assinaturas
+                Condições Comerciais & Valor da Proposta
               </h2>
             </div>
-            <Award className="w-5 h-5 text-[#FF6B1F]" />
+            <Award className="w-5 h-5 text-[#294C87]" />
+          </div>
+
+          {/* Bloco de Valor da Proposta: Sóbrio, Discreto e Posicionado no Fechamento */}
+          <div className="p-5 rounded-xl bg-white border border-[#171A1F]/20 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase font-bold text-[#294C87] tracking-wider block">
+                Investimento Global Proposto
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-extrabold text-[#171A1F] font-mono tracking-tight">
+                  {formatCurrencyBRL(summary.finalSalePrice)}
+                </span>
+                <span className="text-xs text-[#171A1F]/60">
+                  ({budget.stages.length} etapas • {summary.servicesCount} itens)
+                </span>
+              </div>
+              <p className="text-[11px] text-[#171A1F]/70">
+                Preço final fechado para execução integral do escopo proposto, impostos inclusos
+                (Simples Nacional).
+              </p>
+            </div>
+
+            <div className="text-left md:text-right border-t md:border-t-0 md:border-l border-[#171A1F]/10 pt-3 md:pt-0 md:pl-5 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 block">
+                Validade da Proposta
+              </span>
+              <span className="text-xs sm:text-sm font-bold text-[#171A1F] block">
+                {cleanValidityDays} dias corridos
+              </span>
+              <span className="text-[10px] text-[#171A1F]/50 block">
+                A contar da data de emissão: {new Date().toLocaleDateString('pt-BR')}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            {/* Bloco 1: Forma de Pagamento e Faturamento */}
             <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2">
               <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
-                Condições de Pagamento e Faturamento
+                Forma & Condições de Pagamento
               </span>
-              <p className="text-[#171A1F]/80">
-                • Medições quinzenais com base no avanço físico comprovado em diário de obra.
+              <p className="text-[#171A1F]/90 leading-relaxed font-medium">• {cleanPaymentTerms}</p>
+              <p className="text-[#171A1F]/70">
+                • Faturamento e emissão de Notas Fiscais emitidas pela CONCE — Serviço de Engenharia
+                e Consultoria LTDA sob o CNPJ 42.109.876/0001-33.
               </p>
-              <p className="text-[#171A1F]/80">
-                • Prazo para emissão de nota fiscal e liquidação: até 10 dias após aprovação da
-                medição.
-              </p>
-              <p className="text-[#171A1F]/80">
-                • Validade da presente proposta: 30 (trinta) dias corridos a contar da data de
-                emissão.
-              </p>
+              {budget.commercialNotes && (
+                <p className="text-[#171A1F]/80 pt-1 border-t border-[#171A1F]/10">
+                  <strong className="text-[#171A1F]">Notas:</strong> {budget.commercialNotes}
+                </p>
+              )}
             </div>
 
+            {/* Bloco 2: Garantia e Obrigações Técnicas */}
             <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2">
               <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
                 Garantia e Obrigações Técnicas
               </span>
               <p className="text-[#171A1F]/80">
-                • Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) junto ao
-                CREA/RS.
+                • Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) vinculada ao
+                CREA/RS sob responsabilidade do RT {cleanAuthor}.
               </p>
               <p className="text-[#171A1F]/80">
-                • Garantia quinquenal conforme previsto no Artigo 618 do Código Civil Brasileiro.
+                • Garantia legal de 5 (cinco) anos para estabilidade e solidez da obra, conforme
+                previsto no Artigo 618 do Código Civil Brasileiro.
               </p>
               <p className="text-[#171A1F]/80">
-                • Atendimento irrestrito às normas técnicas da ABNT e NRs de Segurança do Trabalho.
+                • Atendimento irrestrito às normas técnicas da ABNT e NRs de Segurança e Saúde no
+                Trabalho da Construção Civil.
               </p>
             </div>
           </div>
 
+          {/* Identificação das Partes e Endereços para Fechamento */}
+          <div className="p-3.5 rounded-xl bg-[#171A1F]/[0.02] border border-[#171A1F]/10 text-[11px] grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <span className="font-bold text-[#294C87]">Contratante:</span>{' '}
+              <span className="font-semibold text-[#171A1F]">{cleanClientName}</span>
+              {budget.client.document && ` (${budget.client.document})`}
+              <br />
+              <span className="text-[#171A1F]/70">
+                Endereço: {budget.client.address || 'Não informado'} • {budget.client.city}/
+                {budget.client.state}
+              </span>
+            </div>
+            <div>
+              <span className="font-bold text-[#294C87]">Local de Execução:</span>{' '}
+              <span className="font-semibold text-[#171A1F]">{cleanWorkName}</span>
+              <br />
+              <span className="text-[#171A1F]/70">
+                Endereço da Obra: {budget.work.address || 'Não informado'} • {budget.work.city}/
+                {budget.work.state}
+              </span>
+            </div>
+          </div>
+
           {/* Campos Oficiais de Assinatura */}
-          <div className="pt-12 grid grid-cols-1 sm:grid-cols-2 gap-12 text-center text-xs">
+          <div className="pt-10 grid grid-cols-1 sm:grid-cols-2 gap-10 text-center text-xs">
             <div className="space-y-2">
               <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
               <p className="font-bold text-sm text-[#171A1F]">{cleanAuthor}</p>
@@ -1448,7 +1534,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           </div>
 
           {/* Rodapé Final com Logo e Slogan Obrigatório */}
-          <div className="pt-8 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+          <div className="pt-6 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-3">
               <ConceLogo height={20} variant="light" />
               <span className="italic font-bold text-[#FF6B1F]">
@@ -1457,9 +1543,9 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
             <span className="text-[#171A1F]/50 text-[11px]">
               {selectedMode === 'simplificado'
-                ? 'Proposta Comercial Simplificada emitido por CONCE Engenharia'
+                ? 'Proposta Comercial Simplificada emitida por CONCE Engenharia'
                 : selectedMode === 'etapas'
-                  ? 'Proposta Sintética por Etapas emitido por CONCE Engenharia'
+                  ? 'Proposta Sintética por Etapas emitida por CONCE Engenharia'
                   : 'Documento Técnico Oficial emitido por CONCE Engenharia'}
             </span>
           </div>

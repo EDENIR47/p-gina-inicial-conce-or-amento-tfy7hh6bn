@@ -175,10 +175,14 @@ export interface BdiConfig {
 export interface FullBudget {
   id: string
   code: string // ex.: "ORC-2025-001"
+  title?: string // Título personalizado da proposta/orçamento (ex.: "Proposta de Reforma Comercial e Instalações")
   status: 'em_andamento' | 'aprovado' | 'vencido' | 'em_analise'
   client: ClientData
   work: WorkData
   publicWork: PublicWorkData
+  paymentTerms?: string // Condições/Forma de pagamento (ex.: "30% de entrada + 3 parcelas conforme medição quinzenal")
+  validityDays?: number // Validade da proposta em dias (default: 30)
+  commercialNotes?: string // Observações e condições comerciais adicionais
   stages: BudgetStage[]
   chargesConfig: {
     uf: string

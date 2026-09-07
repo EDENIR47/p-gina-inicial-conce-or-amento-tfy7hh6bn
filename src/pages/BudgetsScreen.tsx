@@ -148,6 +148,7 @@ export const BudgetsScreen: React.FC = () => {
       ...JSON.parse(JSON.stringify(b)),
       id: `budget-${Date.now()}`,
       code: `${b.code}-COP`,
+      title: b.title ? `${b.title} (Cópia)` : `${b.work.name} (Cópia)`,
       status: 'em_andamento',
       createdAt: new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString(),
@@ -155,6 +156,10 @@ export const BudgetsScreen: React.FC = () => {
         ...b.work,
         name: `${b.work.name} (Cópia)`,
       },
+      paymentTerms:
+        b.paymentTerms ||
+        'Medições quinzenais com base no avanço físico comprovado em diário de obra; pagamento em até 10 dias.',
+      validityDays: b.validityDays || 30,
     }
     const updated = [duplicated, ...budgetsList]
     setBudgetsList(updated)
@@ -220,9 +225,69 @@ export const BudgetsScreen: React.FC = () => {
       return
     }
 
-    // Identifica se houve alteração de regime para auditoria detalhada
+    // Identifica alterações específicas para trilha de auditoria
     const previousBudget = budgetsList.find((b) => b.id === activeBudget.id)
     if (previousBudget) {
+      // 1. Alteração de título
+      if (
+        (previousBudget.title || previousBudget.work.name) !==
+        (activeBudget.title || activeBudget.work.name)
+      ) {
+        logAuditEvent({
+          budgetId: activeBudget.id,
+          action: 'edicao_titulo',
+          title: 'Título do Orçamento Atualizado',
+          details: `Título alterado para "${activeBudget.title || activeBudget.work.name}".`,
+          oldValue: previousBudget.title || previousBudget.work.name,
+          newValue: activeBudget.title || activeBudget.work.name,
+          userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+        })
+      }
+
+      // 2. Alteração de dados do cliente
+      if (
+        previousBudget.client.name !== activeBudget.client.name ||
+        previousBudget.client.document !== activeBudget.client.document ||
+        previousBudget.client.address !== activeBudget.client.address
+      ) {
+        logAuditEvent({
+          budgetId: activeBudget.id,
+          action: 'edicao_cliente',
+          title: 'Dados do Cliente Atualizados',
+          details: `Cliente: ${activeBudget.client.name} | Doc: ${activeBudget.client.document} | Endereço: ${activeBudget.client.address || 'Não informado'}`,
+          userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+        })
+      }
+
+      // 3. Alteração de endereço da obra
+      if (
+        previousBudget.work.address !== activeBudget.work.address ||
+        previousBudget.work.city !== activeBudget.work.city ||
+        previousBudget.work.state !== activeBudget.work.state
+      ) {
+        logAuditEvent({
+          budgetId: activeBudget.id,
+          action: 'edicao_obra',
+          title: 'Local / Endereço da Obra Atualizado',
+          details: `Endereço: ${activeBudget.work.address || 'Não informado'} - ${activeBudget.work.city}/${activeBudget.work.state}`,
+          userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+        })
+      }
+
+      // 4. Alteração de forma de pagamento
+      if (previousBudget.paymentTerms !== activeBudget.paymentTerms) {
+        logAuditEvent({
+          budgetId: activeBudget.id,
+          action: 'edicao_pagamento',
+          title: 'Condições de Pagamento Atualizadas',
+          details: `Forma de pagamento: ${activeBudget.paymentTerms || 'Não especificada'}`,
+          oldValue: previousBudget.paymentTerms,
+          newValue: activeBudget.paymentTerms,
+          userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+        })
+      }
+
+      // 5. Alteração de regime tributário
       const prevReg =
         previousBudget.chargesConfig?.taxRegime ||
         (previousBudget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
@@ -312,23 +377,42 @@ export const BudgetsScreen: React.FC = () => {
                 <ArrowLeft className="w-5 h-5 text-[#294C87]" />
               </button>
 
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-xs font-extrabold px-2.5 py-0.5 rounded bg-[#294C87] text-white">
                     {activeBudget.code}
-                  </span>
-                  <span className="text-xs font-bold text-[#171A1F]/70">
-                    {activeBudget.work.name || 'Sem título'}
                   </span>
                   {activeBudget.publicWork.enabled && (
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F] flex items-center gap-1">
                       <Landmark className="w-3 h-3" /> Modo Obras Públicas
                     </span>
                   )}
+                  <span className="text-[11px] text-[#171A1F]/50">
+                    Cliente:{' '}
+                    <strong className="text-[#171A1F]">
+                      {activeBudget.client.name || 'A definir'}
+                    </strong>
+                  </span>
                 </div>
-                <h1 className="text-xl sm:text-2xl font-extrabold text-[#171A1F] mt-0.5">
-                  Núcleo de Engenharia de Custos CONCE
-                </h1>
+
+                {/* Edição inline do título do orçamento */}
+                <div className="mt-1 flex items-center gap-2 group">
+                  <input
+                    type="text"
+                    value={activeBudget.title ?? activeBudget.work.name ?? ''}
+                    onChange={(e) => {
+                      const newTitle = e.target.value
+                      handleUpdateActiveBudget({
+                        ...activeBudget,
+                        title: newTitle,
+                      })
+                    }}
+                    placeholder="Título do Orçamento / Proposta"
+                    className="text-lg sm:text-2xl font-extrabold text-[#171A1F] bg-transparent border-b border-transparent hover:border-[#294C87]/40 focus:border-[#294C87] focus:bg-white px-1 py-0.5 rounded-sm transition-all outline-none w-full max-w-2xl"
+                    title="Clique para editar o título deste orçamento diretamente"
+                  />
+                  <Edit2 className="w-4 h-4 text-[#294C87]/40 group-hover:text-[#294C87] shrink-0" />
+                </div>
               </div>
             </div>
 
@@ -837,17 +921,33 @@ export const BudgetsScreen: React.FC = () => {
                         </div>
 
                         <h3 className="text-base sm:text-lg font-bold text-[#171A1F]">
-                          {b.work.name}
+                          {b.title || b.work.name}
                         </h3>
+
+                        {b.title && b.title !== b.work.name && (
+                          <p className="text-xs text-[#294C87] font-semibold">
+                            Obra: {b.work.name}
+                          </p>
+                        )}
 
                         <p className="text-xs text-[#171A1F]/70">
                           Cliente:{' '}
                           <strong className="text-[#171A1F]">
                             {b.client.name || 'Não informado'}
                           </strong>{' '}
-                          • Local: {b.work.city}/{b.work.state} • Prazo: {b.work.deadlineMonths}{' '}
-                          meses
+                          {b.client.document && `(${b.client.document}) `}• Endereço Obra:{' '}
+                          {b.work.address ? `${b.work.address}, ` : ''}
+                          {b.work.city}/{b.work.state} • Prazo: {b.work.deadlineMonths} meses
                         </p>
+
+                        {b.paymentTerms && (
+                          <p className="text-[11px] text-[#171A1F]/60 line-clamp-1">
+                            <span className="font-semibold text-[#294C87]">
+                              Forma de Pagamento:
+                            </span>{' '}
+                            {b.paymentTerms}
+                          </p>
+                        )}
 
                         <div className="flex flex-wrap items-center gap-4 text-[11px] text-[#171A1F]/60 pt-1">
                           <span>{b.stages.length} etapas</span>

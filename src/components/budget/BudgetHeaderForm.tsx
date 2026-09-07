@@ -11,7 +11,6 @@ import {
   User,
   Building,
   Landmark,
-  FileCheck2,
   Calendar,
   Clock,
   MapPin,
@@ -20,10 +19,12 @@ import {
   Hash,
   FileText,
   AlertCircle,
+  CreditCard,
+  Briefcase,
+  Sparkles,
 } from 'lucide-react'
 import { ClientData, FullBudget, PublicWorkData, TaxRegime, WorkData } from '@/types/budgetEngine'
 import { BRAZIL_STATES_LIST } from '@/lib/chargesData'
-import { Briefcase } from 'lucide-react'
 
 interface BudgetHeaderFormProps {
   budget: FullBudget
@@ -120,6 +121,65 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* 0. TÍTULO E IDENTIFICAÇÃO GERAL DA PROPOSTA */}
+      <div className="bg-white rounded-[16px] p-5 sm:p-7 shadow-[0_4px_24px_rgba(23,26,31,0.06)] border-2 border-[#294C87]/20 space-y-4">
+        <div className="flex items-center gap-2 border-b border-[#171A1F]/10 pb-3">
+          <span className="p-2 rounded-lg bg-[#FF6B1F]/10 text-[#FF6B1F]">
+            <FileText className="w-5 h-5" />
+          </span>
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-[#171A1F]">
+              Título & Identificação da Proposta
+            </h3>
+            <p className="text-xs text-[#171A1F]/60">
+              Personalize o nome da proposta que estampará a capa e o cabeçalho oficial do PDF de
+              entrega
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-bold text-[#171A1F] block mb-1">
+              Título Oficial do Orçamento / Proposta Comercial *
+            </label>
+            <input
+              type="text"
+              disabled={disabled}
+              value={budget.title ?? budget.work.name ?? ''}
+              onChange={(e) => {
+                const newTitle = e.target.value
+                onChange({
+                  ...budget,
+                  title: newTitle,
+                })
+              }}
+              placeholder="Ex.: Proposta de Reforma Comercial e Instalações Prediais"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+            />
+            <span className="text-[11px] text-[#171A1F]/50 mt-1 block">
+              Este título é impresso na capa, cabeçalhos do PDF e na listagem geral.
+            </span>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-[#171A1F] block mb-1">
+              Código / Referência CONCE
+            </label>
+            <input
+              type="text"
+              disabled={disabled}
+              value={budget.code}
+              onChange={(e) => onChange({ ...budget, code: e.target.value })}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-mono font-bold text-[#294C87] focus:outline-none focus:border-[#294C87]"
+            />
+            <span className="text-[11px] text-[#171A1F]/50 mt-1 block">
+              Identificador único de auditoria interna.
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* 1. SEÇÃO DE DADOS DO CLIENTE */}
       <div className="bg-white rounded-[16px] p-5 sm:p-7 shadow-[0_4px_24px_rgba(23,26,31,0.06)] border border-[#171A1F]/10 space-y-4">
         <div className="flex items-center gap-2 border-b border-[#171A1F]/10 pb-3">
@@ -230,6 +290,22 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
           </div>
 
           <div>
+            <label className="text-xs font-bold text-[#171A1F] block mb-1">Estado (UF)</label>
+            <select
+              disabled={disabled}
+              value={budget.client.state || 'SP'}
+              onChange={(e) => handleClientChange('state', e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#294C87]"
+            >
+              {BRAZIL_STATES_LIST.map((st) => (
+                <option key={st.uf} value={st.uf}>
+                  {st.uf} — {st.stateName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="sm:col-span-2">
             <label className="text-xs font-bold text-[#171A1F] block mb-1">E-mail de Contato</label>
             <div className="relative">
               <Mail className="w-3.5 h-3.5 text-[#171A1F]/40 absolute left-3 top-3" />
@@ -287,16 +363,49 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
 
           <div className="sm:col-span-2">
             <label className="text-xs font-bold text-[#171A1F] block mb-1">
-              Local / Endereço da Obra *
+              Local / Endereço Completo da Obra *
             </label>
+            <div className="relative">
+              <MapPin className="w-3.5 h-3.5 text-[#FF6B1F] absolute left-3 top-3" />
+              <input
+                type="text"
+                disabled={disabled}
+                value={budget.work.address}
+                onChange={(e) => handleWorkChange('address', e.target.value)}
+                placeholder="Ex.: Rua das Flores, 450 - Bairro Centro"
+                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-medium focus:outline-none focus:border-[#294C87]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-[#171A1F] block mb-1">Cidade da Obra *</label>
             <input
               type="text"
               disabled={disabled}
-              value={budget.work.address}
-              onChange={(e) => handleWorkChange('address', e.target.value)}
-              placeholder="Avenida Paulista, 1000 - Bela Vista"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm focus:outline-none focus:border-[#294C87]"
+              value={budget.work.city}
+              onChange={(e) => handleWorkChange('city', e.target.value)}
+              placeholder="Porto Alegre"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-medium focus:outline-none focus:border-[#294C87]"
             />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-[#171A1F] block mb-1">
+              Estado da Obra (UF) *
+            </label>
+            <select
+              disabled={disabled}
+              value={budget.work.state || 'RS'}
+              onChange={(e) => handleWorkChange('state', e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#294C87]"
+            >
+              {BRAZIL_STATES_LIST.map((st) => (
+                <option key={st.uf} value={st.uf}>
+                  {st.uf} — {st.stateName}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -348,19 +457,6 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
             />
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-[#171A1F] block mb-1">
-              Código / Referência CONCE
-            </label>
-            <input
-              type="text"
-              disabled={disabled}
-              value={budget.code}
-              onChange={(e) => onChange({ ...budget, code: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-mono font-bold text-[#294C87] focus:outline-none"
-            />
-          </div>
-
           <div className="sm:col-span-4">
             <label className="text-xs font-bold text-[#171A1F] block mb-1">
               Descrição do Objeto & Memorial Resumido
@@ -371,6 +467,137 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
               value={budget.work.description}
               onChange={(e) => handleWorkChange('description', e.target.value)}
               placeholder="Descreva as características técnicas, sistemas estruturais e escopo principal dos serviços..."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm focus:outline-none focus:border-[#294C87]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. SEÇÃO DE FORMA DE PAGAMENTO & CONDIÇÕES COMERCIAIS */}
+      <div className="bg-white rounded-[16px] p-5 sm:p-7 shadow-[0_4px_24px_rgba(23,26,31,0.06)] border border-[#171A1F]/10 space-y-4">
+        <div className="flex items-center gap-2 border-b border-[#171A1F]/10 pb-3">
+          <span className="p-2 rounded-lg bg-[#294C87]/10 text-[#294C87]">
+            <CreditCard className="w-5 h-5" />
+          </span>
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-[#171A1F]">
+              3. Forma de Pagamento & Condições Comerciais da Proposta
+            </h3>
+            <p className="text-xs text-[#171A1F]/60">
+              Defina como o cliente efetuará o pagamento (sinal, parcelas, marcos de medição, prazos
+              e validade da proposta)
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-bold text-[#171A1F] block mb-1">
+              Forma / Condições de Pagamento *
+            </label>
+            <textarea
+              rows={3}
+              disabled={disabled}
+              value={
+                budget.paymentTerms ??
+                'Medições quinzenais com base no avanço físico comprovado em diário de obra; pagamento em até 10 dias após emissão da NF.'
+              }
+              onChange={(e) => onChange({ ...budget, paymentTerms: e.target.value })}
+              placeholder="Ex.: 30% de entrada na assinatura do contrato + 40% na conclusão da alvenaria + 30% na entrega das chaves."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-medium focus:outline-none focus:border-[#294C87]"
+            />
+            {/* Atalhos rápidos para preenchimento ágil */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <span className="text-[10px] font-bold text-[#171A1F]/60">Sugestões rápidas:</span>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...budget,
+                    paymentTerms:
+                      '30% de entrada na contratação + saldo parcelado em 3x conforme medições mensais de obra.',
+                  })
+                }
+                className="text-[10px] px-2 py-0.5 rounded-md bg-[#294C87]/10 text-[#294C87] hover:bg-[#294C87]/20 font-semibold"
+              >
+                30% entrada + 3 medições
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...budget,
+                    paymentTerms:
+                      'Medições quinzenais com base no avanço físico comprovado; liquidação em até 10 dias.',
+                  })
+                }
+                className="text-[10px] px-2 py-0.5 rounded-md bg-[#294C87]/10 text-[#294C87] hover:bg-[#294C87]/20 font-semibold"
+              >
+                Medições quinzenais
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...budget,
+                    paymentTerms:
+                      '50% de entrada no início das etapas preliminares + 50% na conclusão e entrega técnica.',
+                  })
+                }
+                className="text-[10px] px-2 py-0.5 rounded-md bg-[#294C87]/10 text-[#294C87] hover:bg-[#294C87]/20 font-semibold"
+              >
+                50% entrada + 50% entrega
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold text-[#171A1F] block mb-1">
+                Validade da Proposta (Dias Corridos)
+              </label>
+              <div className="relative">
+                <Clock className="w-3.5 h-3.5 text-[#171A1F]/40 absolute left-3 top-3" />
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  disabled={disabled}
+                  value={budget.validityDays ?? 30}
+                  onChange={(e) =>
+                    onChange({ ...budget, validityDays: parseInt(e.target.value, 10) || 30 })
+                  }
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-bold focus:outline-none focus:border-[#294C87]"
+                />
+              </div>
+              <span className="text-[10px] text-[#171A1F]/50 mt-1 block">
+                Padrão da engenharia: 15, 30 ou 60 dias.
+              </span>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#171A1F] block mb-1">
+                Responsável Técnico
+              </label>
+              <input
+                type="text"
+                disabled
+                value={budget.author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397'}
+                className="w-full px-3 py-2 rounded-xl border border-[#171A1F]/10 bg-[#171A1F]/5 text-xs font-bold text-[#171A1F]/80"
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-3">
+            <label className="text-xs font-bold text-[#171A1F] block mb-1">
+              Observações Comerciais & Notas Complementares (Opcional)
+            </label>
+            <input
+              type="text"
+              disabled={disabled}
+              value={budget.commercialNotes ?? ''}
+              onChange={(e) => onChange({ ...budget, commercialNotes: e.target.value })}
+              placeholder="Ex.: Preços com tributação pelo Simples Nacional inclusa; despesas com fornecimento de água/energia da obra por conta do contratante."
               className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm focus:outline-none focus:border-[#294C87]"
             />
           </div>

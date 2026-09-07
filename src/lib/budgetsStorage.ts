@@ -25,10 +25,16 @@ export function createCanonicalDemoBudget(): FullBudget {
   return {
     id: 'budget-conce-001',
     code: 'ORC-2025-001',
+    title: 'Construção Civil — Edifício Residencial Horizonte Jardins',
     status: 'em_andamento',
     createdAt: '2025-04-10',
     updatedAt: new Date().toISOString(),
     author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+    paymentTerms:
+      'Entrada de 30% na assinatura do contrato + saldo dividido em medições quinzenais conforme avanço físico.',
+    validityDays: 30,
+    commercialNotes:
+      'Preços com impostos inclusos (Simples Nacional). Emissão de ART vinculada ao CREA/RS-252397.',
     client: {
       name: 'Incorporadora Horizonte Empreendimentos S/A',
       document: '42.871.932/0001-50',
@@ -187,10 +193,16 @@ export function createPublicDemoBudget(): FullBudget {
   return {
     id: 'budget-public-002',
     code: 'ORC-PUB-2025-014',
+    title: 'Edificação Escolar Técnica Estadual — Bloco Pedagógico e Poliesportivo',
     status: 'em_analise',
     createdAt: '2025-04-14',
     updatedAt: new Date().toISOString(),
     author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+    paymentTerms:
+      'Medições mensais com liquidação em até 30 dias após emissão da NF e ateste fiscal.',
+    validityDays: 60,
+    commercialNotes:
+      'Proposta em conformidade com a Lei Federal nº 14.133/2021 e Acórdão 2.622/2013-TCU.',
     client: {
       name: 'Secretaria de Obras e Serviços Públicos do Estado',
       document: '46.379.400/0001-50',
@@ -355,6 +367,30 @@ export function getStoredFullBudgets(): FullBudget[] {
                 ...updatedBudget.publicWork,
                 tenderNumber: cleanTender,
               },
+            }
+          }
+
+          // 1.1 Garantir valores padrão para novos campos de proposta comercial
+          if (!updatedBudget.title) {
+            hasFixed = true
+            updatedBudget = {
+              ...updatedBudget,
+              title: updatedBudget.work?.name || 'Orçamento de Engenharia Civil',
+            }
+          }
+          if (!updatedBudget.paymentTerms) {
+            hasFixed = true
+            updatedBudget = {
+              ...updatedBudget,
+              paymentTerms:
+                'Medições quinzenais com base no avanço físico comprovado em diário de obra; pagamento em até 10 dias.',
+            }
+          }
+          if (!updatedBudget.validityDays) {
+            hasFixed = true
+            updatedBudget = {
+              ...updatedBudget,
+              validityDays: 30,
             }
           }
 

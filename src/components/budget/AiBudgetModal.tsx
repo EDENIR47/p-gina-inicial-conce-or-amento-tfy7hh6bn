@@ -386,10 +386,16 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
       const constructedBudget: FullBudget = {
         id: `budget-ai-${Date.now()}`,
         code: `ORC-${new Date().getFullYear()}-${String(budgetCount).padStart(3, '0')}`,
+        title: parsedJson.workName || 'Orçamento de Engenharia Civil',
         status: 'em_analise',
         createdAt: datePart,
         updatedAt: nowStr,
         author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+        paymentTerms:
+          'Medições quinzenais com base no avanço físico comprovado em diário de obra; liquidação em até 10 dias após emissão da NF.',
+        validityDays: 30,
+        commercialNotes:
+          'Preços com tributação pelo Simples Nacional inclusa. Emissão de ART no CREA/RS.',
         client: {
           name: parsedJson.clientName || 'Cliente Modelo CONCE',
           document: isPublic ? '46.379.400/0001-50' : '42.871.932/0001-50',
@@ -610,12 +616,11 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
     logAuditEvent({
       budgetId: draftBudget.id,
       action: 'criacao_orcamento',
-      title: '✨ Orçamento Gerado por Agente de IA',
-      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${regimeLabel}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
-      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Agente IA CONCE)',
+      title: '✨ Orçamento Preliminar Estruturado',
+      details: `Estruturado via Núcleo de Engenharia de Custos CONCE com base em: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${regimeLabel}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
       newValue: draftSummary?.finalSalePrice,
       metadata: {
-        aiAgentSlug: 'conce-budget-agent',
         prompt,
         uf: selectedUf,
         taxRegime: draftBudget.chargesConfig?.taxRegime || taxRegime,
@@ -631,8 +636,8 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
     // 3. Criar revisão inicial Rev. 0
     saveBudgetRevision(
       draftBudget,
-      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
-      'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Agente IA CONCE)',
+      `Emissão Inicial do Orçamento — Base técnica preliminar: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza da Rosa - CREA/RS-252397',
     )
 
     if (onBudgetCreated) {
