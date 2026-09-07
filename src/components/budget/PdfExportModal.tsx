@@ -26,7 +26,7 @@ import { ConceLogo } from '@/components/ConceLogo'
 import { FullBudget } from '@/types/budgetEngine'
 import { calculateFullBudget, getServiceEffectiveUnitCost } from '@/lib/budgetEngine'
 import { computeAbcCurve } from '@/lib/abcAnalysis'
-import { formatCurrencyBRL } from '@/lib/formatters'
+import { formatCurrencyBRL, sanitizeDocumentSource, sanitizeDocumentText } from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
 
 export type PdfExportMode = 'simplificado' | 'etapas' | 'completo'
@@ -139,7 +139,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
       title: `Exportação PDF — Formato ${currentOption.title.split('/')[0].trim()}`,
       details: `Proposta gerada em formato ${modeLabels[selectedMode]}. Valor total: ${formatCurrencyBRL(
         summary.finalSalePrice,
-      )}. Cliente: ${budget.client.name || 'Não informado'}.`,
+      )}. Cliente: ${cleanClientName || 'Não informado'}.`,
       userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
     })
     window.print()
@@ -153,6 +153,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         ? 'Proposta Executiva Sintética por Etapas'
         : 'Proposta Técnica & Orçamento Executivo de Obras'
 
+  // Dados sanitizados contra vazamento de termos de IA
+  const cleanCode = sanitizeDocumentText(budget.code)
+  const cleanWorkName =
+    sanitizeDocumentText(budget.work.name) || 'Empreendimento de Engenharia Civil'
+  const cleanWorkDesc = sanitizeDocumentText(budget.work.description)
+  const cleanAuthor =
+    sanitizeDocumentText(budget.author) || 'Eng. Edenir Souza da Rosa - CREA/RS-252397'
+  const cleanClientName = sanitizeDocumentText(budget.client.name) || 'Cliente Contratante'
+
   return (
     <div className="fixed inset-0 z-50 bg-[#171A1F]/80 backdrop-blur-sm flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:fixed-none">
       {/* ============================================================ */}
@@ -164,8 +173,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           <div className="h-5 w-px bg-white/20 hidden md:block" />
           <div className="text-left">
             <span className="text-xs sm:text-sm font-semibold text-white/90 block">
-              Emissão de PDF • {budget.code}
-            </span>
+              Emissão de PDF • {cleanCode}
+            </span>{' '}
             <span className="text-[11px] text-[#FF6B1F] font-bold">
               Formato ativo: {currentOption.title}
             </span>
@@ -358,7 +367,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
             <div className="text-right">
               <span className="inline-block px-3 py-1 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
-                {budget.code}
+                {cleanCode}
               </span>
               <p className="text-[11px] text-[#171A1F]/60 mt-1 font-mono">
                 Emissão: {new Date().toLocaleDateString('pt-BR')}
@@ -388,11 +397,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-extrabold text-[#171A1F] tracking-tight leading-tight">
-              {budget.work.name}
+              {cleanWorkName}
             </h1>
 
             <p className="text-sm sm:text-base text-[#171A1F]/80 max-w-2xl leading-relaxed">
-              {budget.work.description ||
+              {cleanWorkDesc ||
                 (selectedMode === 'simplificado'
                   ? 'Proposta comercial para execução de serviços de engenharia civil com relação discriminada de itens e preço global de fechamento.'
                   : 'Orçamento analítico e discriminado de obras civis com detalhamento de insumos, encargos sociais e cálculo do BDI em conformidade com o Acórdão 2.622/2013 do Plenário do Tribunal de Contas da União.')}
@@ -424,9 +433,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               <span className="font-bold uppercase tracking-wider text-[#294C87] block text-[10px]">
                 Contratante / Cliente
               </span>
-              <p className="font-bold text-sm text-[#171A1F]">
-                {budget.client.name || 'A Definir'}
-              </p>
+              <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
               <p className="text-[#171A1F]/70">CNPJ/CPF: {budget.client.document || '---'}</p>
               <p className="text-[#171A1F]/70">{budget.client.address || '---'}</p>
               <p className="text-[#171A1F]/70">
@@ -459,7 +466,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     : ' • DAS: Não preenchido (0,00%)')}
               </p>
               <p className="font-semibold text-[#171A1F] pt-0.5">
-                Responsável Técnico: {budget.author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397'}
+                Responsável Técnico: {cleanAuthor}
               </p>
             </div>
           </div>
@@ -920,8 +927,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                                   </span>
                                   {service.composition && (
                                     <span className="block font-mono text-[10px] text-[#171A1F]/50">
-                                      Comp: {service.composition.code} ({service.composition.source}
-                                      )
+                                      Comp: {service.composition.code} (
+                                      {sanitizeDocumentSource(service.composition.source)})
                                     </span>
                                   )}
                                 </td>
@@ -1423,9 +1430,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           <div className="pt-12 grid grid-cols-1 sm:grid-cols-2 gap-12 text-center text-xs">
             <div className="space-y-2">
               <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
-              <p className="font-bold text-sm text-[#171A1F]">
-                {budget.author || 'Eng. Edenir Souza da Rosa'}
-              </p>
+              <p className="font-bold text-sm text-[#171A1F]">{cleanAuthor}</p>
               <p className="text-[#171A1F]/70">CONCE — Serviço de Engenharia e Consultoria LTDA</p>
               <p className="text-[11px] text-[#294C87] font-semibold">
                 Responsável Técnico • CREA/RS-252397
@@ -1434,9 +1439,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
             <div className="space-y-2">
               <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
-              <p className="font-bold text-sm text-[#171A1F]">
-                {budget.client.name || 'Cliente Contratante'}
-              </p>
+              <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
               <p className="text-[#171A1F]/70">CNPJ/CPF: {budget.client.document || '---'}</p>
               <p className="text-[11px] text-[#294C87] font-semibold">
                 De Acordo / Representante Legal

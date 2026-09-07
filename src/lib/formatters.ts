@@ -152,3 +152,60 @@ export function getSourceBadgeInfo(
     dotClass: 'bg-slate-500',
   }
 }
+
+/**
+ * Higieniza o nome da fonte de composições e insumos para apresentação em documentos exportados
+ * (PDF e planilhas). Garante estritamente que termos como "IA", "Agente", "Gerado por IA" etc.
+ * nunca apareçam em documentos externos, convertendo-os para fontes neutras técnicas oficiais
+ * ("SINAPI", "SICRO", "CONCE" ou "Informado").
+ */
+export function sanitizeDocumentSource(source?: string): string {
+  if (!source) return 'Informado'
+  const raw = String(source).trim()
+  if (!raw) return 'Informado'
+
+  const normalized = raw.toLowerCase()
+  if (normalized.includes('sinapi')) return 'SINAPI'
+  if (normalized.includes('sicro')) return 'SICRO'
+  if (normalized.includes('conce') || normalized.includes('biblioteca')) return 'CONCE'
+  if (normalized.includes('usuário') || normalized.includes('usuario')) return 'Informado'
+
+  // Se contiver qualquer menção a IA, inteligência artificial, agente, robô ou gerado
+  if (
+    normalized.includes('ia') ||
+    normalized.includes('agente') ||
+    normalized.includes('agent') ||
+    normalized.includes('gerado') ||
+    normalized.includes('inteligên') ||
+    normalized.includes('inteligenc') ||
+    normalized.includes('ai')
+  ) {
+    return 'SINAPI'
+  }
+
+  return raw
+}
+
+/**
+ * Remove qualquer sufixo ou menção a geração por IA de nomes de autores,
+ * títulos de obras e códigos para apresentação em documentos exportados.
+ */
+export function sanitizeDocumentText(text?: string): string {
+  if (!text) return ''
+  let sanitized = String(text)
+  // Remove menções entre parênteses como "(Gerado com IA CONCE)", "(Agente IA CONCE)", "(Gerado por IA)", etc.
+  sanitized = sanitized.replace(/\s*\([^)]*(?:ia|agente|gerad|inteligên)[^)]*\)/gi, '')
+  // Remove "via Agente IA", "via Agente", etc.
+  sanitized = sanitized.replace(
+    /\s*(?:via\s+agente\s+ia|via\s+agente|gerado\s+com\s+ia|gerado\s+por\s+ia)/gi,
+    '',
+  )
+  // Remove códigos como ORC-IA- ou LIC-IA-
+  sanitized = sanitized.replace(/\bORC-IA-/gi, 'ORC-')
+  sanitized = sanitized.replace(/\bLIC-IA-/gi, 'LIC-')
+  // Substitui obra genérica que possa ter ficado
+  if (sanitized.toLowerCase().includes('obra planejada via agente')) {
+    sanitized = 'Empreendimento de Engenharia Civil'
+  }
+  return sanitized.trim()
+}

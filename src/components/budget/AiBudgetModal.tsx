@@ -385,11 +385,11 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
 
       const constructedBudget: FullBudget = {
         id: `budget-ai-${Date.now()}`,
-        code: `ORC-IA-${new Date().getFullYear()}-${String(budgetCount).padStart(3, '0')}`,
+        code: `ORC-${new Date().getFullYear()}-${String(budgetCount).padStart(3, '0')}`,
         status: 'em_analise',
         createdAt: datePart,
         updatedAt: nowStr,
-        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Gerado com IA CONCE)',
+        author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         client: {
           name: parsedJson.clientName || 'Cliente Modelo CONCE',
           document: isPublic ? '46.379.400/0001-50' : '42.871.932/0001-50',
@@ -400,7 +400,7 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
           state: parsedJson.state || selectedUf,
         },
         work: {
-          name: parsedJson.workName || 'Obra Planejada via Agente IA',
+          name: parsedJson.workName || 'Empreendimento de Engenharia Civil',
           address: 'Logradouro da Obra, nº 100',
           city: parsedJson.city || 'São Paulo',
           state: parsedJson.state || selectedUf,
@@ -411,7 +411,7 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
         },
         publicWork: {
           enabled: isPublic,
-          tenderNumber: isPublic ? 'LIC-IA-2025/001' : '',
+          tenderNumber: isPublic ? 'LIC-2025/001' : '',
           contractNumber: isPublic ? 'CT-2025/101' : '',
           agency: isPublic ? 'Prefeitura Municipal / Secretaria de Obras' : '',
           modality: 'Concorrência',

@@ -319,19 +319,58 @@ export function getStoredFullBudgets(): FullBudget[] {
             b.chargesConfig?.taxRegime ||
             (b.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
 
+          let updatedBudget = b
+
+          // 1. Sanitização de referências a IA em author, code, workName e tenderNumber
+          const rawAuthor = b.author || ''
+          const cleanAuthor = rawAuthor
+            .replace(/\s*\([^)]*(?:ia|agente|gerad|inteligên)[^)]*\)/gi, '')
+            .trim()
+          const rawCode = b.code || ''
+          const cleanCode = rawCode.replace(/\bORC-IA-/gi, 'ORC-')
+          const rawWorkName = b.work?.name || ''
+          const cleanWorkName = rawWorkName.toLowerCase().includes('obra planejada via agente')
+            ? 'Empreendimento de Engenharia Civil'
+            : rawWorkName.replace(/\s*(?:via\s+agente\s+ia|via\s+agente)/gi, '').trim()
+          const rawTender = b.publicWork?.tenderNumber || ''
+          const cleanTender = rawTender.replace(/\bLIC-IA-/gi, 'LIC-')
+
+          if (
+            cleanAuthor !== rawAuthor ||
+            cleanCode !== rawCode ||
+            cleanWorkName !== rawWorkName ||
+            cleanTender !== rawTender
+          ) {
+            hasFixed = true
+            updatedBudget = {
+              ...updatedBudget,
+              author: cleanAuthor || 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+              code: cleanCode,
+              work: {
+                ...updatedBudget.work,
+                name: cleanWorkName || 'Empreendimento de Engenharia Civil',
+              },
+              publicWork: {
+                ...updatedBudget.publicWork,
+                tenderNumber: cleanTender,
+              },
+            }
+          }
+
+          // 2. Sanitização tributária e encargos
           if (regime === 'simples_nacional') {
             const hasNonZeroGroups =
-              (b.chargesConfig?.customGroupA ?? 0) > 0 ||
-              (b.chargesConfig?.customGroupB ?? 0) > 0 ||
-              (b.chargesConfig?.customGroupC ?? 0) > 0 ||
-              (b.chargesConfig?.customGroupD ?? 0) > 0
+              (updatedBudget.chargesConfig?.customGroupA ?? 0) > 0 ||
+              (updatedBudget.chargesConfig?.customGroupB ?? 0) > 0 ||
+              (updatedBudget.chargesConfig?.customGroupC ?? 0) > 0 ||
+              (updatedBudget.chargesConfig?.customGroupD ?? 0) > 0
 
-            if (hasNonZeroGroups || !b.chargesConfig?.isExplicitZero) {
+            if (hasNonZeroGroups || !updatedBudget.chargesConfig?.isExplicitZero) {
               hasFixed = true
               return {
-                ...b,
+                ...updatedBudget,
                 chargesConfig: {
-                  ...b.chargesConfig,
+                  ...updatedBudget.chargesConfig,
                   taxRegime: 'simples_nacional' as const,
                   customGroupA: 0,
                   customGroupB: 0,
@@ -343,23 +382,23 @@ export function getStoredFullBudgets(): FullBudget[] {
             }
           } else {
             // Regimes sem_desoneracao ou com_desoneracao: proteção contra zeramento indevido
-            if (b.chargesConfig?.customGroupA !== undefined) {
+            if (updatedBudget.chargesConfig?.customGroupA !== undefined) {
               const totalSum =
-                (b.chargesConfig.customGroupA || 0) +
-                (b.chargesConfig.customGroupB || 0) +
-                (b.chargesConfig.customGroupC || 0) +
-                (b.chargesConfig.customGroupD || 0)
+                (updatedBudget.chargesConfig.customGroupA || 0) +
+                (updatedBudget.chargesConfig.customGroupB || 0) +
+                (updatedBudget.chargesConfig.customGroupC || 0) +
+                (updatedBudget.chargesConfig.customGroupD || 0)
 
-              if (totalSum === 0 && !b.chargesConfig.isExplicitZero) {
+              if (totalSum === 0 && !updatedBudget.chargesConfig.isExplicitZero) {
                 hasFixed = true
-                const uf = b.chargesConfig.uf || 'SP'
+                const uf = updatedBudget.chargesConfig.uf || 'SP'
                 const isRel = regime === 'com_desoneracao'
                 const stateData = BRAZIL_STATES_CHARGES[uf] || BRAZIL_STATES_CHARGES['SP']
                 const base = isRel ? stateData.relieved : stateData.nonRelieved
                 return {
-                  ...b,
+                  ...updatedBudget,
                   chargesConfig: {
-                    ...b.chargesConfig,
+                    ...updatedBudget.chargesConfig,
                     customGroupA: base.groupA,
                     customGroupB: base.groupB,
                     customGroupC: base.groupC,
@@ -370,7 +409,7 @@ export function getStoredFullBudgets(): FullBudget[] {
               }
             }
           }
-          return b
+          return updatedBudget
         })
         if (hasFixed) {
           saveFullBudgets(sanitized)

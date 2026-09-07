@@ -11,7 +11,7 @@
 import { FullBudget } from '@/types/budgetEngine'
 import { calculateFullBudget, getServiceEffectiveUnitCost } from './budgetEngine'
 import { computeAbcCurve } from './abcAnalysis'
-import { formatCurrencyBRL } from './formatters'
+import { formatCurrencyBRL, sanitizeDocumentText } from './formatters'
 import { logAuditEvent } from './intelligenceStorage'
 
 /**
@@ -58,16 +58,22 @@ export function exportBudgetSpreadsheet(
   const laborMultiplier = 1 + (summary.socialChargesRate || 0) / 100
 
   const dateStr = new Date().toISOString().split('T')[0]
-  const baseFilename = `CONCE_${budget.code}_${budget.work.name.replace(/[^a-zA-Z0-9]/g, '_')}`
+  const cleanCode = sanitizeDocumentText(budget.code)
+  const cleanWorkName =
+    sanitizeDocumentText(budget.work.name) || 'Empreendimento de Engenharia Civil'
+  const cleanAuthor =
+    sanitizeDocumentText(budget.author) || 'Eng. Edenir Souza da Rosa - CREA/RS-252397'
+  const cleanClient = sanitizeDocumentText(budget.client.name) || 'Cliente Contratante'
+  const baseFilename = `CONCE_${cleanCode}_${cleanWorkName.replace(/[^a-zA-Z0-9]/g, '_')}`
 
   // 1. Planilha Orçamentária e Resumo
   const budgetRows: (string | number)[][] = [
     ['CONCE — SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA'],
     ['Slogan:', 'Conce é conceito. Conce é concreto.'],
-    ['Código do Orçamento:', budget.code, 'Status:', budget.status.toUpperCase()],
-    ['Obra:', budget.work.name, 'Local:', `${budget.work.city}/${budget.work.state}`],
-    ['Cliente:', budget.client.name, 'CNPJ/CPF:', budget.client.document],
-    ['Responsável Técnico:', budget.author, 'Data:', dateStr],
+    ['Código do Orçamento:', cleanCode, 'Status:', budget.status.toUpperCase()],
+    ['Obra:', cleanWorkName, 'Local:', `${budget.work.city}/${budget.work.state}`],
+    ['Cliente:', cleanClient, 'CNPJ/CPF:', budget.client.document],
+    ['Responsável Técnico:', cleanAuthor, 'Data:', dateStr],
     [
       'Regime Tributário:',
       budget.chargesConfig?.taxRegime === 'simples_nacional'
@@ -163,7 +169,7 @@ export function exportBudgetSpreadsheet(
   // 2. Curva ABC (Pareto)
   const abcRows: (string | number)[][] = [
     ['CONCE — CURVA ABC DE INSUMOS (ANÁLISE DE PARETO)'],
-    ['Obra:', budget.work.name, 'Orçamento:', budget.code],
+    ['Obra:', cleanWorkName, 'Orçamento:', cleanCode],
     ['Total de Insumos Analisados:', abc.totalItemsCount],
     ['Custo Direto Total dos Insumos:', abc.totalDirectCost],
     [
@@ -215,7 +221,7 @@ export function exportBudgetSpreadsheet(
   // 3. Memória de BDI TCU Acórdão 2.622/2013
   const bdiRows: (string | number)[][] = [
     ['CONCE — MEMÓRIA DE CÁLCULO DE BDI (TCU ACÓRDÃO 2.622/2013)'],
-    ['Obra:', budget.work.name, 'Orçamento:', budget.code],
+    ['Obra:', cleanWorkName, 'Orçamento:', cleanCode],
     ['Fórmula:', 'BDI = [((1 + AC + R + S + G) * (1 + DF) * (1 + L)) / (1 - T) - 1] * 100'],
     [],
     [
