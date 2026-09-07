@@ -124,6 +124,13 @@ export interface SocialChargesGroup {
 
 export type TaxRegime = 'simples_nacional' | 'sem_desoneracao' | 'com_desoneracao'
 
+/**
+ * Sub-opção de recolhimento previdenciário no Simples Nacional:
+ * - 'cpp_inclusa_das': CPP (Grupo A) já embutida na alíquota unificada do DAS (Padrão CONCE). Grupo A = 0%.
+ * - 'cpp_guia_separada': CPP recolhida em guia separada sobre a folha (Anexo IV padrão). Tabela integral sem desoneração.
+ */
+export type SimplesCollectionOption = 'cpp_inclusa_das' | 'cpp_guia_separada'
+
 export interface SocialChargesStateConfig {
   uf: string
   stateName: string
@@ -176,6 +183,7 @@ export interface FullBudget {
     uf: string
     isRelieved: boolean // compatibilidade: true se 'com_desoneracao', false se 'sem_desoneracao' ou 'simples_nacional'
     taxRegime?: TaxRegime // 'simples_nacional' | 'sem_desoneracao' | 'com_desoneracao'
+    simplesCollectionOption?: SimplesCollectionOption // 'cpp_inclusa_das' (Padrão CONCE) | 'cpp_guia_separada' (Anexo IV)
     simplesDasRate?: number // Alíquota efetiva do DAS informada pelo usuário (0 padrão neutro até preencher)
     customGroupA?: number
     customGroupB?: number
@@ -191,6 +199,7 @@ export interface FullBudget {
 
 export interface CalculationSummary {
   taxRegime?: TaxRegime // Regime tributário efetivo ('simples_nacional' | 'sem_desoneracao' | 'com_desoneracao')
+  simplesCollectionOption?: SimplesCollectionOption
   directCostInputs: number // Custo Direto de Insumos
   laborDirectCost: number // Parcela de Mão de Obra
   materialDirectCost: number // Parcela de Materiais

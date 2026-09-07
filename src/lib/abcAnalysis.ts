@@ -19,10 +19,21 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
     budget.chargesConfig?.taxRegime ||
     (budget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
 
-  // No Simples Nacional, os encargos seguem sem desoneração
+  // No Simples Nacional:
+  // - Se 'cpp_inclusa_das' (Padrão CONCE, default): Grupo A = 0% (já coberto no DAS), total = B + C + D
+  // - Se 'cpp_guia_separada' (Anexo IV): usa a tabela integral sem desoneração (A + B + C + D)
   const isRelievedForCharges = taxRegime === 'com_desoneracao'
-
   const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
+
+  const isSimples = taxRegime === 'simples_nacional'
+  const simplesOption =
+    budget.chargesConfig?.simplesCollectionOption || (isSimples ? 'cpp_inclusa_das' : undefined)
+  const isCppInDas = isSimples && simplesOption === 'cpp_inclusa_das'
+
+  const defaultGroupA = isCppInDas ? 0 : stateCharges.groupA
+  const defaultTotalForConfig = Number(
+    (defaultGroupA + stateCharges.groupB + stateCharges.groupC + stateCharges.groupD).toFixed(2),
+  )
 
   let chargesRate: number
   if (budget.chargesConfig?.customGroupA !== undefined) {
@@ -33,16 +44,16 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
       (budget.chargesConfig.customGroupD || 0)
 
     if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
-      chargesRate = stateCharges.total
+      chargesRate = defaultTotalForConfig
     } else {
-      chargesRate = customSum
+      chargesRate = Number(customSum.toFixed(2))
     }
   } else {
-    chargesRate = stateCharges.total
+    chargesRate = defaultTotalForConfig
   }
 
   if (chargesRate === 0 && !budget.chargesConfig?.isExplicitZero) {
-    chargesRate = getChargesForState(budget.chargesConfig?.uf || 'SP', false).total
+    chargesRate = defaultTotalForConfig
   }
 
   const laborMultiplier = 1 + chargesRate / 100

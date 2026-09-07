@@ -9,25 +9,38 @@ import React from 'react'
 import { MapPin, Building, CheckCircle2, Sliders, RotateCcw, Layers, FileCheck } from 'lucide-react'
 import { BRAZIL_STATES_CHARGES, BRAZIL_STATES_LIST, getChargesForState } from '@/lib/chargesData'
 
-import { TaxRegime } from '@/types/budgetEngine'
+import { TaxRegime, SimplesCollectionOption } from '@/types/budgetEngine'
 
 interface SocialChargesSelectorProps {
   uf: string
   isRelieved: boolean
   taxRegime?: TaxRegime
+  simplesCollectionOption?: SimplesCollectionOption
   simplesDasRate?: number
   customGroupA?: number
   customGroupB?: number
   customGroupC?: number
   customGroupD?: number
+  isExplicitZero?: boolean
   onUfChange: (uf: string) => void
   onRelievedChange: (isRelieved: boolean) => void
   onTaxRegimeChange?: (regime: TaxRegime, dasRate?: number) => void
+  onSimplesCollectionOptionChange?: (
+    option: SimplesCollectionOption,
+    newGroups: {
+      customGroupA: number
+      customGroupB: number
+      customGroupC: number
+      customGroupD: number
+      isExplicitZero?: boolean
+    },
+  ) => void
   onCustomGroupsChange: (groups: {
     customGroupA?: number
     customGroupB?: number
     customGroupC?: number
     customGroupD?: number
+    isExplicitZero?: boolean
   }) => void
   disabled?: boolean
 }
@@ -36,14 +49,17 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
   uf,
   isRelieved,
   taxRegime,
+  simplesCollectionOption = 'cpp_inclusa_das',
   simplesDasRate = 0,
   customGroupA,
   customGroupB,
   customGroupC,
   customGroupD,
+  isExplicitZero = false,
   onUfChange,
   onRelievedChange,
   onTaxRegimeChange,
+  onSimplesCollectionOptionChange,
   onCustomGroupsChange,
   disabled = false,
 }) => {
@@ -56,57 +72,48 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
 
   const currentUf = (uf || 'SP').toUpperCase()
   const stateData = BRAZIL_STATES_CHARGES[currentUf] || BRAZIL_STATES_CHARGES['SP']
-  const defaultCharges = usesRelievedCharges ? stateData.relieved : stateData.nonRelieved
+  const baseCharges = usesRelievedCharges ? stateData.relieved : stateData.nonRelieved
 
-  // Se os grupos customizados somam zero mas não foram marcados intencionalmente,
-  // ou se foram salvos como 0 por erro anterior, usa os defaults oficiais da UF (base sem desoneração)
+  // No Simples Nacional com 'cpp_inclusa_das', o padrão do Grupo A é 0% (já no DAS), e B, C e D são os oficiais da UF
+  const isSimples = effectiveRegime === 'simples_nacional'
+  const isCppInDas = isSimples && simplesCollectionOption === 'cpp_inclusa_das'
+
+  const defaultCharges = {
+    groupA: isCppInDas ? 0 : baseCharges.groupA,
+    groupB: baseCharges.groupB,
+    groupC: baseCharges.groupC,
+    groupD: baseCharges.groupD,
+  }
+
+  // Verifica customização: é customizado se os grupos diferirem dos defaults calculados
+  const activeA = customGroupA !== undefined ? customGroupA : defaultCharges.groupA
+  const activeB = customGroupB !== undefined ? customGroupB : defaultCharges.groupB
+  const activeC = customGroupC !== undefined ? customGroupC : defaultCharges.groupC
+  const activeD = customGroupD !== undefined ? customGroupD : defaultCharges.groupD
+
   const isCustomized =
     customGroupA !== undefined ||
     customGroupB !== undefined ||
     customGroupC !== undefined ||
     customGroupD !== undefined
 
-  const rawSum =
-    (customGroupA ?? defaultCharges.groupA) +
-    (customGroupB ?? defaultCharges.groupB) +
-    (customGroupC ?? defaultCharges.groupC) +
-    (customGroupD ?? defaultCharges.groupD)
-
-  // Se a soma for 0 e os grupos estiverem zerados por omissão ou inferência errônea, restaura os defaults da UF
-  const shouldUseDefaults = isCustomized && rawSum === 0
-
-  const activeA = shouldUseDefaults
-    ? defaultCharges.groupA
-    : customGroupA !== undefined
-      ? customGroupA
-      : defaultCharges.groupA
-  const activeB = shouldUseDefaults
-    ? defaultCharges.groupB
-    : customGroupB !== undefined
-      ? customGroupB
-      : defaultCharges.groupB
-  const activeC = shouldUseDefaults
-    ? defaultCharges.groupC
-    : customGroupC !== undefined
-      ? customGroupC
-      : defaultCharges.groupC
-  const activeD = shouldUseDefaults
-    ? defaultCharges.groupD
-    : customGroupD !== undefined
-      ? customGroupD
-      : defaultCharges.groupD
+  const isDivergentFromDefault =
+    activeA !== defaultCharges.groupA ||
+    activeB !== defaultCharges.groupB ||
+    activeC !== defaultCharges.groupC ||
+    activeD !== defaultCharges.groupD
 
   const currentTotal = Number((activeA + activeB + activeC + activeD).toFixed(2))
 
   const handleResetToUfDefault = () => {
-    // Restaura explicitamente os valores padrão da UF para o regime selecionado
-    // (no Simples Nacional, são os mesmos percentuais de Sem Desoneração)
-    const targetDefaults = defaultCharges
+    // Restaura explicitamente os valores padrão da UF para a configuração ativa
+    // Se for Simples Nacional com CPP inclusa no DAS, Grupo A vai a 0% com isExplicitZero: true
     onCustomGroupsChange({
-      customGroupA: targetDefaults.groupA,
-      customGroupB: targetDefaults.groupB,
-      customGroupC: targetDefaults.groupC,
-      customGroupD: targetDefaults.groupD,
+      customGroupA: defaultCharges.groupA,
+      customGroupB: defaultCharges.groupB,
+      customGroupC: defaultCharges.groupC,
+      customGroupD: defaultCharges.groupD,
+      isExplicitZero: isCppInDas ? true : false,
     })
   }
 
@@ -128,7 +135,7 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
           </div>
         </div>
 
-        {isCustomized && (
+        {isDivergentFromDefault && (
           <button
             type="button"
             onClick={handleResetToUfDefault}
@@ -136,7 +143,10 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FF6B1F]/30 bg-[#FF6B1F]/10 text-xs font-semibold text-[#FF6B1F] hover:bg-[#FF6B1F]/20 transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Restaurar Padrão {currentUf}</span>
+            <span>
+              Restaurar Padrão {currentUf}
+              {isCppInDas ? ' (B+C+D)' : ''}
+            </span>
           </button>
         )}
       </div>
@@ -187,25 +197,17 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
               type="button"
               disabled={disabled}
               onClick={() => {
-                // Ao selecionar simples_nacional, os grupos DEVEM carregar os defaults de stateData.nonRelieved
-                // (o Simples NÃO zera encargos trabalhistas — usa a base Sem Desoneração da SINAPI/UF).
-                // Preservar edições reais do usuário se já existirem valores positivos (> 0).
-                const hasExistingPositiveValues =
-                  customGroupA !== undefined &&
-                  (customGroupA || 0) +
-                    (customGroupB || 0) +
-                    (customGroupC || 0) +
-                    (customGroupD || 0) >
-                    0
-
-                if (!hasExistingPositiveValues) {
-                  onCustomGroupsChange({
-                    customGroupA: stateData.nonRelieved.groupA,
-                    customGroupB: stateData.nonRelieved.groupB,
-                    customGroupC: stateData.nonRelieved.groupC,
-                    customGroupD: stateData.nonRelieved.groupD,
-                  })
-                }
+                // Ao selecionar simples_nacional, o padrão da CONCE é 'cpp_inclusa_das'
+                // Grupo A = 0% (já no DAS), Grupos B, C, D carregam os percentuais oficiais da UF
+                const targetA =
+                  simplesCollectionOption === 'cpp_guia_separada' ? stateData.nonRelieved.groupA : 0
+                onCustomGroupsChange({
+                  customGroupA: targetA,
+                  customGroupB: stateData.nonRelieved.groupB,
+                  customGroupC: stateData.nonRelieved.groupC,
+                  customGroupD: stateData.nonRelieved.groupD,
+                  isExplicitZero: targetA === 0,
+                })
 
                 if (onTaxRegimeChange) {
                   onTaxRegimeChange('simples_nacional', simplesDasRate)
@@ -239,22 +241,13 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
               type="button"
               disabled={disabled}
               onClick={() => {
-                const hasExistingPositiveValues =
-                  customGroupA !== undefined &&
-                  (customGroupA || 0) +
-                    (customGroupB || 0) +
-                    (customGroupC || 0) +
-                    (customGroupD || 0) >
-                    0
-
-                if (!hasExistingPositiveValues) {
-                  onCustomGroupsChange({
-                    customGroupA: stateData.nonRelieved.groupA,
-                    customGroupB: stateData.nonRelieved.groupB,
-                    customGroupC: stateData.nonRelieved.groupC,
-                    customGroupD: stateData.nonRelieved.groupD,
-                  })
-                }
+                onCustomGroupsChange({
+                  customGroupA: stateData.nonRelieved.groupA,
+                  customGroupB: stateData.nonRelieved.groupB,
+                  customGroupC: stateData.nonRelieved.groupC,
+                  customGroupD: stateData.nonRelieved.groupD,
+                  isExplicitZero: false,
+                })
 
                 if (onTaxRegimeChange) {
                   onTaxRegimeChange('sem_desoneracao', simplesDasRate)
@@ -283,22 +276,13 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
               type="button"
               disabled={disabled}
               onClick={() => {
-                const hasExistingPositiveValues =
-                  customGroupA !== undefined &&
-                  (customGroupA || 0) +
-                    (customGroupB || 0) +
-                    (customGroupC || 0) +
-                    (customGroupD || 0) >
-                    0
-
-                if (!hasExistingPositiveValues) {
-                  onCustomGroupsChange({
-                    customGroupA: stateData.relieved.groupA,
-                    customGroupB: stateData.relieved.groupB,
-                    customGroupC: stateData.relieved.groupC,
-                    customGroupD: stateData.relieved.groupD,
-                  })
-                }
+                onCustomGroupsChange({
+                  customGroupA: stateData.relieved.groupA,
+                  customGroupB: stateData.relieved.groupB,
+                  customGroupC: stateData.relieved.groupC,
+                  customGroupD: stateData.relieved.groupD,
+                  isExplicitZero: false,
+                })
 
                 if (onTaxRegimeChange) {
                   onTaxRegimeChange('com_desoneracao', simplesDasRate)
@@ -327,13 +311,17 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
           {effectiveRegime === 'simples_nacional' && (
             <div className="mt-2.5 p-3 rounded-xl bg-[#294C87]/5 border border-[#294C87]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="text-xs text-[#171A1F]/80 space-y-0.5">
-                <p className="font-bold text-[#294C87]">
-                  Regime Simples Nacional — Padrão Operacional CONCE
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-[#294C87]">
+                    Regime Simples Nacional — Padrão Operacional CONCE
+                  </p>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-[#FF6B1F] text-white">
+                    LC 123/2006
+                  </span>
+                </div>
                 <p className="text-[11px] text-[#171A1F]/70">
-                  Os encargos sociais trabalhistas seguem a tabela base sem desoneração (não se
-                  aplica CPRB). Os tributos do BDI passam a incidir pela alíquota efetiva do DAS da
-                  empresa.
+                  A CONCE recolhe os tributos unificados no DAS. Defina abaixo como a Contribuição
+                  Previdenciária Patronal (CPP) é recolhida para evitar bitributação.
                 </p>
               </div>
 
@@ -370,6 +358,108 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
               </div>
             </div>
           )}
+
+          {/* Sub-opção de Recolhimento Previdenciário (Simples Nacional) */}
+          {effectiveRegime === 'simples_nacional' && (
+            <div className="mt-3 p-3.5 rounded-xl bg-gradient-to-r from-[#294C87]/10 via-[#294C87]/5 to-[#FF6B1F]/10 border-2 border-[#294C87]/30 space-y-2.5 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#FF6B1F]" />
+                  <span className="text-xs font-bold text-[#171A1F] uppercase tracking-wider">
+                    Modalidade de Recolhimento da CPP (INSS Patronal)
+                  </span>
+                </div>
+                <span className="text-[10px] text-[#171A1F]/60">
+                  Prevenção de Dupla Contagem do INSS
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Opção 1: CPP inclusa no DAS (Padrão CONCE) */}
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    const newGroups = {
+                      customGroupA: 0,
+                      customGroupB: stateData.nonRelieved.groupB,
+                      customGroupC: stateData.nonRelieved.groupC,
+                      customGroupD: stateData.nonRelieved.groupD,
+                      isExplicitZero: true,
+                    }
+                    if (onSimplesCollectionOptionChange) {
+                      onSimplesCollectionOptionChange('cpp_inclusa_das', newGroups)
+                    } else {
+                      onCustomGroupsChange(newGroups)
+                    }
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                    simplesCollectionOption === 'cpp_inclusa_das'
+                      ? 'bg-white border-[#294C87] shadow-sm ring-2 ring-[#294C87]'
+                      : 'bg-[#F8F9FA] border-[#171A1F]/15 hover:bg-white text-[#171A1F]/80'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span className="text-xs font-bold text-[#171A1F] flex items-center gap-1">
+                      {simplesCollectionOption === 'cpp_inclusa_das' && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#294C87] shrink-0" />
+                      )}
+                      CPP inclusa no DAS (Padrão CONCE)
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-[#294C87] text-white shrink-0">
+                      Padrão CONCE
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#171A1F]/70 mt-1">
+                    <strong>Grupo A zerado (0,00%)</strong>: INSS patronal, RAT e terceiros já
+                    inclusos nos {simplesDasRate > 0 ? `${simplesDasRate}%` : 'tributos'} do DAS.
+                    Incidem apenas os custos trabalhistas (<strong>Grupos B + C + D</strong>).
+                  </p>
+                </button>
+
+                {/* Opção 2: CPP em guia separada (Anexo IV) */}
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    const newGroups = {
+                      customGroupA: stateData.nonRelieved.groupA,
+                      customGroupB: stateData.nonRelieved.groupB,
+                      customGroupC: stateData.nonRelieved.groupC,
+                      customGroupD: stateData.nonRelieved.groupD,
+                      isExplicitZero: false,
+                    }
+                    if (onSimplesCollectionOptionChange) {
+                      onSimplesCollectionOptionChange('cpp_guia_separada', newGroups)
+                    } else {
+                      onCustomGroupsChange(newGroups)
+                    }
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                    simplesCollectionOption === 'cpp_guia_separada'
+                      ? 'bg-white border-[#294C87] shadow-sm ring-2 ring-[#294C87]'
+                      : 'bg-[#F8F9FA] border-[#171A1F]/15 hover:bg-white text-[#171A1F]/80'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span className="text-xs font-bold text-[#171A1F] flex items-center gap-1">
+                      {simplesCollectionOption === 'cpp_guia_separada' && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#294C87] shrink-0" />
+                      )}
+                      CPP em guia separada (Anexo IV)
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-gray-200 text-[#171A1F]/70 shrink-0">
+                      Anexo IV
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#171A1F]/70 mt-1">
+                    <strong>Tabela integral (Grupos A+B+C+D)</strong>: o INSS patronal de 20% é
+                    recolhido em GPS/DARF previdenciário à parte da folha de pagamento.
+                  </p>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -387,10 +477,18 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Grupo A */}
-          <div className="p-3.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1.5">
+          <div
+            className={`p-3.5 rounded-xl border space-y-1.5 ${
+              isCppInDas && activeA === 0
+                ? 'bg-[#294C87]/5 border-[#294C87]/30'
+                : 'bg-[#F8F9FA] border-[#171A1F]/10'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#171A1F]">Grupo A</span>
-              <span className="text-[10px] text-[#171A1F]/50">Padrão {defaultCharges.groupA}%</span>
+              <span className="text-[10px] text-[#171A1F]/50">
+                {isCppInDas ? '0,00% (no DAS)' : `Padrão ${defaultCharges.groupA}%`}
+              </span>
             </div>
             <div className="relative">
               <input
@@ -400,22 +498,34 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
                 max="50"
                 disabled={disabled}
                 value={activeA}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value) || 0
                   onCustomGroupsChange({
-                    customGroupA: parseFloat(e.target.value) || 0,
+                    customGroupA: val,
                     customGroupB: activeB,
                     customGroupC: activeC,
                     customGroupD: activeD,
+                    isExplicitZero: val === 0,
                   })
-                }
-                className="w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                }}
+                className={`w-full pl-3 pr-7 py-1.5 rounded-lg bg-white border text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87] ${
+                  isCppInDas && activeA === 0
+                    ? 'border-[#294C87]/40 text-[#294C87]'
+                    : 'border-[#171A1F]/20'
+                }`}
               />
               <span className="absolute right-2.5 top-2 text-[11px] text-[#171A1F]/40 font-bold">
                 %
               </span>
             </div>
             <p className="text-[10px] text-[#171A1F]/60">
-              INSS, FGTS, Salário Educação, SESI, SENAI, INCRA, SEBRAE
+              {isCppInDas && activeA === 0 ? (
+                <span className="text-[#294C87] font-semibold">
+                  ✓ Previdenciário (INSS/RAT/Sistema S) embutido no DAS
+                </span>
+              ) : (
+                'INSS patronal, RAT, Salário Educação, SESI, SENAI, INCRA, SEBRAE'
+              )}
             </p>
           </div>
 
@@ -536,7 +646,9 @@ export const SocialChargesSelector: React.FC<SocialChargesSelectorProps> = ({
           <p className="text-xs text-white/70">
             Regime:{' '}
             {effectiveRegime === 'simples_nacional'
-              ? 'Simples Nacional (DAS • base sem desoneração)'
+              ? isCppInDas
+                ? 'Simples Nacional — CPP inclusa no DAS (Grupos B+C+D)'
+                : 'Simples Nacional — Anexo IV (Grupos A+B+C+D)'
               : effectiveRegime === 'com_desoneracao'
                 ? 'Com Desoneração (CPRB Lei 12.546)'
                 : 'Sem Desoneração (CLT integral)'}{' '}

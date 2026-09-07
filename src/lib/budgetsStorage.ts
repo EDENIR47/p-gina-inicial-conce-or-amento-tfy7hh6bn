@@ -61,13 +61,15 @@ export function createCanonicalDemoBudget(): FullBudget {
     },
     chargesConfig: {
       uf: 'SP',
-      isRelieved: false, // Sem desoneração (84.53% em SP)
-      taxRegime: 'simples_nacional', // CONCE trabalha hoje no Simples Nacional
-      simplesDasRate: 0, // Alíquota DAS editável pelo usuário
-      customGroupA: 16.8,
-      customGroupB: 44.15,
-      customGroupC: 16.48,
-      customGroupD: 7.1,
+      isRelieved: false,
+      taxRegime: 'simples_nacional', // CONCE trabalha no Simples Nacional
+      simplesCollectionOption: 'cpp_inclusa_das', // Padrão CONCE: CPP inclusa no DAS
+      simplesDasRate: 11.0, // Alíquota DAS efetiva da CONCE (11%)
+      customGroupA: 0.0, // Grupo A zerado (CPP já no DAS)
+      customGroupB: 44.15, // Padrão SP
+      customGroupC: 16.48, // Padrão SP
+      customGroupD: 7.1, // Padrão SP
+      isExplicitZero: true, // Flag explícita para o motor não re-aplicar o Grupo A da UF
     },
     bdiConfig: {
       ...DEFAULT_BDI_CONFIG,
@@ -304,29 +306,36 @@ export function getStoredFullBudgets(): FullBudget[] {
     try {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Migração de sanitização: se houver orçamento no Simples Nacional com grupos zerados,
-        // repara para não persistir taxa de encargos zerada
+        // Migração de sanitização:
+        // - Diferenciar zerado-por-CPP-no-DAS (legítimo: Grupo A = 0, mas B+C+D > 0, ou flag isExplicitZero)
+        //   de zerado-por-falha (todos os grupos zerados por omissão ou bug).
+        // - Se todos os grupos (A, B, C, D) somarem 0 E isExplicitZero não for true, restaura os grupos oficiais.
         let hasFixed = false
         const sanitized = parsed.map((b: FullBudget) => {
           if (
             b.chargesConfig?.taxRegime === 'simples_nacional' &&
             b.chargesConfig.customGroupA !== undefined
           ) {
-            const sum =
+            const totalSum =
               (b.chargesConfig.customGroupA || 0) +
               (b.chargesConfig.customGroupB || 0) +
               (b.chargesConfig.customGroupC || 0) +
               (b.chargesConfig.customGroupD || 0)
-            if (sum === 0 && !b.chargesConfig.isExplicitZero) {
+
+            // Falha genuína: soma total é 0 e não foi intencional
+            if (totalSum === 0 && !b.chargesConfig.isExplicitZero) {
               hasFixed = true
               return {
                 ...b,
                 chargesConfig: {
                   ...b.chargesConfig,
-                  customGroupA: 16.8,
+                  simplesCollectionOption:
+                    b.chargesConfig.simplesCollectionOption || 'cpp_inclusa_das',
+                  customGroupA: 0,
                   customGroupB: 44.15,
                   customGroupC: 16.48,
                   customGroupD: 7.1,
+                  isExplicitZero: true,
                 },
               }
             }

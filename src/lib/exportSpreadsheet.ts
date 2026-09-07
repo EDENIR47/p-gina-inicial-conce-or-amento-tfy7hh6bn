@@ -71,7 +71,11 @@ export function exportBudgetSpreadsheet(
     [
       'Regime Tributário:',
       budget.chargesConfig?.taxRegime === 'simples_nacional'
-        ? `Simples Nacional (DAS: ${(budget.chargesConfig?.simplesDasRate ?? 0).toFixed(2)}%)`
+        ? `Simples Nacional — ${
+            budget.chargesConfig?.simplesCollectionOption === 'cpp_guia_separada'
+              ? 'Anexo IV (Grupos A+B+C+D)'
+              : 'CPP inclusa no DAS (Grupos B+C+D)'
+          } (DAS: ${(budget.chargesConfig?.simplesDasRate ?? 0).toFixed(2)}%)`
         : budget.chargesConfig?.taxRegime === 'com_desoneracao' || budget.chargesConfig.isRelieved
           ? 'Com Desoneração (CPRB Lei 12.546)'
           : 'Sem Desoneração (CLT)',
@@ -80,7 +84,15 @@ export function exportBudgetSpreadsheet(
     ],
     [
       'Encargos Sociais:',
-      `${summary.socialChargesRate.toFixed(2)}% (${budget.chargesConfig?.taxRegime === 'simples_nacional' ? 'Regime Simples Nacional — Base de Encargos Sem Desoneração (CLT)' : budget.chargesConfig.isRelieved ? 'Desonerado' : 'Sem Desoneração'})`,
+      `${summary.socialChargesRate.toFixed(2)}% (${
+        budget.chargesConfig?.taxRegime === 'simples_nacional'
+          ? budget.chargesConfig?.simplesCollectionOption === 'cpp_guia_separada'
+            ? 'Simples Nacional — Anexo IV (A+B+C+D)'
+            : 'Simples Nacional — CPP inclusa no DAS (Grupos B+C+D)'
+          : budget.chargesConfig.isRelieved
+            ? 'Desonerado'
+            : 'Sem Desoneração'
+      })`,
       'BDI TCU (Acórdão 2.622/2013):',
       `${summary.bdiRate.toFixed(2)}%`,
     ],

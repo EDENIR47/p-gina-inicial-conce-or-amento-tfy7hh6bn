@@ -447,11 +447,15 @@ export const BudgetsScreen: React.FC = () => {
                 uf={activeBudget.chargesConfig?.uf || 'SP'}
                 isRelieved={activeBudget.chargesConfig?.isRelieved || false}
                 taxRegime={activeBudget.chargesConfig?.taxRegime}
+                simplesCollectionOption={
+                  activeBudget.chargesConfig?.simplesCollectionOption || 'cpp_inclusa_das'
+                }
                 simplesDasRate={activeBudget.chargesConfig?.simplesDasRate}
                 customGroupA={activeBudget.chargesConfig?.customGroupA}
                 customGroupB={activeBudget.chargesConfig?.customGroupB}
                 customGroupC={activeBudget.chargesConfig?.customGroupC}
                 customGroupD={activeBudget.chargesConfig?.customGroupD}
+                isExplicitZero={activeBudget.chargesConfig?.isExplicitZero}
                 onUfChange={(newUf) => {
                   const oldUf = activeBudget.chargesConfig?.uf
                   handleUpdateActiveBudget({
@@ -496,6 +500,10 @@ export const BudgetsScreen: React.FC = () => {
                       ...activeBudget.chargesConfig,
                       taxRegime: newRegime,
                       isRelieved: isRel,
+                      simplesCollectionOption:
+                        newRegime === 'simples_nacional'
+                          ? activeBudget.chargesConfig?.simplesCollectionOption || 'cpp_inclusa_das'
+                          : undefined,
                       simplesDasRate:
                         newRegime === 'simples_nacional'
                           ? activeDas
@@ -531,6 +539,34 @@ export const BudgetsScreen: React.FC = () => {
                       details: `Regime alterado de "${regimeLabels[oldRegime] || oldRegime}" para "${regimeLabels[newRegime] || newRegime}". Base de encargos: ${newRegime === 'com_desoneracao' ? 'Com Desoneração (CPRB)' : 'Sem Desoneração (CLT)'}.`,
                       oldValue: oldRegime,
                       newValue: newRegime,
+                      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                    })
+                  }
+                }}
+                onSimplesCollectionOptionChange={(newOption, newGroups) => {
+                  const oldOption =
+                    activeBudget.chargesConfig?.simplesCollectionOption || 'cpp_inclusa_das'
+                  handleUpdateActiveBudget({
+                    ...activeBudget,
+                    chargesConfig: {
+                      ...activeBudget.chargesConfig,
+                      simplesCollectionOption: newOption,
+                      ...newGroups,
+                    },
+                  })
+
+                  if (oldOption !== newOption) {
+                    const optionLabels: Record<string, string> = {
+                      cpp_inclusa_das: 'CPP inclusa no DAS (Padrão CONCE — Grupo A a 0%)',
+                      cpp_guia_separada: 'CPP em guia separada (Anexo IV — Tabela integral)',
+                    }
+                    logAuditEvent({
+                      budgetId: activeBudget.id,
+                      action: 'edicao_subopcao_recolhimento',
+                      title: 'Modalidade de Recolhimento da CPP Alterada',
+                      details: `Recolhimento previdenciário alterado de "${optionLabels[oldOption] || oldOption}" para "${optionLabels[newOption] || newOption}". Grupo A: ${newGroups.customGroupA.toFixed(2)}%.`,
+                      oldValue: oldOption,
+                      newValue: newOption,
                       userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
                     })
                   }

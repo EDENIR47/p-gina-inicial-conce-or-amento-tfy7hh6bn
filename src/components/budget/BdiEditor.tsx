@@ -411,14 +411,14 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({
                     Simples Nacional
                   </span>
                   <span className="font-bold text-sm text-[#171A1F]">
-                    Regime Simples Nacional — Base de Encargos Sem Desoneração (CLT) & Alíquota DAS
+                    Simples Nacional — Tributos Unificados no DAS & Encargos Sociais
                   </span>
                 </div>
                 <p className="text-xs text-[#171A1F]/70 mt-1">
-                  Empresas do Simples Nacional recolhem tributos unificados no DAS (T do BDI),
-                  enquanto os encargos sociais trabalhistas sobre a folha seguem a tabela oficial
-                  SINAPI sem desoneração (CLT integral). No cálculo do BDI (T), aplica-se a alíquota
-                  efetiva do Anexo IV/III correspondente à receita bruta.
+                  Empresas do Simples Nacional recolhem tributos unificados no DAS (T do BDI). Na
+                  CONCE, a CPP (INSS patronal 20%, RAT e terceiros) já está inclusa na alíquota do
+                  DAS, zerando o Grupo A na planilha e incidindo apenas os encargos trabalhistas
+                  reais (Grupos B+C+D), sem bitributação da previdência.
                 </p>
               </div>
 

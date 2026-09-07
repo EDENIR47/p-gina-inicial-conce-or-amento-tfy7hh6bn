@@ -421,12 +421,15 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
           uf: selectedUf,
           isRelieved: taxRegime === 'com_desoneracao',
           taxRegime,
-          simplesDasRate: taxRegime === 'simples_nacional' ? simplesDasRate : 0,
+          simplesCollectionOption: taxRegime === 'simples_nacional' ? 'cpp_inclusa_das' : undefined,
+          simplesDasRate: taxRegime === 'simples_nacional' ? simplesDasRate || 11.0 : 0,
           customGroupA:
-            taxRegime === 'com_desoneracao'
-              ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupA
-              : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
-                  .groupA,
+            taxRegime === 'simples_nacional'
+              ? 0.0 // Padrão CONCE: CPP já no DAS
+              : taxRegime === 'com_desoneracao'
+                ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupA
+                : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
+                    .groupA,
           customGroupB:
             taxRegime === 'com_desoneracao'
               ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupB
@@ -442,6 +445,7 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
               ? (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).relieved.groupD
               : (BRAZIL_STATES_CHARGES[selectedUf] || BRAZIL_STATES_CHARGES['SP']).nonRelieved
                   .groupD,
+          isExplicitZero: taxRegime === 'simples_nacional',
         },
         bdiConfig: {
           ...DEFAULT_BDI_CONFIG,

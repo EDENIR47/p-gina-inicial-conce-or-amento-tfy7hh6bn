@@ -448,14 +448,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               <p className="text-xs font-semibold text-[#294C87] pt-0.5">
                 Regime Tributário:{' '}
                 {budget.chargesConfig?.taxRegime === 'simples_nacional'
-                  ? 'Regime Simples Nacional — Base de Encargos Sem Desoneração (CLT)'
+                  ? budget.chargesConfig.simplesCollectionOption === 'cpp_guia_separada'
+                    ? 'Simples Nacional — Anexo IV (Grupos A+B+C+D)'
+                    : 'Simples Nacional — CPP inclusa no DAS (Grupos B+C+D)'
                   : budget.chargesConfig?.taxRegime === 'com_desoneracao' ||
                       budget.chargesConfig?.isRelieved
                     ? 'Com Desoneração (Lei 12.546)'
                     : 'Sem Desoneração (CLT)'}
                 {budget.chargesConfig?.taxRegime === 'simples_nacional' &&
-                  budget.chargesConfig?.simplesDasRate !== undefined &&
-                  budget.chargesConfig?.simplesDasRate > 0 &&
+                  (budget.chargesConfig?.simplesDasRate ?? 0) > 0 &&
                   ` • DAS: ${budget.chargesConfig.simplesDasRate.toFixed(2)}%`}
               </p>
               <p className="font-semibold text-[#171A1F] pt-0.5">
@@ -1297,7 +1298,9 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                       <span>Regime Tributário / Desoneração:</span>
                       <span className="font-bold text-[#171A1F]">
                         {budget.chargesConfig?.taxRegime === 'simples_nacional'
-                          ? 'Regime Simples Nacional — Base de Encargos Sem Desoneração (CLT)'
+                          ? budget.chargesConfig.simplesCollectionOption === 'cpp_guia_separada'
+                            ? 'Simples Nacional — Anexo IV (Grupos A+B+C+D)'
+                            : 'Simples Nacional — CPP inclusa no DAS (Grupos B+C+D)'
                           : budget.chargesConfig?.taxRegime === 'com_desoneracao' ||
                               budget.chargesConfig.isRelieved
                             ? 'Desonerado (CPRB Lei 12.546)'
@@ -1306,19 +1309,40 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Grupo A (Obrigações Básicas Previdenciárias):</span>
-                      <span className="font-mono font-semibold">Conforme tabela estadual</span>
+                      <span className="font-mono font-semibold">
+                        {budget.chargesConfig?.taxRegime === 'simples_nacional' &&
+                        (budget.chargesConfig?.simplesCollectionOption ?? 'cpp_inclusa_das') ===
+                          'cpp_inclusa_das' &&
+                        (budget.chargesConfig?.customGroupA ?? 0) === 0
+                          ? '0,00% (coberto no DAS — sem dupla cobrança)'
+                          : budget.chargesConfig?.customGroupA !== undefined
+                            ? `${budget.chargesConfig.customGroupA.toFixed(2)}%`
+                            : 'Conforme tabela estadual'}
+                      </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Grupo B (Descanso Remunerado, Férias, Feriados):</span>
-                      <span className="font-mono font-semibold">Conforme tabela estadual</span>
+                      <span className="font-mono font-semibold">
+                        {budget.chargesConfig?.customGroupB !== undefined
+                          ? `${budget.chargesConfig.customGroupB.toFixed(2)}%`
+                          : 'Conforme tabela estadual'}
+                      </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Grupo C (Aviso Prévio e Rescisões):</span>
-                      <span className="font-mono font-semibold">Conforme tabela estadual</span>
+                      <span className="font-mono font-semibold">
+                        {budget.chargesConfig?.customGroupC !== undefined
+                          ? `${budget.chargesConfig.customGroupC.toFixed(2)}%`
+                          : 'Conforme tabela estadual'}
+                      </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Grupo D (Reincidências Cumulativas):</span>
-                      <span className="font-mono font-semibold">Conforme tabela estadual</span>
+                      <span className="font-mono font-semibold">
+                        {budget.chargesConfig?.customGroupD !== undefined
+                          ? `${budget.chargesConfig.customGroupD.toFixed(2)}%`
+                          : 'Conforme tabela estadual'}
+                      </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Montante R$ Aplicado sobre Mão de Obra:</span>
@@ -1331,6 +1355,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   <div className="p-2.5 rounded-lg bg-white border border-[#171A1F]/10 text-[11px] text-[#171A1F]/70">
                     Tabelas de encargos sociais regionalizadas e atualizadas para a UF:{' '}
                     <strong>{budget.chargesConfig.uf}</strong>.
+                    {budget.chargesConfig?.taxRegime === 'simples_nacional' &&
+                      (budget.chargesConfig?.simplesCollectionOption ?? 'cpp_inclusa_das') ===
+                        'cpp_inclusa_das' && (
+                        <span className="block mt-1 text-[#294C87] font-semibold">
+                          Nota fiscal CONCE: A parcela patronal previdenciária (CPP) está integrada
+                          à alíquota única do DAS, evitando duplicidade de tributos patronais sobre
+                          a mão de obra.
+                        </span>
+                      )}
                   </div>
                 </div>
               </div>
