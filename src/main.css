@@ -263,6 +263,48 @@
     }
   }
 
+  /* REGRAS DE IMPRESSÃO PROFISSIONAL CONCE */
+  @media print {
+    body {
+      background-color: #ffffff !important;
+      color: #171a1f !important;
+      font-size: 11pt !important;
+    }
+
+    header,
+    footer,
+    nav,
+    aside,
+    .print\:hidden {
+      display: none !important;
+    }
+
+    main {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+    }
+
+    #conce-printable-proposal {
+      box-shadow: none !important;
+      border: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+
+    .print\:page-break-after-always {
+      page-break-after: always !important;
+      break-after: page !important;
+    }
+
+    .print\:page-break-inside-avoid {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+  }
+
   @keyframes shake {
     0%,
     100% {

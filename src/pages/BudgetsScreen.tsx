@@ -22,6 +22,7 @@ import {
   Download,
   AlertTriangle,
   RotateCcw,
+  Award,
 } from 'lucide-react'
 import { FullBudget } from '@/types/budgetEngine'
 import {
@@ -37,6 +38,12 @@ import { BudgetHierarchyTree } from '@/components/budget/BudgetHierarchyTree'
 import { SocialChargesSelector } from '@/components/budget/SocialChargesSelector'
 import { BdiEditor } from '@/components/budget/BdiEditor'
 import { BudgetTotalsBar } from '@/components/budget/BudgetTotalsBar'
+import { PdfExportModal } from '@/components/budget/PdfExportModal'
+import { RevisionsModal } from '@/components/budget/RevisionsModal'
+import { AuditTrailModal } from '@/components/budget/AuditTrailModal'
+import { AbcCurveScreen } from '@/pages/AbcCurveScreen'
+import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
+import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
 
 export const BudgetsScreen: React.FC = () => {
   // Lista de todos os orçamentos persistidos
@@ -45,12 +52,19 @@ export const BudgetsScreen: React.FC = () => {
   // Orçamento atualmente em edição (ou null se estiver na listagem)
   const [activeBudget, setActiveBudget] = useState<FullBudget | null>(null)
 
-  // Aba ativa dentro do editor do orçamento: 'geral' | 'arvore' | 'encargos' | 'bdi'
-  const [editorTab, setEditorTab] = useState<'geral' | 'arvore' | 'encargos' | 'bdi'>('arvore')
+  // Aba ativa dentro do editor do orçamento: 'geral' | 'arvore' | 'encargos' | 'bdi' | 'abc'
+  const [editorTab, setEditorTab] = useState<'geral' | 'arvore' | 'encargos' | 'bdi' | 'abc'>(
+    'arvore',
+  )
 
   // Filtros de listagem
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('todos')
+
+  // Modais de Inteligência e Exportação
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+  const [isRevisionsModalOpen, setIsRevisionsModalOpen] = useState(false)
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
 
   // Feedback e Validações
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -173,6 +187,14 @@ export const BudgetsScreen: React.FC = () => {
     // Atualiza a lista na memória
     const currentBudgets = getStoredFullBudgets()
     setBudgetsList(currentBudgets)
+
+    // Registra auditoria
+    logAuditEvent({
+      budgetId: activeBudget.id,
+      action: 'edicao_geral',
+      title: 'Alterações Salvas no Orçamento',
+      details: `Orçamento ${activeBudget.code} atualizado por ${activeBudget.author || 'Eng. Denir Souza'}. Valor: ${formatCurrencyBRL(activeSummary?.finalSalePrice || 0)}`,
+    })
 
     setTimeout(() => {
       setIsSaving(false)
@@ -300,6 +322,19 @@ export const BudgetsScreen: React.FC = () => {
               >
                 <span>BDI TCU ({activeSummary.bdiRate.toFixed(1)}%)</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setEditorTab('abc')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  editorTab === 'abc'
+                    ? 'bg-[#FF6B1F] text-white shadow-sm'
+                    : 'text-[#171A1F]/70 hover:text-[#171A1F] hover:bg-white/60'
+                }`}
+              >
+                <Award className="w-4 h-4 text-white" />
+                <span>Curva ABC (Pareto)</span>
+              </button>
             </div>
           </div>
 
@@ -308,6 +343,13 @@ export const BudgetsScreen: React.FC = () => {
             summary={activeSummary}
             budget={activeBudget}
             onSave={handleSaveActiveBudget}
+            onOpenPdfModal={() => setIsPdfModalOpen(true)}
+            onOpenExcelExport={() => exportBudgetSpreadsheet(activeBudget, 'completo')}
+            onOpenRevisionsModal={() => {
+              ensureInitialRevision(activeBudget)
+              setIsRevisionsModalOpen(true)
+            }}
+            onOpenAuditModal={() => setIsAuditModalOpen(true)}
             isSaving={isSaving}
             validationErrors={validationErrors}
           />
@@ -384,6 +426,43 @@ export const BudgetsScreen: React.FC = () => {
                 }
               />
             </div>
+          )}
+
+          {editorTab === 'abc' && (
+            <div className="space-y-4 animate-fade-in">
+              <AbcCurveScreen budget={activeBudget} />
+            </div>
+          )}
+
+          {/* Modais de inteligência e exportação */}
+          {isPdfModalOpen && (
+            <PdfExportModal
+              budget={activeBudget}
+              isOpen={isPdfModalOpen}
+              onClose={() => setIsPdfModalOpen(false)}
+            />
+          )}
+
+          {isRevisionsModalOpen && (
+            <RevisionsModal
+              budget={activeBudget}
+              isOpen={isRevisionsModalOpen}
+              onClose={() => setIsRevisionsModalOpen(false)}
+              onRestoreRevision={(restored) => {
+                setActiveBudget(restored)
+                saveSingleBudget(restored)
+                setBudgetsList(getStoredFullBudgets())
+                showToast(`Orçamento restaurado com sucesso!`)
+              }}
+            />
+          )}
+
+          {isAuditModalOpen && (
+            <AuditTrailModal
+              budget={activeBudget}
+              isOpen={isAuditModalOpen}
+              onClose={() => setIsAuditModalOpen(false)}
+            />
           )}
         </div>
       ) : (
@@ -575,6 +654,31 @@ export const BudgetsScreen: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
+                              exportBudgetSpreadsheet(b, 'completo')
+                              showToast(`Planilha ${b.code} exportada!`)
+                            }}
+                            className="p-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] transition-colors"
+                            title="Exportar Planilha Excel/CSV"
+                          >
+                            <Download className="w-4 h-4 text-green-600" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveBudget(b)
+                              setIsPdfModalOpen(true)
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#294C87] text-[#171A1F] hover:text-white text-xs font-bold transition-colors"
+                            title="Ver Proposta PDF"
+                          >
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                            <span className="hidden sm:inline">PDF</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
                               setActiveBudget(b)
                               setEditorTab('arvore')
                             }}
@@ -600,6 +704,15 @@ export const BudgetsScreen: React.FC = () => {
                 )
               })}
             </div>
+          )}
+
+          {/* Modal de PDF também acessível a partir da listagem geral */}
+          {isPdfModalOpen && activeBudget && (
+            <PdfExportModal
+              budget={activeBudget}
+              isOpen={isPdfModalOpen}
+              onClose={() => setIsPdfModalOpen(false)}
+            />
           )}
         </div>
       )}

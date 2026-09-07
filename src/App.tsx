@@ -8,10 +8,10 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import OnboardingScreen from './pages/OnboardingScreen'
 import DashboardScreen from './pages/DashboardScreen'
-import StubPage from './pages/StubPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import BudgetsScreen from './pages/BudgetsScreen'
 import CompositionsLibraryPage from './pages/CompositionsLibraryPage'
+import QuotesScreen from './pages/QuotesScreen'
 
 const App = () => (
   <BrowserRouter>
@@ -35,8 +35,8 @@ const App = () => (
             <Route path="/orcamentos" element={<BudgetsScreen />} />
             {/* Biblioteca Técnica de Composições CONCE com versionamento e importação */}
             <Route path="/composicoes" element={<CompositionsLibraryPage />} />
-            {/* Cotações permanece como módulo planejado */}
-            <Route path="/cotacoes" element={<StubPage />} />
+            {/* Módulo Real CONCE de Comparativo de Cotações de Fornecedores */}
+            <Route path="/cotacoes" element={<QuotesScreen />} />
           </Route>
         </Route>
 

@@ -1,0 +1,288 @@
+/**
+ * CONCE — Serviço de Engenharia e Consultoria LTDA
+ * Motor de Exportação em Planilhas Excel (.xlsx) e CSV estruturado
+ * Abas:
+ * 1. Resumo Executivo e BDI
+ * 2. Planilha Orçamentária (Etapas e Serviços com BDI)
+ * 3. Banco de Insumos e Curva ABC (Classificação Pareto A/B/C)
+ * 4. Banco de Composições Unitárias
+ */
+
+import { FullBudget } from '@/types/budgetEngine'
+import { calculateFullBudget } from './budgetEngine'
+import { computeAbcCurve } from './abcAnalysis'
+import { formatCurrencyBRL } from './formatters'
+import { logAuditEvent } from './intelligenceStorage'
+
+/**
+ * Escapa valores para CSV conforme padrão RFC 4180 (com ponto e vírgula para Excel em pt-BR)
+ */
+function escapeCsvValue(val: string | number | undefined | null): string {
+  if (val === undefined || val === null) return '""'
+  const str = String(val).replace(/"/g, '""')
+  return `"${str}"`
+}
+
+/**
+ * Converte matriz de strings em string CSV com BOM UTF-8 (compatível com Excel Windows/Mac)
+ */
+function matrixToCsv(rows: (string | number)[][]): string {
+  const content = rows.map((row) => row.map(escapeCsvValue).join(';')).join('\r\n')
+  return '\uFEFF' + content // UTF-8 BOM
+}
+
+/**
+ * Dispara download no navegador
+ */
+function downloadBlob(content: BlobPart, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Exporta pacote CSV completo ou individual
+ */
+export function exportBudgetSpreadsheet(
+  budget: FullBudget,
+  type: 'resumo' | 'completo' | 'abc' | 'composicoes' = 'completo',
+): void {
+  const summary = calculateFullBudget(budget)
+  const abc = computeAbcCurve(budget)
+
+  const dateStr = new Date().toISOString().split('T')[0]
+  const baseFilename = `CONCE_${budget.code}_${budget.work.name.replace(/[^a-zA-Z0-9]/g, '_')}`
+
+  // 1. Planilha Orçamentária e Resumo
+  const budgetRows: (string | number)[][] = [
+    ['CONCE — SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA'],
+    ['Slogan:', 'Conce é conceito. Conce é concreto.'],
+    ['Código do Orçamento:', budget.code, 'Status:', budget.status.toUpperCase()],
+    ['Obra:', budget.work.name, 'Local:', `${budget.work.city}/${budget.work.state}`],
+    ['Cliente:', budget.client.name, 'CNPJ/CPF:', budget.client.document],
+    ['Responsável Técnico:', budget.author, 'Data:', dateStr],
+    [
+      'Encargos Sociais:',
+      `${summary.socialChargesRate.toFixed(2)}% (${budget.chargesConfig.isRelieved ? 'Desonerado' : 'Sem desoneração'})`,
+      'UF:',
+      budget.chargesConfig.uf,
+    ],
+    [
+      'BDI TCU (Acórdão 2.622/2013):',
+      `${summary.bdiRate.toFixed(2)}%`,
+      'Preço Total da Obra:',
+      summary.finalSalePrice,
+    ],
+    [],
+    ['PLANILHA ORÇAMENTÁRIA DETALHADA (4 NÍVEIS)'],
+    [
+      'Item',
+      'Código Composição',
+      'Descrição dos Serviços e Etapas',
+      'Unidade',
+      'Quantidade',
+      'Custo Unitário Direto (R$)',
+      'Total Direto (R$)',
+      'BDI (%)',
+      'Preço Unitário c/ BDI (R$)',
+      'Preço Total c/ BDI (R$)',
+      'Peso (%)',
+    ],
+  ]
+
+  budget.stages.forEach((stage) => {
+    const stageSummary = summary.stagesSubtotals.find((s) => s.stageId === stage.id)
+    budgetRows.push([
+      stage.code,
+      '---',
+      stage.name.toUpperCase(),
+      '---',
+      '---',
+      '---',
+      stageSummary ? stageSummary.directCost : 0,
+      `${summary.bdiRate.toFixed(2)}%`,
+      '---',
+      stageSummary ? stageSummary.withBdi : 0,
+      stageSummary ? `${stageSummary.percentageOfTotal}%` : '0%',
+    ])
+
+    stage.services.forEach((service) => {
+      const sQty = Number(service.quantity) || 0
+      const compUnit = service.composition?.unitCost || 0
+      const sDirect = compUnit * sQty
+      const serviceBdi = service.customBdiPercent ?? summary.bdiRate
+      const sUnitWithBdi = compUnit * (1 + serviceBdi / 100)
+      const sTotalWithBdi = sDirect * (1 + serviceBdi / 100)
+      const serviceWeight =
+        summary.finalSalePrice > 0 ? (sTotalWithBdi / summary.finalSalePrice) * 100 : 0
+
+      budgetRows.push([
+        service.code,
+        service.composition?.code || '---',
+        service.description,
+        service.unit,
+        sQty,
+        Number(compUnit.toFixed(2)),
+        Number(sDirect.toFixed(2)),
+        `${serviceBdi.toFixed(2)}%`,
+        Number(sUnitWithBdi.toFixed(2)),
+        Number(sTotalWithBdi.toFixed(2)),
+        `${serviceWeight.toFixed(2)}%`,
+      ])
+    })
+  })
+
+  budgetRows.push([])
+  budgetRows.push(['TOTAIS GERAIS DO ORÇAMENTO'])
+  budgetRows.push(['Custo Direto de Insumos (sem encargos):', summary.directCostInputs])
+  budgetRows.push(['Mão de Obra Direta:', summary.laborDirectCost])
+  budgetRows.push(['Encargos Sociais Aplicados:', summary.socialChargesAmount])
+  budgetRows.push(['Custo Direto Total da Obra:', summary.totalDirectCost])
+  budgetRows.push(['Margem de BDI Total:', summary.bdiAmount])
+  budgetRows.push(['Tributos e Impostos Calculados:', summary.totalTaxesAmount])
+  budgetRows.push(['PREÇO FINAL DE VENDA DA OBRA:', summary.finalSalePrice])
+
+  // 2. Curva ABC (Pareto)
+  const abcRows: (string | number)[][] = [
+    ['CONCE — CURVA ABC DE INSUMOS (ANÁLISE DE PARETO)'],
+    ['Obra:', budget.work.name, 'Orçamento:', budget.code],
+    ['Total de Insumos Analisados:', abc.totalItemsCount],
+    ['Custo Direto Total dos Insumos:', abc.totalDirectCost],
+    [
+      'Classe A (~80% Custo):',
+      `${abc.classA.itemsCount} itens (${abc.classA.percentageOfItems}%) somam ${abc.classA.percentageOfCost}% do custo total`,
+    ],
+    [
+      'Classe B (~15% Custo):',
+      `${abc.classB.itemsCount} itens (${abc.classB.percentageOfItems}%) somam ${abc.classB.percentageOfCost}% do custo total`,
+    ],
+    [
+      'Classe C (~5% Custo):',
+      `${abc.classC.itemsCount} itens (${abc.classC.percentageOfItems}%) somam ${abc.classC.percentageOfCost}% do custo total`,
+    ],
+    [],
+    [
+      'Ranking',
+      'Classe ABC',
+      'Código Insumo',
+      'Descrição do Insumo',
+      'Categoria',
+      'Unidade',
+      'Quantidade Total',
+      'Custo Unitário Médio (R$)',
+      'Custo Total Acumulado (R$)',
+      'Participação no Total (%)',
+      'Percentual Acumulado (%)',
+      'Nº de Aplicações em Serviços',
+    ],
+  ]
+
+  abc.allItems.forEach((it) => {
+    abcRows.push([
+      it.rank,
+      it.classification,
+      it.code,
+      it.description,
+      it.category.toUpperCase(),
+      it.unit,
+      it.totalQuantity,
+      it.unitCost,
+      it.totalCost,
+      `${it.percentageOfTotal.toFixed(2)}%`,
+      `${it.accumulatedPercentage.toFixed(2)}%`,
+      it.servicesCount,
+    ])
+  })
+
+  // 3. Memória de BDI TCU Acórdão 2.622/2013
+  const bdiRows: (string | number)[][] = [
+    ['CONCE — MEMÓRIA DE CÁLCULO DE BDI (TCU ACÓRDÃO 2.622/2013)'],
+    ['Obra:', budget.work.name, 'Orçamento:', budget.code],
+    ['Fórmula:', 'BDI = [((1 + AC + R + S + G) * (1 + DF) * (1 + L)) / (1 - T) - 1] * 100'],
+    [],
+    [
+      'Item / Parâmetro',
+      'Sigla',
+      'Taxa Aplicada (%)',
+      'Faixa Recomendada TCU (Acórdão 2.622/2013)',
+    ],
+    [
+      'Administração Central',
+      'AC',
+      `${budget.bdiConfig.administrationCentral.toFixed(2)}%`,
+      '3,00% a 5,50%',
+    ],
+    ['Taxa de Risco', 'R', `${budget.bdiConfig.risk.toFixed(2)}%`, '0,97% a 1,27%'],
+    [
+      'Seguro e Garantia',
+      'S + G',
+      `${budget.bdiConfig.insuranceAndGuarantee.toFixed(2)}%`,
+      '0,80% a 1,00%',
+    ],
+    [
+      'Despesas Financeiras',
+      'DF',
+      `${budget.bdiConfig.financialExpenses.toFixed(2)}%`,
+      '0,59% a 1,39%',
+    ],
+    ['Lucro Bruto Operacional', 'L', `${budget.bdiConfig.profit.toFixed(2)}%`, '6,16% a 8,96%'],
+    ['Tributos: ISS', 'ISS', `${budget.bdiConfig.taxes.iss.toFixed(2)}%`, '2,00% a 5,00%'],
+    ['Tributos: PIS', 'PIS', `${budget.bdiConfig.taxes.pis.toFixed(2)}%`, '0,65%'],
+    ['Tributos: COFINS', 'COFINS', `${budget.bdiConfig.taxes.cofins.toFixed(2)}%`, '3,00%'],
+    [
+      'Tributos: CPRB (se desonerado)',
+      'CPRB',
+      `${budget.bdiConfig.taxes.inssOrCprb.toFixed(2)}%`,
+      '0,00% a 4,50%',
+    ],
+    ['Total de Tributos', 'T', `${summary.totalTaxesRate.toFixed(2)}%`, '---'],
+    [
+      'RESULTADO FINAL DO BDI CALCULADO:',
+      'BDI',
+      `${summary.bdiRate.toFixed(2)}%`,
+      'Faixa típica 20,34% a 25,00%',
+    ],
+  ]
+
+  let selectedRows = budgetRows
+  let fileSuffix = 'Planilha_Orcamentaria'
+
+  if (type === 'abc') {
+    selectedRows = abcRows
+    fileSuffix = 'Curva_ABC_Pareto'
+  } else if (type === 'resumo') {
+    selectedRows = [...budgetRows.slice(0, 8), [], ...bdiRows]
+    fileSuffix = 'Resumo_Executivo_BDI'
+  } else {
+    // Pacote Completo Integrado
+    selectedRows = [
+      ...budgetRows,
+      [],
+      ['========================================================================'],
+      [],
+      ...abcRows,
+      [],
+      ['========================================================================'],
+      [],
+      ...bdiRows,
+    ]
+    fileSuffix = 'Planilha_Completa_CONCE'
+  }
+
+  const csvContent = matrixToCsv(selectedRows)
+  downloadBlob(csvContent, `${baseFilename}_${fileSuffix}.csv`, 'text/csv;charset=utf-8;')
+
+  // Registra trilha de auditoria
+  logAuditEvent({
+    budgetId: budget.id,
+    action: 'exportacao_excel',
+    title: 'Exportação de Planilha Excel/CSV',
+    details: `Arquivo gerado: ${baseFilename}_${fileSuffix}.csv com abas de orçamento, curva ABC e memória de BDI.`,
+  })
+}

@@ -1,5 +1,6 @@
 import React from 'react'
-import { Layers, Award } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Layers, Award, ArrowRight } from 'lucide-react'
 import { AbcItem } from '@/types/conce'
 import { formatCurrencyBRL, formatPercent } from '@/lib/formatters'
 
@@ -128,9 +129,16 @@ export const AbcCurvePanel: React.FC<AbcCurvePanelProps> = ({ items }) => {
         </div>
       </div>
 
-      {/* Legenda explicativa de Curva ABC */}
-      <div className="mt-4 pt-3 border-t border-[#171A1F]/10 text-[11px] text-[#171A1F]/60 flex items-center justify-between">
-        <span>Foco gerencial prioritário: cotação e negociação direta nos itens de Classe A.</span>
+      {/* Legenda explicativa de Curva ABC e Link para Módulo Completo */}
+      <div className="mt-4 pt-3 border-t border-[#171A1F]/10 text-[11px] text-[#171A1F]/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <span>Foco prioritário: cotação e negociação direta nos itens de Classe A.</span>
+        <Link
+          to="/cotacoes"
+          className="inline-flex items-center gap-1 font-bold text-[#FF6B1F] hover:underline"
+        >
+          <span>Ir para Cotações</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
     </div>
   )

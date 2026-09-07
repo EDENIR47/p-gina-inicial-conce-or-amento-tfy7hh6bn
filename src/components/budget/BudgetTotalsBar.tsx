@@ -20,6 +20,10 @@ import {
   Download,
   Share2,
   Eye,
+  History,
+  ShieldCheck,
+  FileSpreadsheet,
+  Printer,
 } from 'lucide-react'
 import { CalculationSummary, FullBudget } from '@/types/budgetEngine'
 import { formatCurrencyBRL } from '@/lib/formatters'
@@ -30,6 +34,10 @@ interface BudgetTotalsBarProps {
   onSave: () => void
   isSaving?: boolean
   validationErrors?: Record<string, string>
+  onOpenPdfModal?: () => void
+  onOpenExcelExport?: () => void
+  onOpenRevisionsModal?: () => void
+  onOpenAuditModal?: () => void
 }
 
 export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
@@ -38,6 +46,10 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
   onSave,
   isSaving = false,
   validationErrors = {},
+  onOpenPdfModal,
+  onOpenExcelExport,
+  onOpenRevisionsModal,
+  onOpenAuditModal,
 }) => {
   // Conferência entre somatório das etapas e total geral
   const sumOfStages = summary.stagesSubtotals.reduce((acc, st) => acc + st.withBdi, 0)
@@ -80,15 +92,65 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={isSaving}
-          className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-sm font-bold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95 cursor-pointer"
-        >
-          <Save className="w-4 h-4" />
-          <span>{isSaving ? 'Salvando...' : 'Salvar Orçamento'}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {onOpenRevisionsModal && (
+            <button
+              type="button"
+              onClick={onOpenRevisionsModal}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer"
+              title="Histórico de Revisões (Rev. 0, 1, 2...)"
+            >
+              <History className="w-3.5 h-3.5 text-[#FF6B1F]" />
+              <span className="hidden sm:inline">Revisões</span>
+            </button>
+          )}
+
+          {onOpenAuditModal && (
+            <button
+              type="button"
+              onClick={onOpenAuditModal}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer"
+              title="Trilha de Auditoria e Ações"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#294C87]" />
+              <span className="hidden sm:inline">Auditoria</span>
+            </button>
+          )}
+
+          {onOpenExcelExport && (
+            <button
+              type="button"
+              onClick={onOpenExcelExport}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer"
+              title="Exportar Planilha Excel/CSV"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-green-400" />
+              <span>Excel</span>
+            </button>
+          )}
+
+          {onOpenPdfModal && (
+            <button
+              type="button"
+              onClick={onOpenPdfModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#294C87] hover:bg-[#294C87]/80 text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+              title="Gerar Proposta PDF Oficial CONCE"
+            >
+              <Printer className="w-3.5 h-3.5 text-[#FF6B1F]" />
+              <span>PDF Oficial</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={isSaving}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs sm:text-sm font-bold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95 cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>{isSaving ? 'Salvando...' : 'Salvar'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Grade de Indicadores Financeiros */}
