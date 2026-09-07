@@ -482,8 +482,2282 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
     })
   }
 
+  // Ajuste inline de insumo na revisão (custo ou coeficiente) -> Fonte passa a ser "Usuário"
+  const handleReviewInputUpdate = (
+    stageId: string,
+    serviceId: string,
+    inputId: string,
+    field: 'unitCost' | 'coefficient',
+    value: number,
+  ) => {
+    if (!draftBudget) return
+=======
+      newValue: draftSummary?.finalSalePrice,
+=======
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      },
+    })
+
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
       metadata: {
         aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+
+  return (
+=======
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+
+  return (
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+=======
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    setDraftBudget({ ...draftBudget, stages: updatedStages })
+  }
+
+  // Salvar definitivamente
+  const handleSaveBudget = () => {
+    if (!draftBudget) return
+
+    // Bloqueia se houver insumos sem fonte e usuário não tiver marcado a autorização expressa
+    if (pendingSourcesCount > 0 && !allowSaveWithPendingSources) {
+      alert(
+        `Atenção: Este orçamento possui ${pendingSourcesCount} item(ns) com valores sem fonte oficial ou com custo zerado.\n\nPor favor, preencha os valores antes de salvar ou marque a opção "Aceito salvar orçamento com itens pendentes de cotação" no rodapé.`,
+      )
+      return
+    }
+
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+        pendingSourcesCount,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+=======
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+=======
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+=======
+    setDraftBudget({ ...draftBudget, stages: updatedStages })
+  }
+
+  // Salvar definitivamente
+  const handleSaveBudget = () => {
+    if (!draftBudget) return
+
+    // Bloqueia se houver insumos sem fonte e usuário não tiver marcado a autorização expressa
+    if (pendingSourcesCount > 0 && !allowSaveWithPendingSources) {
+      alert(
+        `Atenção: Este orçamento possui ${pendingSourcesCount} item(ns) com valores sem fonte oficial ou com custo zerado.\n\nPor favor, preencha os valores antes de salvar ou marque a opção "Aceito salvar orçamento com itens pendentes de cotação" no rodapé.`,
+      )
+      return
+    }
+
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+        pendingSourcesCount,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+=======
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+=======
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+=======
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+=======
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+=======
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+    )
+
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+    if (onBudgetCreated) {
+      onBudgetCreated(draftBudget)
+    }
+
+    onClose()
+  }
+=======
+    onClose()
+  }
+=======
+=======
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+=======
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+=======
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
+=======
+  // Ajuste inline de insumo na revisão (custo ou coeficiente) -> Fonte passa a ser "Usuário"
+  const handleReviewInputUpdate = (
+    stageId: string,
+    serviceId: string,
+    inputId: string,
+    field: 'unitCost' | 'coefficient',
+    value: number,
+  ) => {
+    if (!draftBudget) return
+    const updatedStages = draftBudget.stages.map((stg) => {
+      if (stg.id !== stageId) return stg
+      return {
+        ...stg,
+        services: stg.services.map((srv) => {
+          if (srv.id !== serviceId) return srv
+          const updatedInputs = (srv.composition.inputs || []).map((inp) => {
+            if (inp.id !== inputId) return inp
+            return {
+              ...inp,
+              [field]: Math.max(0, value),
+              source: 'Usuário',
+              sourceStatus: 'valido' as const,
+            }
+          })
+          return {
+            ...srv,
+            composition: {
+              ...srv.composition,
+              inputs: updatedInputs,
+            },
+          }
+        }),
+      }
+    })
+    setDraftBudget({ ...draftBudget, stages: updatedStages })
+  }
+
+  // Salvar definitivamente
+  const handleSaveBudget = () => {
+    if (!draftBudget) return
+
+    // Bloqueia se houver insumos sem fonte e usuário não tiver marcado a autorização expressa
+    if (pendingSourcesCount > 0 && !allowSaveWithPendingSources) {
+      alert(
+        `Atenção: Este orçamento possui ${pendingSourcesCount} item(ns) com valores sem fonte oficial ou com custo zerado.\n\nPor favor, preencha os valores antes de salvar ou marque a opção "Aceito salvar orçamento com itens pendentes de cotação" no rodapé.`,
+      )
+      return
+    }
+
+    // 1. Persistir no localStorage
+    saveSingleBudget(draftBudget)
+
+    // 2. Registrar trilha de auditoria específica para geração com IA
+    logAuditEvent({
+      budgetId: draftBudget.id,
+      action: 'criacao_orcamento',
+      title: '✨ Orçamento Gerado por Agente de IA',
+      details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
+      userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
+      newValue: draftSummary?.finalSalePrice,
+      metadata: {
+        aiAgentSlug: 'conce-budget-agent',
+        prompt,
+        uf: selectedUf,
+        isRelieved,
+        reference,
+        stagesCount: draftBudget.stages.length,
+        servicesCount: draftSummary?.servicesCount || 0,
+      },
+    })
+
+    // 3. Criar revisão inicial Rev. 0
+    saveBudgetRevision(
+      draftBudget,
+      `Emissão Inicial gerada por Inteligência Artificial — Prompt: "${prompt.slice(0, 80)}..."`,
+      'Eng. Edenir Souza - CREA/SP (IA CONCE)',
+    )
 =======
       details: `Gerado via Agente Skip Cloud ("conce-budget-agent") com base no prompt: "${prompt.slice(0, 160)}${prompt.length > 160 ? '...' : ''}". UF: ${selectedUf}, Regime: ${isRelieved ? 'Desonerado' : 'Sem desoneração'}, Referência: ${reference}. Valor final: ${formatCurrencyBRL(draftSummary?.finalSalePrice || 0)}.`,
       userName: 'Eng. Edenir Souza - CREA/SP (Agente IA CONCE)',
