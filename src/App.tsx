@@ -10,6 +10,8 @@ import OnboardingScreen from './pages/OnboardingScreen'
 import DashboardScreen from './pages/DashboardScreen'
 import StubPage from './pages/StubPage'
 import ProtectedRoute from './components/ProtectedRoute'
+import BudgetsScreen from './pages/BudgetsScreen'
+import CompositionsLibraryPage from './pages/CompositionsLibraryPage'
 
 const App = () => (
   <BrowserRouter>
@@ -29,9 +31,11 @@ const App = () => (
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<DashboardScreen />} />
-            {/* Telas stub que renderizam painel estilizado "Em construção", nunca 404 */}
-            <Route path="/orcamentos" element={<StubPage />} />
-            <Route path="/composicoes" element={<StubPage />} />
+            {/* Núcleo Funcional Real CONCE: Orçamentos com hierarquia de 4 níveis */}
+            <Route path="/orcamentos" element={<BudgetsScreen />} />
+            {/* Biblioteca Técnica de Composições CONCE com versionamento e importação */}
+            <Route path="/composicoes" element={<CompositionsLibraryPage />} />
+            {/* Cotações permanece como módulo planejado */}
             <Route path="/cotacoes" element={<StubPage />} />
           </Route>
         </Route>
