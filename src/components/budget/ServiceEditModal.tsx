@@ -379,7 +379,7 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
                 <div className="text-right shrink-0">
                   <span className="text-[10px] text-[#171A1F]/50 block">Custo Unit. CPU</span>
                   <span className="text-xs sm:text-sm font-bold text-[#FF6B1F]">
-                    {formatCurrencyBRL(unitCost)}
+                    {formatCurrencyBRL(compCalculatedCost)}
                   </span>
                 </div>
               </div>

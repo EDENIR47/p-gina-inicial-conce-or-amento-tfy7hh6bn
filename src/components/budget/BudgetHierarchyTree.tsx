@@ -1006,7 +1006,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                         </span>
                                       )}
                                     </div>
-                                    <div className="relative">
+                                    <div className="relative flex items-center">
+                                      <span className="absolute left-1.5 text-[10px] font-bold text-[#171A1F]/50 pointer-events-none">
+                                        R$
+                                      </span>
                                       <input
                                         type="number"
                                         step="0.01"
@@ -1026,7 +1029,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                           )
                                         }
                                         title="Preço unitário do serviço editável inline (R$). Altera fonte para 'Usuário'."
-                                        className={`w-24 px-1.5 py-1 text-right rounded font-mono text-xs font-bold focus:outline-none transition-all ${
+                                        className={`w-28 pl-6 pr-1.5 py-1 text-right rounded font-mono text-xs font-bold focus:outline-none transition-all ${
                                           unitCost === 0 &&
                                           (!service.unitPrice || service.unitPrice === 0)
                                             ? 'border-2 border-[#FF6B1F] text-[#FF6B1F] bg-amber-50/50 ring-1 ring-[#FF6B1F]/30 focus:border-[#FF6B1F]'

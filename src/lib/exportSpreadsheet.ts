@@ -55,6 +55,7 @@ export function exportBudgetSpreadsheet(
 ): void {
   const summary = calculateFullBudget(budget)
   const abc = computeAbcCurve(budget)
+  const laborMultiplier = 1 + (summary.socialChargesRate || 0) / 100
 
   const dateStr = new Date().toISOString().split('T')[0]
   const baseFilename = `CONCE_${budget.code}_${budget.work.name.replace(/[^a-zA-Z0-9]/g, '_')}`
@@ -300,5 +301,6 @@ export function exportBudgetSpreadsheet(
     action: 'exportacao_excel',
     title: 'Exportação de Planilha Excel/CSV',
     details: `Arquivo gerado: ${baseFilename}_${fileSuffix}.csv com abas de orçamento, curva ABC e memória de BDI.`,
+    userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
   })
 }

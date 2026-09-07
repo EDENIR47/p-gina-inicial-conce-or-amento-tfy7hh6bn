@@ -140,6 +140,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
       details: `Proposta gerada em formato ${modeLabels[selectedMode]}. Valor total: ${formatCurrencyBRL(
         summary.finalSalePrice,
       )}. Cliente: ${budget.client.name || 'Não informado'}.`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
     })
     window.print()
   }
