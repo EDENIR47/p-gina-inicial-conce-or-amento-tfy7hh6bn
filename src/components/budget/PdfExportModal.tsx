@@ -605,17 +605,19 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </div>
             </div>
 
-            {/* Rodapé Oficial com Logo e Slogan */}
-            <div className="pt-2 print:pt-1.5 border-t border-[#171A1F]/15 flex flex-col sm:flex-row items-center justify-between gap-1 text-xs">
+            {/* Rodapé Oficial com Logo, Slogan e CNPJ (sem nenhuma URL ou hostname) */}
+            <div className="pt-2 print:pt-1 border-t border-[#171A1F]/15 flex flex-col sm:flex-row items-center justify-between gap-1 text-xs">
               <div className="flex items-center gap-2">
                 <ConceLogo height={16} variant="light" />
                 <span className="italic font-bold text-[#FF6B1F] text-[10.5px]">
                   "Conce é conceito. Conce é concreto."
                 </span>
               </div>
-              <span className="text-[#171A1F]/50 text-[9.5px]">
-                Proposta Comercial de Valor Global • CONCE Engenharia
-              </span>
+              <div className="flex items-center gap-2 text-[#171A1F]/70 text-[9.5px]">
+                <span className="font-semibold">CNPJ: 57.149.101/0001-46</span>
+                <span>•</span>
+                <span>Proposta Comercial de Valor Global • CONCE Engenharia</span>
+              </div>
             </div>
           </section>
         )}
@@ -624,15 +626,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* 1. CAPA INSTITUCIONAL CONCE (Presente nos formatos Simplificado, Etapas e Completo) */}
         {/* ============================================================ */}
         {selectedMode !== 'valor_final' && (
-          <section className="print-page-section print-cover-page min-h-[920px] print:min-h-0 print:h-auto flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-2 print:p-4 print:m-0 print-force-page-break">
+          <section className="print-page-section print-cover-page min-h-[920px] print:min-h-0 flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-2 print:p-3 print:m-0 print-force-page-break">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
             <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
             {/* Topo da Capa: Logo Oficial */}
-            <div className="flex items-start justify-between pt-2 print:pt-0.5">
+            <div className="flex items-start justify-between pt-2 print:pt-0">
               <div>
-                <ConceLogo height={34} variant="light" />
-                <p className="text-[10px] font-bold tracking-widest text-[#294C87] uppercase mt-1 print:mt-0.5">
+                <ConceLogo height={32} variant="light" />
+                <p className="text-[10px] font-bold tracking-widest text-[#294C87] uppercase mt-1 print:mt-0">
                   SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
                 </p>
                 <p className="text-[9.5px] text-[#171A1F]/70 font-medium">
@@ -665,7 +667,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Miolo da Capa: Título do Empreendimento e Proposta */}
-            <div className="my-auto py-3 print:py-2 space-y-2.5 print:space-y-2">
+            <div className="my-auto py-2.5 print:py-1 space-y-2 print:space-y-1.5">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-[10.5px] font-bold uppercase tracking-wider">
                 <Award className="w-3.5 h-3.5 text-[#FF6B1F]" />
                 <span>{proposalTypeLabel}</span>
@@ -691,7 +693,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
               {/* Apresentação de valor e prazo na capa (oculta no modelo Comercial/Simplificado a pedido do usuário: o valor fica somente na última página) */}
               {selectedMode !== 'simplificado' && (
-                <div className="p-2.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-3 print:p-2">
+                <div className="p-2.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-3 print:p-1.5">
                   <div className="space-y-0.5">
                     <span className="text-[9.5px] uppercase font-bold text-[#171A1F]/60 tracking-wider block">
                       Estimativa Global da Proposta
@@ -711,7 +713,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                       {budget.work.deadlineMonths} meses
                     </span>
                     <span className="text-[9.5px] text-[#171A1F]/50 block mt-0.5">
-                      Validade: {cleanValidityDays} dias
+                      Validade: {cleanValidityDays}{' '}
+                      {cleanValidityDaysType === 'uteis' ? 'dias úteis' : 'dias'}
                     </span>
                   </div>
                 </div>
@@ -719,8 +722,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Dados de Identificação Completos do Cliente e da Obra */}
-            <div className="border-t-2 border-[#171A1F]/15 pt-2.5 print:pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 print:gap-2 text-xs">
-              <div className="space-y-0.5 p-2.5 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-2">
+            <div className="border-t-2 border-[#171A1F]/15 pt-2 print:pt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 print:gap-1.5 text-xs">
+              <div className="space-y-0.5 p-2.5 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-1.5">
                 <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[9.5px] flex items-center gap-1">
                   <span>👤 Dados do Cliente / Contratante</span>
                 </span>
@@ -745,7 +748,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 )}
               </div>
 
-              <div className="space-y-0.5 p-2.5 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-2">
+              <div className="space-y-0.5 p-2.5 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-1.5">
                 <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[9.5px] flex items-center gap-1">
                   <span>🏗️ Dados & Local da Obra</span>
                 </span>
@@ -767,16 +770,18 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </div>
             </div>
 
-            {/* Rodapé da Capa com Slogan */}
-            <div className="pt-2.5 print:pt-2 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-1 text-xs">
+            {/* Rodapé da Capa com Slogan e CNPJ (sem nenhuma URL ou hostname) */}
+            <div className="pt-2 print:pt-1 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-1 text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="italic font-bold text-[#FF6B1F] text-[10.5px]">
                   "Conce é conceito. Conce é concreto."
                 </span>
               </div>
-              <span className="text-[#171A1F]/50 text-[9.5px]">
-                Página 1 • Capa Institucional CONCE
-              </span>
+              <div className="flex items-center gap-2 text-[#171A1F]/70 text-[9.5px]">
+                <span className="font-semibold">CNPJ: 57.149.101/0001-46</span>
+                <span>•</span>
+                <span>Página 1 • Capa Institucional CONCE</span>
+              </div>
             </div>
           </section>
         )}
@@ -1828,7 +1833,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </div>
             </div>
 
-            {/* Rodapé Final com Logo e Slogan Obrigatório */}
+            {/* Rodapé Final com Logo, Slogan Obrigatório e CNPJ (sem nenhuma URL ou endereço web) */}
             <div className="pt-3 print:pt-2 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs">
               <div className="flex items-center gap-2.5">
                 <ConceLogo height={18} variant="light" />
@@ -1836,13 +1841,17 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   "Conce é conceito. Conce é concreto."
                 </span>
               </div>
-              <span className="text-[#171A1F]/50 text-[10px]">
-                {selectedMode === 'simplificado'
-                  ? 'Proposta Comercial Simplificada emitida por CONCE Engenharia'
-                  : selectedMode === 'etapas'
-                    ? 'Proposta Sintética por Etapas emitida por CONCE Engenharia'
-                    : 'Documento Técnico Oficial emitido por CONCE Engenharia'}
-              </span>
+              <div className="flex items-center gap-2 text-[#171A1F]/70 text-[9.5px]">
+                <span className="font-semibold">CNPJ: 57.149.101/0001-46</span>
+                <span>•</span>
+                <span>
+                  {selectedMode === 'simplificado'
+                    ? 'Proposta Comercial Simplificada • CONCE Engenharia'
+                    : selectedMode === 'etapas'
+                      ? 'Proposta Sintética por Etapas • CONCE Engenharia'
+                      : 'Documento Técnico Oficial • CONCE Engenharia'}
+                </span>
+              </div>
             </div>
           </section>
         )}

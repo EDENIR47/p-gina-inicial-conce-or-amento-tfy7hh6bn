@@ -264,14 +264,24 @@
   }
 
   /* REGRAS DE IMPRESSÃO PROFISSIONAL CONCE */
+  /* margin: 0 no @page suprime os cabeçalhos/rodapés nativos do navegador que imprimem URL/hostname, data e título */
   @page {
     size: A4 portrait;
-    margin: 10mm 8mm 10mm 8mm;
+    margin: 0;
   }
 
   @media print {
     /* 1. Reset básico do documento para impressão limpa e compacta */
-    html,
+    /* Padding na folha para garantir margem útil de 10mm top/bottom e 8mm laterais sem disparar o header/footer do navegador */
+    html {
+      background-color: #ffffff !important;
+      background: #ffffff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
     body {
       background-color: #ffffff !important;
       background: #ffffff !important;
@@ -365,11 +375,12 @@
       width: 100% !important;
       box-shadow: none !important;
       border: none !important;
-      padding: 0 !important;
+      padding: 8mm 10mm !important;
       margin: 0 !important;
       max-width: 100% !important;
       background: #ffffff !important;
       overflow: visible !important;
+      box-sizing: border-box !important;
     }
 
     /* 5. Seções e quebras de página otimizadas */
@@ -385,31 +396,37 @@
       page-break-inside: auto !important;
     }
 
-    /* Capa institucional isolada na primeira página - dimensionada para caber rigorosamente na folha 1 A4 */
+    /* Capa institucional isolada na primeira folha:
+       - Deve ocupar no máximo a área visível da folha sem gerar transbordo.
+       - Com A4 (297mm) e container com padding 8mm top/bottom, altura de 265mm com box-sizing border-box
+         e overflow hidden garante 1 folha exata sem nenhuma linha transbordando para folha subsequente.
+       - break-after: always / page força a quebra para a página 2 logo em seguida.
+    */
     .print-cover-page {
       box-sizing: border-box !important;
       width: 100% !important;
       min-height: 0 !important;
-      height: 270mm !important;
-      max-height: 270mm !important;
+      height: 265mm !important;
+      max-height: 265mm !important;
       overflow: hidden !important;
-      margin: 0 !important;
-      padding: 6mm 8mm !important;
+      margin: 0 0 0 0 !important;
+      padding: 5mm 6mm !important;
       page-break-after: always !important;
       break-after: page !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
 
-    /* Formato de Valor Final (página única fechada, sem quebra extra) */
+    /* Formato de Valor Final (página única fechada de exata 1 folha, sem nenhuma quebra posterior) */
     .print-single-page {
       box-sizing: border-box !important;
       width: 100% !important;
       min-height: 0 !important;
-      max-height: 270mm !important;
+      height: 265mm !important;
+      max-height: 265mm !important;
       overflow: hidden !important;
-      margin: 0 !important;
-      padding: 6mm 8mm !important;
+      margin: 0 0 0 0 !important;
+      padding: 5mm 6mm !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       page-break-after: auto !important;
