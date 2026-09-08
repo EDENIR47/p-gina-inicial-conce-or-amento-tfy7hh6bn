@@ -1039,6 +1039,7 @@ export const BudgetsScreen: React.FC = () => {
       {/* Modal único de PDF de exportação CONCE (acessível no Editor e na Listagem) */}
       {isPdfModalOpen && activeBudget && (
         <PdfExportModal
+          key={`${activeBudget.id}-${pdfInitialMode}`}
           budget={activeBudget}
           isOpen={isPdfModalOpen}
           onClose={() => setIsPdfModalOpen(false)}

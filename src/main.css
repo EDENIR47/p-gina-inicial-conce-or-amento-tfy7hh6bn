@@ -324,6 +324,8 @@
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
       overflow: visible !important;
+      overflow-y: visible !important;
+      overflow-x: visible !important;
       height: auto !important;
       min-height: 0 !important;
       max-height: none !important;
@@ -332,16 +334,25 @@
       display: block !important;
     }
 
+    /* Ocultar quaisquer irmãos de #conce-printable-proposal dentro do modal na impressão */
+    .conce-pdf-modal-overlay > *:not(#conce-printable-proposal) {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
     /* 4. Isolamento estrito do documento imprimível CONCE */
     #conce-printable-proposal {
-      display: block !important;
       position: static !important;
+      display: block !important;
+      width: 100% !important;
       box-shadow: none !important;
       border: none !important;
       padding: 0 !important;
       margin: 0 !important;
       max-width: 100% !important;
-      width: 100% !important;
       background: #ffffff !important;
       overflow: visible !important;
     }
@@ -355,6 +366,8 @@
       padding: 0 !important;
       box-sizing: border-box !important;
       overflow: visible !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
     }
 
     /* Capa institucional isolada na primeira página */

@@ -612,7 +612,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* 1. CAPA INSTITUCIONAL CONCE (Presente nos formatos Simplificado, Etapas e Completo) */}
         {/* ============================================================ */}
         {selectedMode !== 'valor_final' && (
-          <section className="print-page-section print-cover-page min-h-[920px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-4 print:p-8 print:m-0 print:page-break-after-always">
+          <section className="print-page-section print-cover-page min-h-[920px] print:min-h-0 print:h-auto flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-4 print:p-8 print:m-0 print:page-break-after-always">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
             <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
@@ -643,7 +643,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         ? 'Resumo por Etapas'
                         : 'Relatório Técnico Completo'}
                   </span>
-                  {budget.publicWork.enabled && (
+                  {budget.publicWork?.enabled && (
                     <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F]">
                       Licitação Pública ({budget.publicWork.modality})
                     </span>
@@ -1020,7 +1020,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
                 <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10">
                   <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 block">
-                    Encargos Sociais ({budget.chargesConfig.uf})
+                    Encargos Sociais ({budget.chargesConfig?.uf || 'RS'})
                   </span>
                   <span className="text-base sm:text-lg font-bold text-[#294C87] block mt-1">
                     {formatCurrencyBRL(summary.socialChargesAmount)}
@@ -1514,31 +1514,31 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Administração Central (AC):</span>
                       <span className="font-mono font-bold">
-                        {budget.bdiConfig.administrationCentral.toFixed(2)}%
+                        {(budget.bdiConfig?.administrationCentral ?? 0).toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Taxa de Risco (R):</span>
                       <span className="font-mono font-bold">
-                        {budget.bdiConfig.risk.toFixed(2)}%
+                        {(budget.bdiConfig?.risk ?? 0).toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Seguro e Garantia (S + G):</span>
                       <span className="font-mono font-bold">
-                        {budget.bdiConfig.insuranceAndGuarantee.toFixed(2)}%
+                        {(budget.bdiConfig?.insuranceAndGuarantee ?? 0).toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Despesas Financeiras (DF):</span>
                       <span className="font-mono font-bold">
-                        {budget.bdiConfig.financialExpenses.toFixed(2)}%
+                        {(budget.bdiConfig?.financialExpenses ?? 0).toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
                       <span>Lucro Operacional (L):</span>
                       <span className="font-mono font-bold">
-                        {budget.bdiConfig.profit.toFixed(2)}%
+                        {(budget.bdiConfig?.profit ?? 0).toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
@@ -1563,7 +1563,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 <div className="border border-[#171A1F]/15 rounded-xl p-4 space-y-3 bg-[#F8F9FA]">
                   <div className="flex items-center justify-between border-b border-[#171A1F]/10 pb-2">
                     <span className="font-bold text-[#171A1F]">
-                      Encargos Sociais ({budget.chargesConfig.uf})
+                      Encargos Sociais ({budget.chargesConfig?.uf || 'RS'})
                     </span>
                     <span className="font-mono font-bold text-[#294C87] text-sm">
                       {summary.socialChargesRate.toFixed(2)}%
@@ -1640,7 +1640,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     ) : (
                       <span>
                         Tabelas de encargos sociais regionalizadas e atualizadas para a UF:{' '}
-                        <strong>{budget.chargesConfig.uf}</strong>.
+                        <strong>{budget.chargesConfig?.uf || 'RS'}</strong>.
                       </span>
                     )}
                   </div>
