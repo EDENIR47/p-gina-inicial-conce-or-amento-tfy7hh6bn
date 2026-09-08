@@ -722,14 +722,7 @@ export const BudgetsScreen: React.FC = () => {
           )}
 
           {/* Modais de inteligência e exportação */}
-          {isPdfModalOpen && (
-            <PdfExportModal
-              budget={activeBudget}
-              isOpen={isPdfModalOpen}
-              onClose={() => setIsPdfModalOpen(false)}
-              initialMode={pdfInitialMode}
-            />
-          )}
+          {/* PdfExportModal agora é montado uma única vez na raiz do componente (abaixo) */}
 
           {isRevisionsModalOpen && (
             <RevisionsModal
@@ -1040,17 +1033,17 @@ export const BudgetsScreen: React.FC = () => {
               showToast(`Orçamento ${created.code} gerado com sucesso por IA!`)
             }}
           />
-
-          {/* Modal de PDF também acessível a partir da listagem geral */}
-          {isPdfModalOpen && activeBudget && (
-            <PdfExportModal
-              budget={activeBudget}
-              isOpen={isPdfModalOpen}
-              onClose={() => setIsPdfModalOpen(false)}
-              initialMode={pdfInitialMode}
-            />
-          )}
         </div>
+      )}
+
+      {/* Modal único de PDF de exportação CONCE (acessível no Editor e na Listagem) */}
+      {isPdfModalOpen && activeBudget && (
+        <PdfExportModal
+          budget={activeBudget}
+          isOpen={isPdfModalOpen}
+          onClose={() => setIsPdfModalOpen(false)}
+          initialMode={pdfInitialMode}
+        />
       )}
     </div>
   )

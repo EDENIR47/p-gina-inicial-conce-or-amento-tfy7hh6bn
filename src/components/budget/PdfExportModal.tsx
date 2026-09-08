@@ -204,7 +204,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
     'PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA'
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#171A1F]/80 backdrop-blur-sm flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:fixed-none">
+    <div className="conce-pdf-modal-overlay fixed inset-0 z-50 bg-[#171A1F]/80 backdrop-blur-sm flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:fixed-none">
       {/* ============================================================ */}
       {/* BARRA SUPERIOR FIXA (Oculta na Impressão) */}
       {/* ============================================================ */}
@@ -400,7 +400,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Zero itens, zero serviços, zero coeficientes, zero BDI ou dados técnicos. */}
         {/* ============================================================ */}
         {selectedMode === 'valor_final' && (
-          <section className="min-h-[960px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-screen print:border-4 print:p-8 print:m-0 print:page-break-inside-avoid">
+          <section className="print-page-section print-single-page min-h-[960px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-0 print:border-4 print:p-8 print:m-0 print:page-break-inside-avoid">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
             <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
@@ -612,7 +612,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* 1. CAPA INSTITUCIONAL CONCE (Presente nos formatos Simplificado, Etapas e Completo) */}
         {/* ============================================================ */}
         {selectedMode !== 'valor_final' && (
-          <section className="min-h-[920px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-screen print:border-4 print:page-break-after-always">
+          <section className="print-page-section print-cover-page min-h-[920px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-4 print:p-8 print:m-0 print:page-break-after-always">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
             <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
@@ -773,7 +773,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Tabela elegante com zebra sutil, cabeçalho sóbrio e fechamento discreto */}
         {/* ============================================================ */}
         {selectedMode === 'simplificado' && (
-          <section className="space-y-6 print:page-break-after-always">
+          <section className="print-page-section space-y-6 print:page-break-after-always">
             {/* Cabeçalho da Seção com Identificação do Cliente e Obra */}
             <div className="border-b-2 border-[#294C87] pb-3 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
               <div>
@@ -888,7 +888,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Tabela apenas com as macroetapas da obra, valores e percentuais */}
         {/* ============================================================ */}
         {selectedMode === 'etapas' && (
-          <section className="space-y-6 print:page-break-after-always">
+          <section className="print-page-section space-y-6 print:page-break-after-always">
             <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -992,7 +992,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {selectedMode === 'completo' && (
           <>
             {/* SEÇÃO 1 • RESUMO EXECUTIVO E INDICADORES DA OBRA */}
-            <section className="space-y-6 print:page-break-after-always">
+            <section className="print-page-section space-y-6 print:page-break-after-always">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
                 <div>
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1120,7 +1120,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 2 • PLANILHA ORÇAMENTÁRIA DETALHADA COM BDI */}
-            <section className="space-y-4 print:page-break-after-always">
+            <section className="print-page-section space-y-4 print:page-break-after-always">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
                 <div>
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1245,7 +1245,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 3 • COMPOSIÇÕES DE CUSTOS UNITÁRIOS (CPU DETALHADA) */}
-            <section className="space-y-4 print:page-break-after-always">
+            <section className="print-page-section space-y-4 print:page-break-after-always">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
                 <div>
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1351,7 +1351,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 4 • CURVA ABC DE INSUMOS (PARETO) */}
-            <section className="space-y-4 print:page-break-after-always">
+            <section className="print-page-section space-y-4 print:page-break-after-always">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
                 <div>
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1483,7 +1483,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 5 • MEMÓRIA DE BDI (TCU) E ENCARGOS SOCIAIS */}
-            <section className="space-y-4 print:page-break-after-always">
+            <section className="print-page-section space-y-4 print:page-break-after-always">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
                 <div>
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1654,7 +1654,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* (No formato 'valor_final', o fechamento já está contido na sua página única) */}
         {/* ============================================================ */}
         {selectedMode !== 'valor_final' && (
-          <section className="space-y-6 print:page-break-inside-avoid">
+          <section className="print-page-section space-y-6 print:page-break-inside-avoid">
             <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#294C87]">
