@@ -35,7 +35,7 @@ import {
   createCanonicalDemoBudget,
 } from '@/lib/budgetsStorage'
 import { calculateFullBudget } from '@/lib/budgetEngine'
-import { formatCurrencyBRL } from '@/lib/formatters'
+import { formatCurrencyBRL, formatBudgetDeadline } from '@/lib/formatters'
 import { BudgetHeaderForm } from '@/components/budget/BudgetHeaderForm'
 import { BudgetHierarchyTree } from '@/components/budget/BudgetHierarchyTree'
 import { SocialChargesSelector } from '@/components/budget/SocialChargesSelector'
@@ -276,7 +276,39 @@ export const BudgetsScreen: React.FC = () => {
         })
       }
 
-      // 4. Alteração de forma de pagamento
+      // 4. Alteração de prazo contratual
+      const prevDeadline = formatBudgetDeadline(previousBudget.work)
+      const currDeadline = formatBudgetDeadline(activeBudget.work)
+      if (
+        previousBudget.work.deadlineValue !== activeBudget.work.deadlineValue ||
+        previousBudget.work.deadlineUnit !== activeBudget.work.deadlineUnit ||
+        previousBudget.work.deadlineMonths !== activeBudget.work.deadlineMonths
+      ) {
+        logAuditEvent({
+          budgetId: activeBudget.id,
+          action: 'edicao_prazo',
+          title: 'Prazo Contratual Atualizado',
+          details: `Prazo alterado de "${prevDeadline}" para "${currDeadline}".`,
+          oldValue: prevDeadline,
+          newValue: currDeadline,
+          userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          metadata: {
+            previous: {
+              value: previousBudget.work.deadlineValue,
+              unit: previousBudget.work.deadlineUnit,
+              months: previousBudget.work.deadlineMonths,
+            },
+            current: {
+              value: activeBudget.work.deadlineValue,
+              unit: activeBudget.work.deadlineUnit,
+              months: activeBudget.work.deadlineMonths,
+            },
+            signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          },
+        })
+      }
+
+      // 5. Alteração de forma de pagamento
       if (previousBudget.paymentTerms !== activeBudget.paymentTerms) {
         logAuditEvent({
           budgetId: activeBudget.id,
@@ -921,7 +953,7 @@ export const BudgetsScreen: React.FC = () => {
                           </strong>{' '}
                           {b.client.document && `(${b.client.document}) `}• Endereço Obra:{' '}
                           {b.work.address ? `${b.work.address}, ` : ''}
-                          {b.work.city}/{b.work.state} • Prazo: {b.work.deadlineMonths} meses
+                          {b.work.city}/{b.work.state} • Prazo: {formatBudgetDeadline(b.work)}
                         </p>
 
                         {b.paymentTerms && (

@@ -32,7 +32,8 @@ import {
   WorkData,
 } from '@/types/budgetEngine'
 import { BRAZIL_STATES_LIST } from '@/lib/chargesData'
-import { getBudgetDeadline } from '@/lib/formatters'
+import { getBudgetDeadline, formatBudgetDeadline } from '@/lib/formatters'
+import { logAuditEvent } from '@/lib/intelligenceStorage'
 
 interface BudgetHeaderFormProps {
   budget: FullBudget
@@ -442,20 +443,44 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10) || 1
                     const currentUnit = budget.work.deadlineUnit || 'meses'
+                    const prevEffective = getBudgetDeadline(budget.work)
+                    const prevFormatted = formatBudgetDeadline(budget.work)
                     const monthsEquivalent =
                       currentUnit === 'meses'
                         ? val
                         : currentUnit === 'semanas'
                           ? Math.max(1, Math.round(val / 4.33))
                           : Math.max(1, Math.round(val / 30))
+                    const newWork = {
+                      ...budget.work,
+                      deadlineValue: val,
+                      deadlineUnit: currentUnit,
+                      deadlineMonths: monthsEquivalent,
+                    }
+                    const newFormatted = formatBudgetDeadline(newWork)
+
+                    if (prevEffective.value !== val) {
+                      logAuditEvent({
+                        budgetId: budget.id,
+                        action: 'edicao_prazo',
+                        title: 'Prazo Contratual Alterado',
+                        details: `Prazo alterado de "${prevFormatted}" para "${newFormatted}".`,
+                        oldValue: prevFormatted,
+                        newValue: newFormatted,
+                        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                        metadata: {
+                          field: 'deadlineValue',
+                          previousValue: prevEffective.value,
+                          newValue: val,
+                          unit: currentUnit,
+                          signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                        },
+                      })
+                    }
+
                     onChange({
                       ...budget,
-                      work: {
-                        ...budget.work,
-                        deadlineValue: val,
-                        deadlineUnit: currentUnit,
-                        deadlineMonths: monthsEquivalent,
-                      },
+                      work: newWork,
                     })
                   }}
                   className="w-full pl-9 pr-2 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-bold focus:outline-none focus:border-[#294C87]"
@@ -468,20 +493,44 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
                 onChange={(e) => {
                   const newUnit = e.target.value as DeadlineUnit
                   const currentVal = getBudgetDeadline(budget.work).value
+                  const prevUnit = budget.work.deadlineUnit || 'meses'
+                  const prevFormatted = formatBudgetDeadline(budget.work)
                   const monthsEquivalent =
                     newUnit === 'meses'
                       ? currentVal
                       : newUnit === 'semanas'
                         ? Math.max(1, Math.round(currentVal / 4.33))
                         : Math.max(1, Math.round(currentVal / 30))
+                  const newWork = {
+                    ...budget.work,
+                    deadlineValue: currentVal,
+                    deadlineUnit: newUnit,
+                    deadlineMonths: monthsEquivalent,
+                  }
+                  const newFormatted = formatBudgetDeadline(newWork)
+
+                  if (prevUnit !== newUnit) {
+                    logAuditEvent({
+                      budgetId: budget.id,
+                      action: 'edicao_prazo',
+                      title: 'Unidade do Prazo Contratual Alterada',
+                      details: `Unidade de prazo alterada de "${prevUnit}" para "${newUnit}" (${prevFormatted} → ${newFormatted}).`,
+                      oldValue: prevFormatted,
+                      newValue: newFormatted,
+                      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                      metadata: {
+                        field: 'deadlineUnit',
+                        previousUnit: prevUnit,
+                        newUnit,
+                        value: currentVal,
+                        signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                      },
+                    })
+                  }
+
                   onChange({
                     ...budget,
-                    work: {
-                      ...budget.work,
-                      deadlineValue: currentVal,
-                      deadlineUnit: newUnit,
-                      deadlineMonths: monthsEquivalent,
-                    },
+                    work: newWork,
                   })
                 }}
                 className="w-28 sm:w-32 px-2.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"

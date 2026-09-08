@@ -52,6 +52,8 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({ budget, isOpen
       case 'revisao_gerada':
       case 'revisao_restaurada':
         return { label: 'Revisão', bg: 'bg-[#FF6B1F] text-white' }
+      case 'edicao_prazo':
+        return { label: 'Prazo', bg: 'bg-[#FF6B1F] text-white' }
       case 'edicao_preco_servico':
         return { label: 'Preço Serviço', bg: 'bg-[#294C87] text-white' }
       case 'edicao_servico':
@@ -122,6 +124,7 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({ budget, isOpen
               className="w-full px-3 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold focus:outline-none focus:border-[#294C87]"
             >
               <option value="todos">Todos os Eventos</option>
+              <option value="edicao_prazo">Alterações de Prazo</option>
               <option value="revisao_gerada">Revisões Geradas</option>
               <option value="revisao_restaurada">Revisões Restauradas</option>
               <option value="edicao_preco_servico">Preço de Serviços</option>
