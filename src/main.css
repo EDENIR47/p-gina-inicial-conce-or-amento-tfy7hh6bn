@@ -383,41 +383,42 @@
       box-sizing: border-box !important;
     }
 
-    /* 5. Seções e quebras de página otimizadas */
+    /* 5. Seções e fluxo contínuo sem quebras forçadas (sem folhas vazias e sem texto espaçado) */
     .print-page-section {
       display: block !important;
       position: relative !important;
       width: 100% !important;
-      margin: 0 0 1rem 0 !important;
+      margin: 0 0 0.5rem 0 !important;
       padding: 0 !important;
       box-sizing: border-box !important;
       overflow: visible !important;
       break-inside: auto !important;
       page-break-inside: auto !important;
+      break-after: auto !important;
+      page-break-after: auto !important;
     }
 
-    /* Capa institucional isolada na primeira folha:
-       - Deve ocupar no máximo a área visível da folha sem gerar transbordo.
-       - Com A4 (297mm) e container com padding 8mm top/bottom, altura de 265mm com box-sizing border-box
-         e overflow hidden garante 1 folha exata sem nenhuma linha transbordando para folha subsequente.
-       - break-after: always / page força a quebra para a página 2 logo em seguida.
+    /* Capa institucional contínua e compacta:
+       - Não força quebra de página: o conteúdo subsequente entra logo em seguida na mesma folha.
+       - Altura natural/compacta (auto, sem fixar 265mm), eliminando espaços em branco residuais.
+       - break-inside: avoid para manter o cabeçalho/bloco da capa íntegro caso caiba na folha.
     */
     .print-cover-page {
       box-sizing: border-box !important;
       width: 100% !important;
       min-height: 0 !important;
-      height: 265mm !important;
-      max-height: 265mm !important;
-      overflow: hidden !important;
-      margin: 0 0 0 0 !important;
-      padding: 5mm 6mm !important;
-      page-break-after: always !important;
-      break-after: page !important;
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+      margin: 0 0 0.5rem 0 !important;
+      padding: 3mm 4mm !important;
+      page-break-after: auto !important;
+      break-after: auto !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
 
-    /* Formato de Valor Final (página única fechada de exata 1 folha, sem nenhuma quebra posterior) */
+    /* Formato de Valor Final (página única fechada de exata 1 folha, preservado a pedido do cliente) */
     .print-single-page {
       box-sizing: border-box !important;
       width: 100% !important;
@@ -433,17 +434,12 @@
       break-after: auto !important;
     }
 
-    /* Classes utilitárias de quebra */
+    /* Classes utilitárias de quebra — sem forçar quebras automáticas */
     .print\:page-break-after-always,
-    .print-break-after {
+    .print-break-after,
+    .print-force-page-break {
       page-break-after: auto !important;
       break-after: auto !important;
-    }
-
-    /* Quando for estritamente necessário forçar quebra (ex: Capa isolada) */
-    .print-force-page-break {
-      page-break-after: always !important;
-      break-after: page !important;
     }
 
     .print\:page-break-inside-avoid,

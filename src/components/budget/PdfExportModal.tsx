@@ -400,7 +400,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
       {/* ============================================================ */}
       <div
         ref={printContainerRef}
-        className="w-full max-w-5xl bg-white text-[#171A1F] rounded-2xl shadow-2xl p-6 sm:p-12 mb-12 space-y-8 print:space-y-4 print:shadow-none print:m-0 print:p-0 print:max-w-none print:w-full print:rounded-none"
+        className="w-full max-w-5xl bg-white text-[#171A1F] rounded-2xl shadow-2xl p-6 sm:p-12 mb-12 space-y-8 print:space-y-2.5 print:shadow-none print:m-0 print:p-0 print:max-w-none print:w-full print:rounded-none"
         id="conce-printable-proposal"
       >
         {/* ============================================================ */}
@@ -626,7 +626,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* 1. CAPA INSTITUCIONAL CONCE (Presente nos formatos Simplificado, Etapas e Completo) */}
         {/* ============================================================ */}
         {selectedMode !== 'valor_final' && (
-          <section className="print-page-section print-cover-page min-h-[920px] print:min-h-0 flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-2 print:p-3 print:m-0 print-force-page-break">
+          <section className="print-page-section print-cover-page min-h-0 flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-2 print:p-3 print:m-0">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
             <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
@@ -793,7 +793,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Tabela elegante com zebra sutil, cabeçalho sóbrio e fechamento discreto */}
         {/* ============================================================ */}
         {selectedMode === 'simplificado' && (
-          <section className="print-page-section space-y-4 print:space-y-3">
+          <section className="print-page-section space-y-4 print:space-y-2">
             {/* Cabeçalho da Seção com Identificação do Cliente e Obra */}
             <div className="border-b-2 border-[#294C87] pb-2 flex flex-col sm:flex-row sm:items-end justify-between gap-1.5">
               <div>
@@ -908,7 +908,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Tabela apenas com as macroetapas da obra, valores e percentuais */}
         {/* ============================================================ */}
         {selectedMode === 'etapas' && (
-          <section className="print-page-section space-y-4 print:space-y-3">
+          <section className="print-page-section space-y-4 print:space-y-2">
             <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
               <div>
                 <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1014,7 +1014,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {selectedMode === 'completo' && (
           <>
             {/* SEÇÃO 1 • RESUMO EXECUTIVO E INDICADORES DA OBRA */}
-            <section className="print-page-section space-y-4 print:space-y-3">
+            <section className="print-page-section space-y-4 print:space-y-2">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
                   <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1144,7 +1144,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 2 • PLANILHA ORÇAMENTÁRIA DETALHADA COM BDI */}
-            <section className="print-page-section space-y-3">
+            <section className="print-page-section space-y-3 print:space-y-2">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
                   <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1273,7 +1273,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 3 • COMPOSIÇÕES DE CUSTOS UNITÁRIOS (CPU DETALHADA) */}
-            <section className="print-page-section space-y-3">
+            <section className="print-page-section space-y-3 print:space-y-2">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
                   <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1381,7 +1381,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 4 • CURVA ABC DE INSUMOS (PARETO) */}
-            <section className="print-page-section space-y-3">
+            <section className="print-page-section space-y-3 print:space-y-2">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
                   <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1513,7 +1513,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 5 • MEMÓRIA DE BDI (TCU) E ENCARGOS SOCIAIS */}
-            <section className="print-page-section space-y-3">
+            <section className="print-page-section space-y-3 print:space-y-2">
               <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
                   <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
@@ -1684,7 +1684,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* (No formato 'valor_final', o fechamento já está contido na sua página única) */}
         {/* ============================================================ */}
         {selectedMode !== 'valor_final' && (
-          <section className="print-page-section space-y-4 print:space-y-3 print:page-break-inside-avoid">
+          <section className="print-page-section space-y-4 print:space-y-2">
             <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
               <div>
                 <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#294C87]">
