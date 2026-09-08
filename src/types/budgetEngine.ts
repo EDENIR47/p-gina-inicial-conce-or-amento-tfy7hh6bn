@@ -87,13 +87,17 @@ export interface ClientData {
   state: string
 }
 
+export type DeadlineUnit = 'dias' | 'dias úteis' | 'semanas' | 'meses'
+
 export interface WorkData {
   name: string
   address: string
   city: string
   state: string
   description: string
-  deadlineMonths: number
+  deadlineMonths: number // Mantido para retrocompatibilidade
+  deadlineValue?: number // Valor numérico flexível (ex.: 3)
+  deadlineUnit?: DeadlineUnit // Unidade de tempo flexível (default: 'meses')
   startDate: string
   expectedEndDate?: string
   totalAreaM2?: number

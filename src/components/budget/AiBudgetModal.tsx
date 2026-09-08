@@ -41,7 +41,9 @@ import {
   BudgetInput,
   InputCategory,
   TaxRegime,
+  DeadlineUnit,
 } from '@/types/budgetEngine'
+import { getBudgetDeadline } from '@/lib/formatters'
 import { BRAZIL_STATES_LIST, BRAZIL_STATES_CHARGES } from '@/lib/chargesData'
 import { DEFAULT_BDI_CONFIG, calculateFullBudget } from '@/lib/budgetEngine'
 import { UnitSelect } from './UnitSelect'
@@ -1154,22 +1156,63 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                     </div>
                     <div>
                       <label className="text-[11px] font-semibold text-[#171A1F]/70 block mb-1">
-                        Prazo (meses)
+                        Prazo Contratual
                       </label>
-                      <input
-                        type="number"
-                        value={draftBudget.work.deadlineMonths || 1}
-                        onChange={(e) =>
-                          setDraftBudget({
-                            ...draftBudget,
-                            work: {
-                              ...draftBudget.work,
-                              deadlineMonths: parseInt(e.target.value, 10) || 1,
-                            },
-                          })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-bold text-[#171A1F]"
-                      />
+                      <div className="flex gap-1 items-center">
+                        <input
+                          type="number"
+                          min="1"
+                          value={getBudgetDeadline(draftBudget.work).value}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10) || 1
+                            const currentUnit = draftBudget.work.deadlineUnit || 'meses'
+                            const monthsEquivalent =
+                              currentUnit === 'meses'
+                                ? val
+                                : currentUnit === 'semanas'
+                                  ? Math.max(1, Math.round(val / 4.33))
+                                  : Math.max(1, Math.round(val / 30))
+                            setDraftBudget({
+                              ...draftBudget,
+                              work: {
+                                ...draftBudget.work,
+                                deadlineValue: val,
+                                deadlineUnit: currentUnit,
+                                deadlineMonths: monthsEquivalent,
+                              },
+                            })
+                          }}
+                          className="w-16 px-2 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-bold text-[#171A1F]"
+                        />
+                        <select
+                          value={draftBudget.work.deadlineUnit || 'meses'}
+                          onChange={(e) => {
+                            const newUnit = e.target.value as DeadlineUnit
+                            const currentVal = getBudgetDeadline(draftBudget.work).value
+                            const monthsEquivalent =
+                              newUnit === 'meses'
+                                ? currentVal
+                                : newUnit === 'semanas'
+                                  ? Math.max(1, Math.round(currentVal / 4.33))
+                                  : Math.max(1, Math.round(currentVal / 30))
+                            setDraftBudget({
+                              ...draftBudget,
+                              work: {
+                                ...draftBudget.work,
+                                deadlineValue: currentVal,
+                                deadlineUnit: newUnit,
+                                deadlineMonths: monthsEquivalent,
+                              },
+                            })
+                          }}
+                          className="w-24 px-1.5 py-1.5 rounded-lg bg-white border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F]"
+                        >
+                          <option value="dias">dias</option>
+                          <option value="dias úteis">dias úteis</option>
+                          <option value="semanas">semanas</option>
+                          <option value="meses">meses</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>

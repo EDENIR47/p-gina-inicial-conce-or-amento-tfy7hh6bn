@@ -23,8 +23,16 @@ import {
   Briefcase,
   Sparkles,
 } from 'lucide-react'
-import { ClientData, FullBudget, PublicWorkData, TaxRegime, WorkData } from '@/types/budgetEngine'
+import {
+  ClientData,
+  DeadlineUnit,
+  FullBudget,
+  PublicWorkData,
+  TaxRegime,
+  WorkData,
+} from '@/types/budgetEngine'
 import { BRAZIL_STATES_LIST } from '@/lib/chargesData'
+import { getBudgetDeadline } from '@/lib/formatters'
 
 interface BudgetHeaderFormProps {
   budget: FullBudget
@@ -421,18 +429,69 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
 
           <div>
             <label className="text-xs font-bold text-[#171A1F] block mb-1">
-              Prazo Contratual (Meses) *
+              Prazo Contratual *
             </label>
-            <div className="relative">
-              <Clock className="w-3.5 h-3.5 text-[#171A1F]/40 absolute left-3 top-3" />
-              <input
-                type="number"
-                min="1"
+            <div className="flex gap-1.5 items-center">
+              <div className="relative flex-1 min-w-0">
+                <Clock className="w-3.5 h-3.5 text-[#171A1F]/40 absolute left-3 top-3" />
+                <input
+                  type="number"
+                  min="1"
+                  disabled={disabled}
+                  value={getBudgetDeadline(budget.work).value}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10) || 1
+                    const currentUnit = budget.work.deadlineUnit || 'meses'
+                    const monthsEquivalent =
+                      currentUnit === 'meses'
+                        ? val
+                        : currentUnit === 'semanas'
+                          ? Math.max(1, Math.round(val / 4.33))
+                          : Math.max(1, Math.round(val / 30))
+                    onChange({
+                      ...budget,
+                      work: {
+                        ...budget.work,
+                        deadlineValue: val,
+                        deadlineUnit: currentUnit,
+                        deadlineMonths: monthsEquivalent,
+                      },
+                    })
+                  }}
+                  className="w-full pl-9 pr-2 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-bold focus:outline-none focus:border-[#294C87]"
+                  placeholder="Ex: 3"
+                />
+              </div>
+              <select
                 disabled={disabled}
-                value={budget.work.deadlineMonths}
-                onChange={(e) => handleWorkChange('deadlineMonths', parseInt(e.target.value) || 1)}
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-bold focus:outline-none focus:border-[#294C87]"
-              />
+                value={budget.work.deadlineUnit || 'meses'}
+                onChange={(e) => {
+                  const newUnit = e.target.value as DeadlineUnit
+                  const currentVal = getBudgetDeadline(budget.work).value
+                  const monthsEquivalent =
+                    newUnit === 'meses'
+                      ? currentVal
+                      : newUnit === 'semanas'
+                        ? Math.max(1, Math.round(currentVal / 4.33))
+                        : Math.max(1, Math.round(currentVal / 30))
+                  onChange({
+                    ...budget,
+                    work: {
+                      ...budget.work,
+                      deadlineValue: currentVal,
+                      deadlineUnit: newUnit,
+                      deadlineMonths: monthsEquivalent,
+                    },
+                  })
+                }}
+                className="w-28 sm:w-32 px-2.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-semibold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                title="Unidade de tempo do prazo contratual"
+              >
+                <option value="dias">dias</option>
+                <option value="dias úteis">dias úteis</option>
+                <option value="semanas">semanas</option>
+                <option value="meses">meses</option>
+              </select>
             </div>
           </div>
 

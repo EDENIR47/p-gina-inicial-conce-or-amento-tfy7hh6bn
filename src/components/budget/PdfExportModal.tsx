@@ -27,7 +27,12 @@ import { ConceLogo } from '@/components/ConceLogo'
 import { FullBudget } from '@/types/budgetEngine'
 import { calculateFullBudget, getServiceEffectiveUnitCost } from '@/lib/budgetEngine'
 import { computeAbcCurve } from '@/lib/abcAnalysis'
-import { formatCurrencyBRL, sanitizeDocumentSource, sanitizeDocumentText } from '@/lib/formatters'
+import {
+  formatCurrencyBRL,
+  formatBudgetDeadline,
+  sanitizeDocumentSource,
+  sanitizeDocumentText,
+} from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
 
 export type PdfExportMode = 'valor_final' | 'simplificado' | 'etapas' | 'completo'
@@ -551,6 +556,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   Prazo de Execução & Validade
                 </span>
                 <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[10.5px]">
+                  • <strong className="text-[#171A1F]">Prazo Contratual:</strong>{' '}
+                  {formatBudgetDeadline(budget.work)}
+                </p>
+                <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[10.5px]">
                   • <strong className="text-[#171A1F]">Validade da Proposta:</strong>{' '}
                   {cleanValidityDays}{' '}
                   {cleanValidityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'} (a contar da
@@ -558,7 +567,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 </p>
                 {cleanExecutionDeadline && (
                   <p className="text-[#171A1F]/90 leading-relaxed text-[9.5px]">
-                    • <strong className="text-[#171A1F]">Prazo:</strong> {cleanExecutionDeadline}
+                    • <strong className="text-[#171A1F]">Prazo de Execução:</strong>{' '}
+                    {cleanExecutionDeadline}
                   </p>
                 )}
                 {budget.commercialNotes && (
@@ -707,10 +717,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   </div>
                   <div className="text-right border-l border-[#171A1F]/10 pl-3 shrink-0">
                     <span className="text-[9.5px] uppercase font-semibold text-[#294C87] block">
-                      Prazo de Execução
+                      Prazo Contratual
                     </span>
                     <span className="text-xs sm:text-sm font-bold text-[#171A1F]">
-                      {budget.work.deadlineMonths} meses
+                      {formatBudgetDeadline(budget.work)}
                     </span>
                     <span className="text-[9.5px] text-[#171A1F]/50 block mt-0.5">
                       Validade: {cleanValidityDays}{' '}
@@ -1744,6 +1754,16 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   <p className="text-[#171A1F]/70 text-[10px] mt-1">
                     • Faturamento e emissão de Notas Fiscais emitidas pela CONCE — Serviço de
                     Engenharia e Consultoria LTDA sob o CNPJ 57.149.101/0001-46.
+                  </p>
+                </div>
+
+                <div className="pt-1.5 border-t border-[#171A1F]/10 space-y-1">
+                  <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9.5px] block mb-0.5">
+                    Prazo Contratual
+                  </span>
+                  <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[11px]">
+                    • <strong className="text-[#171A1F]">Prazo Contratual Estimado:</strong>{' '}
+                    {formatBudgetDeadline(budget.work)}
                   </p>
                 </div>
 

@@ -11,7 +11,7 @@
 import { FullBudget } from '@/types/budgetEngine'
 import { calculateFullBudget, getServiceEffectiveUnitCost } from './budgetEngine'
 import { computeAbcCurve } from './abcAnalysis'
-import { formatCurrencyBRL, sanitizeDocumentText } from './formatters'
+import { formatCurrencyBRL, formatBudgetDeadline, sanitizeDocumentText } from './formatters'
 import { logAuditEvent } from './intelligenceStorage'
 import { CONCE_COMPANY } from './conceCompany'
 
@@ -81,8 +81,19 @@ export function exportBudgetSpreadsheet(
     ['Obra:', cleanWorkName, 'Local:', `${budget.work.city}/${budget.work.state}`],
     ['Cliente:', cleanClient, 'CNPJ/CPF:', budget.client.document || 'Não informado'],
     ['Responsável Técnico:', cleanAuthor, 'Data:', dateStr],
+    [
+      'Prazo Contratual:',
+      formatBudgetDeadline(budget.work),
+      'Data de Início:',
+      budget.work.startDate || 'A definir',
+    ],
     ...(budget.executionDeadline || budget.work?.executionDeadline
-      ? [['Prazo de Execução:', budget.executionDeadline || budget.work?.executionDeadline || '']]
+      ? [
+          [
+            'Prazo de Execução (Descritivo):',
+            budget.executionDeadline || budget.work?.executionDeadline || '',
+          ],
+        ]
       : []),
     [
       'Validade da Proposta:',

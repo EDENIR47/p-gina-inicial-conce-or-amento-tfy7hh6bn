@@ -190,6 +190,49 @@ export function sanitizeDocumentSource(source?: string): string {
  * Remove qualquer sufixo ou menção a geração por IA de nomes de autores,
  * títulos de obras e códigos para apresentação em documentos exportados.
  */
+/**
+ * Helper para obter a unidade e o valor numérico efetivos do prazo contratual
+ */
+export function getBudgetDeadline(work?: {
+  deadlineMonths?: number
+  deadlineValue?: number
+  deadlineUnit?: 'dias' | 'dias úteis' | 'semanas' | 'meses'
+}): { value: number; unit: 'dias' | 'dias úteis' | 'semanas' | 'meses' } {
+  const unit = work?.deadlineUnit || 'meses'
+  const value =
+    work?.deadlineValue !== undefined
+      ? work.deadlineValue
+      : work?.deadlineMonths !== undefined
+        ? work.deadlineMonths
+        : 1
+  return { value: Math.max(1, value), unit }
+}
+
+/**
+ * Formata o prazo contratual de forma legível respeitando singular/plural.
+ * Ex.: "3 dias", "3 dias úteis", "1 dia útil", "1 mês", "2 meses", "1 semana", "3 semanas".
+ * Garante que nunca retorne "0 meses".
+ */
+export function formatBudgetDeadline(work?: {
+  deadlineMonths?: number
+  deadlineValue?: number
+  deadlineUnit?: 'dias' | 'dias úteis' | 'semanas' | 'meses'
+}): string {
+  const { value, unit } = getBudgetDeadline(work)
+
+  if (unit === 'dias') {
+    return value === 1 ? '1 dia' : `${value} dias`
+  }
+  if (unit === 'dias úteis') {
+    return value === 1 ? '1 dia útil' : `${value} dias úteis`
+  }
+  if (unit === 'semanas') {
+    return value === 1 ? '1 semana' : `${value} semanas`
+  }
+  // Padrão: meses
+  return value === 1 ? '1 mês' : `${value} meses`
+}
+
 export function sanitizeDocumentText(text?: string): string {
   if (!text) return ''
   let sanitized = String(text)

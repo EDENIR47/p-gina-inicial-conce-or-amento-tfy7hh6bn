@@ -102,6 +102,7 @@ export type AuditActionType =
   | 'adicao_item'
   | 'edicao_geral'
   | 'edicao_titulo'
+  | 'edicao_prazo'
   | 'edicao_cliente'
   | 'edicao_obra'
   | 'edicao_pagamento'
