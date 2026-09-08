@@ -135,7 +135,7 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
               type="button"
               onClick={onOpenPdfModal}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#294C87] to-[#1f3b6c] hover:from-[#1f3b6c] hover:to-[#171A1F] text-white text-xs font-bold transition-all shadow-md border border-white/20 active:scale-95 cursor-pointer"
-              title="Exportar Proposta em PDF (Simplificado ou Completo)"
+              title="Exportar Proposta em PDF (Valor Final, Simplificado, Etapas ou Completo)"
             >
               <Printer className="w-3.5 h-3.5 text-[#FF6B1F]" />
               <span>Exportar PDF</span>

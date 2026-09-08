@@ -29,7 +29,7 @@ import { computeAbcCurve } from '@/lib/abcAnalysis'
 import { formatCurrencyBRL, sanitizeDocumentSource, sanitizeDocumentText } from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
 
-export type PdfExportMode = 'simplificado' | 'etapas' | 'completo'
+export type PdfExportMode = 'valor_final' | 'simplificado' | 'etapas' | 'completo'
 
 interface PdfExportModalProps {
   budget: FullBudget
@@ -51,9 +51,28 @@ interface ExportModeOption {
 
 const EXPORT_MODE_OPTIONS: ExportModeOption[] = [
   {
+    id: 'valor_final',
+    title: 'Apenas Valor Final',
+    subtitle: 'Proposta Simples — Valor Global',
+    badge: 'Síntese Direta',
+    icon: Award,
+    description:
+      'Proposta comercial direta contendo exclusivamente o valor final da obra como elemento central, identificação das partes, condições comerciais e termo de assinatura formal — sem nenhuma discriminação de serviços, itens ou custos internos.',
+    features: [
+      'Capa institucional enxuta (logo CONCE, razão social e CNPJ 57.149.101/0001-46)',
+      'Identificação clara dos clientes e endereço completo da obra',
+      'VALOR FINAL DA OBRA como elemento central, sóbrio e elegante em Poppins',
+      'Condições comerciais: forma de pagamento, prazo de execução e validade',
+      'Zero discriminação de itens, serviços, insumos, BDI ou dados técnicos',
+      'Termo formal de aceite com assinatura do RT Eng. Edenir Souza da Rosa',
+    ],
+    recommendedFor:
+      'Fechamentos rápidos, propostas de valor global e clientes que solicitam apenas o preço final.',
+  },
+  {
     id: 'simplificado',
     title: 'Comercial / Simplificado',
-    subtitle: 'Apenas Itens e Valor Final',
+    subtitle: 'Itens, Quantitativos e Preço Final',
     badge: 'Recomendado p/ Clientes',
     icon: Briefcase,
     description:
@@ -128,15 +147,21 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
   const handlePrint = () => {
     const modeLabels: Record<PdfExportMode, string> = {
-      simplificado: 'Simplificado / Comercial (apenas itens e valores finais)',
+      valor_final: 'Apenas Valor Final (proposta de valor global)',
+      simplificado: 'Simplificado / Comercial (itens e valores finais)',
       etapas: 'Resumo por Etapas (macrovisão físico-financeira)',
       completo: 'Técnico / Completo (CPU detalhado, ABC Pareto e BDI TCU)',
     }
 
+    const modeTitleForLog =
+      selectedMode === 'valor_final'
+        ? 'Apenas Valor Final'
+        : currentOption.title.split('/')[0].trim()
+
     logAuditEvent({
       budgetId: budget.id,
       action: 'exportacao_pdf',
-      title: `Exportação PDF — Formato ${currentOption.title.split('/')[0].trim()}`,
+      title: `Exportação PDF — ${modeTitleForLog}`,
       details: `Proposta gerada em formato ${modeLabels[selectedMode]}. Valor total: ${formatCurrencyBRL(
         summary.finalSalePrice,
       )}. Cliente: ${cleanClientName || 'Não informado'}.`,
@@ -147,11 +172,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
   // Subtítulo descritivo da proposta conforme o formato
   const proposalTypeLabel =
-    selectedMode === 'simplificado'
-      ? 'Proposta Comercial Simplificada'
-      : selectedMode === 'etapas'
-        ? 'Proposta Executiva Sintética por Etapas'
-        : 'Proposta Técnica & Orçamento Executivo de Obras'
+    selectedMode === 'valor_final'
+      ? 'Proposta Comercial — Valor Global'
+      : selectedMode === 'simplificado'
+        ? 'Proposta Comercial Simplificada'
+        : selectedMode === 'etapas'
+          ? 'Proposta Executiva Sintética por Etapas'
+          : 'Proposta Técnica & Orçamento Executivo de Obras'
 
   // Dados sanitizados contra vazamento de termos de IA
   const cleanCode = sanitizeDocumentText(budget.code)
@@ -210,11 +237,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             <SlidersHorizontal className="w-3.5 h-3.5 text-[#FF6B1F]" />
             <span>
               Opções de Formato (
-              {selectedMode === 'simplificado'
-                ? 'Comercial'
-                : selectedMode === 'etapas'
-                  ? 'Etapas'
-                  : 'Técnico'}
+              {selectedMode === 'valor_final'
+                ? 'Valor Final'
+                : selectedMode === 'simplificado'
+                  ? 'Comercial'
+                  : selectedMode === 'etapas'
+                    ? 'Etapas'
+                    : 'Técnico'}
               )
             </span>
           </button>
@@ -262,8 +291,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </span>
           </div>
 
-          {/* 3 Cartões com os Formatos Pedidos */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {/* 4 Cartões com os Formatos Disponíveis */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {EXPORT_MODE_OPTIONS.map((opt) => {
               const isSelected = selectedMode === opt.id
               const Icon = opt.icon
@@ -344,8 +373,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </span>
             </div>
             <span className="text-[11px] text-[#FF6B1F] font-bold">
-              {selectedMode === 'simplificado' && '✓ Sem insumos nem memória técnica'}
-              {selectedMode === 'etapas' && '✓ Síntese executiva das etapas'}
+              {selectedMode === 'valor_final' &&
+                '✓ Apenas valor final da obra (sem itens, serviços ou detalhamento)'}
+              {selectedMode === 'simplificado' &&
+                '✓ Relação de itens e quantitativos comerciais sem memória técnica'}
+              {selectedMode === 'etapas' && '✓ Síntese executiva e peso percentual das etapas'}
               {selectedMode === 'completo' && '✓ Relatório técnico pleno (TCU + ABC + CPU)'}
             </span>
           </div>
@@ -361,160 +393,378 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         id="conce-printable-proposal"
       >
         {/* ============================================================ */}
-        {/* 1. CAPA INSTITUCIONAL CONCE (Presente em todos os formatos) */}
+        {/* FORMATO 4: APENAS VALOR FINAL (PROPOSTA SIMPLES — VALOR GLOBAL) */}
+        {/* Documento de página única, sóbrio e elegante */}
+        {/* Capa enxuta, identificação das partes, VALOR FINAL como elemento central, */}
+        {/* condições comerciais, bloco de assinatura formal e slogan no rodapé. */}
+        {/* Zero itens, zero serviços, zero coeficientes, zero BDI ou dados técnicos. */}
         {/* ============================================================ */}
-        <section className="min-h-[920px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-screen print:border-4 print:page-break-after-always">
-          {/* Faixa decorativa superior Cobalt + Pumpkin */}
-          <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
+        {selectedMode === 'valor_final' && (
+          <section className="min-h-[960px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-screen print:border-4 print:p-8 print:m-0 print:page-break-inside-avoid">
+            {/* Faixa decorativa superior Cobalt + Pumpkin */}
+            <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
-          {/* Topo da Capa: Logo Oficial */}
-          <div className="flex items-start justify-between pt-4">
-            <div>
-              <ConceLogo height={44} variant="light" />
-              <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-2">
-                SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
-              </p>
-              <p className="text-[10px] text-[#171A1F]/70 font-medium">
-                CNPJ: 57.149.101/0001-46 • RT: Eng. Edenir Souza da Rosa - CREA/RS-252397
+            {/* Topo: Logo Oficial e Dados Cadastrais Enxutos */}
+            <div className="flex items-start justify-between pt-4 border-b border-[#171A1F]/15 pb-6">
+              <div>
+                <ConceLogo height={42} variant="light" />
+                <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-2">
+                  CONCE — SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
+                </p>
+                <p className="text-[10px] text-[#171A1F]/70 font-medium">
+                  CNPJ: 57.149.101/0001-46 • RT: Eng. Edenir Souza da Rosa - CREA/RS-252397
+                </p>
+              </div>
+
+              <div className="text-right">
+                <span className="inline-block px-3 py-1 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
+                  {cleanCode}
+                </span>
+                <p className="text-[11px] text-[#171A1F]/60 mt-1 font-mono">
+                  Emissão: {new Date().toLocaleDateString('pt-BR')}
+                </p>
+                <div className="mt-1">
+                  <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/15 text-[#294C87]">
+                    Proposta Comercial — Valor Global
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cabeçalho do Objeto e Título da Proposta */}
+            <div className="py-4 space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-xs font-bold uppercase tracking-wider">
+                <Award className="w-4 h-4 text-[#FF6B1F]" />
+                <span>Proposta Comercial Direta</span>
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#171A1F] tracking-tight">
+                  {cleanProposalTitle}
+                </h1>
+                {cleanProposalTitle !== cleanWorkName && (
+                  <p className="text-sm font-semibold text-[#294C87] mt-0.5">
+                    Obra: {cleanWorkName}
+                  </p>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-[#171A1F]/80 leading-relaxed max-w-3xl">
+                Apresentamos a presente proposta comercial para execução integral dos serviços de
+                engenharia civil no empreendimento indicado abaixo, sob responsabilidade técnica da
+                CONCE Engenharia, conforme escopo, especificações e prazos acordados entre as
+                partes.
               </p>
             </div>
 
-            <div className="text-right">
-              <span className="inline-block px-3 py-1 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
-                {cleanCode}
-              </span>
-              <p className="text-[11px] text-[#171A1F]/60 mt-1 font-mono">
-                Emissão: {new Date().toLocaleDateString('pt-BR')}
-              </p>
-              <div className="mt-1 flex flex-col items-end gap-1">
-                <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/15 text-[#294C87]">
-                  {selectedMode === 'simplificado'
-                    ? 'Proposta Simplificada'
-                    : selectedMode === 'etapas'
-                      ? 'Resumo por Etapas'
-                      : 'Relatório Técnico Completo'}
+            {/* Identificação das Partes: Cliente e Obra */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="space-y-1.5 p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs">
+                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+                  <span>👤 Cliente / Contratante</span>
                 </span>
-                {budget.publicWork.enabled && (
-                  <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F]">
-                    Licitação Pública ({budget.publicWork.modality})
-                  </span>
+                <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
+                {budget.client.document && (
+                  <p className="text-[#171A1F]/80">
+                    <strong className="text-[#171A1F]">CPF/CNPJ:</strong> {budget.client.document}
+                  </p>
+                )}
+                {budget.client.address && (
+                  <p className="text-[#171A1F]/80">
+                    <strong className="text-[#171A1F]">Endereço:</strong> {budget.client.address}
+                  </p>
+                )}
+                <p className="text-[#171A1F]/80">
+                  <strong className="text-[#171A1F]">Localidade:</strong>{' '}
+                  {budget.client.city || 'Porto Alegre'}/{budget.client.state || 'RS'}
+                  {budget.client.phone ? ` • Tel.: ${budget.client.phone}` : ''}
+                </p>
+                {budget.client.email && (
+                  <p className="text-[#171A1F]/70">
+                    <strong className="text-[#171A1F]">E-mail:</strong> {budget.client.email}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5 p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs">
+                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+                  <span>🏗️ Dados & Local da Obra</span>
+                </span>
+                <p className="font-bold text-sm text-[#171A1F]">{cleanWorkName}</p>
+                <p className="text-[#171A1F]/80">
+                  <strong className="text-[#171A1F]">Endereço da Obra:</strong>{' '}
+                  {budget.work.address || 'Rua Tomaz Gonzaga, 610, Ap. 1803'}
+                </p>
+                <p className="text-[#171A1F]/80">
+                  <strong className="text-[#171A1F]">Cidade/UF:</strong>{' '}
+                  {budget.work.city || 'Porto Alegre'} / {budget.work.state || 'RS'}
+                  {budget.work.totalAreaM2
+                    ? ` • Área: ${budget.work.totalAreaM2.toLocaleString('pt-BR')} m²`
+                    : ''}
+                </p>
+                <p className="font-semibold text-[#171A1F] text-[11px] pt-1">
+                  Responsável Técnico: {cleanAuthor}
+                </p>
+              </div>
+            </div>
+
+            {/* ELEMENTO CENTRAL: O VALOR FINAL DA OBRA */}
+            {/* Sóbrio, elegante, em Poppins, fundo neutro, sem destaque laranja chamativo */}
+            <div className="my-2 p-6 sm:p-7 rounded-2xl bg-[#F4F6F9] border-2 border-[#294C87]/30 shadow-xs text-center space-y-2">
+              <span className="text-[11px] uppercase tracking-widest font-extrabold text-[#294C87] block">
+                VALOR FINAL DA OBRA (PREÇO GLOBAL FECHADO)
+              </span>
+              <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#171A1F] font-mono tracking-tight py-1">
+                {formatCurrencyBRL(summary.finalSalePrice)}
+              </div>
+              <p className="text-xs text-[#171A1F]/70 max-w-xl mx-auto leading-relaxed">
+                Valor total integral com todos os encargos, materiais, serviços técnicos e impostos
+                inclusos (CONCE — Serviço de Engenharia e Consultoria LTDA).
+              </p>
+            </div>
+
+            {/* Condições Comerciais: Forma de Pagamento, Prazo de Execução, Validade */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 space-y-2 shadow-xs">
+                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
+                  Forma & Condições de Pagamento
+                </span>
+                <p className="text-[#171A1F]/90 leading-relaxed font-medium">
+                  • {cleanPaymentTerms}
+                </p>
+                <p className="text-[#171A1F]/70 text-[11px] pt-1 border-t border-[#171A1F]/10">
+                  • Faturamento direto pela CONCE — Serviço de Engenharia e Consultoria LTDA (CNPJ
+                  57.149.101/0001-46).
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 space-y-2 shadow-xs">
+                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
+                  Prazo de Execução & Validade
+                </span>
+                <p className="text-[#171A1F]/90 leading-relaxed font-medium">
+                  • <strong className="text-[#171A1F]">Validade da Proposta:</strong>{' '}
+                  {cleanValidityDays}{' '}
+                  {cleanValidityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'} (a contar da
+                  emissão).
+                </p>
+                {cleanExecutionDeadline && (
+                  <p className="text-[#171A1F]/90 leading-relaxed text-[11px]">
+                    • <strong className="text-[#171A1F]">Prazo:</strong> {cleanExecutionDeadline}
+                  </p>
+                )}
+                {budget.commercialNotes && (
+                  <p className="text-[#171A1F]/75 text-[11px] pt-1 border-t border-[#171A1F]/10">
+                    <strong className="text-[#171A1F]">Observações:</strong>{' '}
+                    {budget.commercialNotes}
+                  </p>
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Miolo da Capa: Título do Empreendimento e Proposta */}
-          <div className="my-auto py-10 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-xs font-bold uppercase tracking-wider">
-              <Award className="w-4 h-4 text-[#FF6B1F]" />
-              <span>{proposalTypeLabel}</span>
-            </div>
-
-            <div>
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-[#171A1F] tracking-tight leading-tight">
-                {cleanProposalTitle}
-              </h1>
-              {cleanProposalTitle !== cleanWorkName && (
-                <p className="text-sm font-semibold text-[#294C87] mt-1">Obra: {cleanWorkName}</p>
-              )}
-            </div>
-
-            <p className="text-sm text-[#171A1F]/80 max-w-2xl leading-relaxed">
-              {cleanWorkDesc ||
-                (selectedMode === 'simplificado'
-                  ? 'Proposta comercial para execução de serviços de engenharia civil com relação discriminada de itens e escopo contratual.'
-                  : 'Orçamento analítico e discriminado de obras civis com detalhamento de insumos, encargos sociais e cálculo do BDI em conformidade com o Acórdão 2.622/2013 do Plenário do Tribunal de Contas da União.')}
-            </p>
-
-            {/* Apresentação sóbria e discreta na capa conforme pedido do usuário (sem megadestaque) */}
-            <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 tracking-wider block">
-                  Estimativa Global da Proposta
-                </span>
-                <span className="text-lg sm:text-xl font-bold text-[#171A1F] font-mono block">
-                  {formatCurrencyBRL(summary.finalSalePrice)}
-                </span>
-                <span className="text-[10px] text-[#171A1F]/50 block">
-                  Condições comerciais detalhadas ao final deste documento
-                </span>
-              </div>
-              <div className="text-right border-l border-[#171A1F]/10 pl-4 shrink-0">
-                <span className="text-[10px] uppercase font-semibold text-[#294C87] block">
-                  Prazo de Execução
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-[#171A1F]">
-                  {budget.work.deadlineMonths} meses
-                </span>
-                <span className="text-[10px] text-[#171A1F]/50 block mt-0.5">
-                  Validade: {cleanValidityDays} dias
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Dados de Identificação Completos do Cliente e da Obra */}
-          <div className="border-t-2 border-[#171A1F]/15 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
-            <div className="space-y-1.5 p-3.5 rounded-xl bg-white/70 border border-[#171A1F]/10">
-              <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
-                <span>👤 Dados do Cliente / Contratante</span>
+            {/* Termo de Garantia e Responsabilidade Técnica */}
+            <div className="p-3.5 rounded-xl bg-white/80 border border-[#171A1F]/10 text-[11px] space-y-1">
+              <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
+                Garantia e Responsabilidade Técnica
               </span>
-              <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
-              <p className="text-[#171A1F]/80">
-                <strong className="text-[#171A1F]">CPF/CNPJ:</strong>{' '}
-                {budget.client.document || 'Não informado'}
+              <p className="text-[#171A1F]/80 leading-relaxed">
+                • Emissão de Anotação de Responsabilidade Técnica (ART) junto ao CREA/RS sob
+                responsabilidade do RT Eng. Edenir Souza da Rosa (CREA/RS-252397). Garantia técnica
+                quinquenal conforme preconiza o Artigo 618 do Código Civil Brasileiro.
               </p>
-              <p className="text-[#171A1F]/80">
-                <strong className="text-[#171A1F]">Endereço:</strong>{' '}
-                {budget.client.address || 'Não informado'}
-              </p>
-              <p className="text-[#171A1F]/80">
-                <strong className="text-[#171A1F]">Cidade/UF:</strong>{' '}
-                {budget.client.city || 'São Paulo'}/{budget.client.state || 'SP'}
-                {budget.client.phone && ` • Tel.: ${budget.client.phone}`}
-              </p>
-              {budget.client.email && (
+            </div>
+
+            {/* Bloco de Assinaturas Formais */}
+            <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-8 text-center text-xs">
+              <div className="space-y-1.5">
+                <div className="w-60 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-sm text-[#171A1F]">{cleanAuthor}</p>
                 <p className="text-[#171A1F]/70">
-                  <strong className="text-[#171A1F]">E-mail:</strong> {budget.client.email}
+                  CONCE — Serviço de Engenharia e Consultoria LTDA
                 </p>
-              )}
+                <p className="text-[11px] text-[#294C87] font-semibold">
+                  Responsável Técnico • CREA/RS-252397
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="w-60 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
+                <p className="text-[#171A1F]/70">CNPJ/CPF: {budget.client.document || '---'}</p>
+                <p className="text-[11px] text-[#294C87] font-semibold">De Acordo / Contratante</p>
+              </div>
             </div>
 
-            <div className="space-y-1.5 p-3.5 rounded-xl bg-white/70 border border-[#171A1F]/10">
-              <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
-                <span>🏗️ Dados & Local da Obra</span>
+            {/* Rodapé Oficial com Logo e Slogan */}
+            <div className="pt-4 border-t border-[#171A1F]/15 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-3">
+                <ConceLogo height={20} variant="light" />
+                <span className="italic font-bold text-[#FF6B1F]">
+                  "Conce é conceito. Conce é concreto."
+                </span>
+              </div>
+              <span className="text-[#171A1F]/50 text-[11px]">
+                Proposta Comercial de Valor Global • CONCE Engenharia
               </span>
-              <p className="font-bold text-sm text-[#171A1F]">{cleanWorkName}</p>
-              <p className="text-[#171A1F]/80">
-                <strong className="text-[#171A1F]">Endereço da Obra:</strong>{' '}
-                {budget.work.address || 'A definir / Conforme memorial'}
-              </p>
-              <p className="text-[#171A1F]/80">
-                <strong className="text-[#171A1F]">Localidade:</strong> {budget.work.city} /{' '}
-                {budget.work.state}
-                {budget.work.totalAreaM2
-                  ? ` • Área: ${budget.work.totalAreaM2.toLocaleString('pt-BR')} m²`
-                  : ''}
-              </p>
-              {/* O regime tributário foi removido dos dados da obra a pedido do usuário */}
-              <p className="font-semibold text-[#171A1F] text-[11px]">
-                Responsável Técnico: {cleanAuthor}
-              </p>
             </div>
-          </div>
+          </section>
+        )}
 
-          {/* Rodapé da Capa com Slogan */}
-          <div className="pt-8 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="italic font-bold text-[#FF6B1F]">
-                "Conce é conceito. Conce é concreto."
+        {/* ============================================================ */}
+        {/* 1. CAPA INSTITUCIONAL CONCE (Presente nos formatos Simplificado, Etapas e Completo) */}
+        {/* ============================================================ */}
+        {selectedMode !== 'valor_final' && (
+          <section className="min-h-[920px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-screen print:border-4 print:page-break-after-always">
+            {/* Faixa decorativa superior Cobalt + Pumpkin */}
+            <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
+
+            {/* Topo da Capa: Logo Oficial */}
+            <div className="flex items-start justify-between pt-4">
+              <div>
+                <ConceLogo height={44} variant="light" />
+                <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-2">
+                  SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
+                </p>
+                <p className="text-[10px] text-[#171A1F]/70 font-medium">
+                  CNPJ: 57.149.101/0001-46 • RT: Eng. Edenir Souza da Rosa - CREA/RS-252397
+                </p>
+              </div>
+
+              <div className="text-right">
+                <span className="inline-block px-3 py-1 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
+                  {cleanCode}
+                </span>
+                <p className="text-[11px] text-[#171A1F]/60 mt-1 font-mono">
+                  Emissão: {new Date().toLocaleDateString('pt-BR')}
+                </p>
+                <div className="mt-1 flex flex-col items-end gap-1">
+                  <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/15 text-[#294C87]">
+                    {selectedMode === 'simplificado'
+                      ? 'Proposta Simplificada'
+                      : selectedMode === 'etapas'
+                        ? 'Resumo por Etapas'
+                        : 'Relatório Técnico Completo'}
+                  </span>
+                  {budget.publicWork.enabled && (
+                    <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F]">
+                      Licitação Pública ({budget.publicWork.modality})
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Miolo da Capa: Título do Empreendimento e Proposta */}
+            <div className="my-auto py-10 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-xs font-bold uppercase tracking-wider">
+                <Award className="w-4 h-4 text-[#FF6B1F]" />
+                <span>{proposalTypeLabel}</span>
+              </div>
+
+              <div>
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-[#171A1F] tracking-tight leading-tight">
+                  {cleanProposalTitle}
+                </h1>
+                {cleanProposalTitle !== cleanWorkName && (
+                  <p className="text-sm font-semibold text-[#294C87] mt-1">Obra: {cleanWorkName}</p>
+                )}
+              </div>
+
+              <p className="text-sm text-[#171A1F]/80 max-w-2xl leading-relaxed">
+                {cleanWorkDesc ||
+                  (selectedMode === 'simplificado'
+                    ? 'Proposta comercial para execução de serviços de engenharia civil com relação discriminada de itens e escopo contratual.'
+                    : 'Orçamento analítico e discriminado de obras civis com detalhamento de insumos, encargos sociais e cálculo do BDI em conformidade com o Acórdão 2.622/2013 do Plenário do Tribunal de Contas da União.')}
+              </p>
+
+              {/* Apresentação sóbria e discreta na capa conforme pedido do usuário (sem megadestaque) */}
+              <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 tracking-wider block">
+                    Estimativa Global da Proposta
+                  </span>
+                  <span className="text-lg sm:text-xl font-bold text-[#171A1F] font-mono block">
+                    {formatCurrencyBRL(summary.finalSalePrice)}
+                  </span>
+                  <span className="text-[10px] text-[#171A1F]/50 block">
+                    Condições comerciais detalhadas ao final deste documento
+                  </span>
+                </div>
+                <div className="text-right border-l border-[#171A1F]/10 pl-4 shrink-0">
+                  <span className="text-[10px] uppercase font-semibold text-[#294C87] block">
+                    Prazo de Execução
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-[#171A1F]">
+                    {budget.work.deadlineMonths} meses
+                  </span>
+                  <span className="text-[10px] text-[#171A1F]/50 block mt-0.5">
+                    Validade: {cleanValidityDays} dias
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dados de Identificação Completos do Cliente e da Obra */}
+            <div className="border-t-2 border-[#171A1F]/15 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+              <div className="space-y-1.5 p-3.5 rounded-xl bg-white/70 border border-[#171A1F]/10">
+                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+                  <span>👤 Dados do Cliente / Contratante</span>
+                </span>
+                <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
+                <p className="text-[#171A1F]/80">
+                  <strong className="text-[#171A1F]">CPF/CNPJ:</strong>{' '}
+                  {budget.client.document || 'Não informado'}
+                </p>
+                <p className="text-[#171A1F]/80">
+                  <strong className="text-[#171A1F]">Endereço:</strong>{' '}
+                  {budget.client.address || 'Não informado'}
+                </p>
+                <p className="text-[#171A1F]/80">
+                  <strong className="text-[#171A1F]">Cidade/UF:</strong>{' '}
+                  {budget.client.city || 'São Paulo'}/{budget.client.state || 'SP'}
+                  {budget.client.phone && ` • Tel.: ${budget.client.phone}`}
+                </p>
+                {budget.client.email && (
+                  <p className="text-[#171A1F]/70">
+                    <strong className="text-[#171A1F]">E-mail:</strong> {budget.client.email}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5 p-3.5 rounded-xl bg-white/70 border border-[#171A1F]/10">
+                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+                  <span>🏗️ Dados & Local da Obra</span>
+                </span>
+                <p className="font-bold text-sm text-[#171A1F]">{cleanWorkName}</p>
+                <p className="text-[#171A1F]/80">
+                  <strong className="text-[#171A1F]">Endereço da Obra:</strong>{' '}
+                  {budget.work.address || 'A definir / Conforme memorial'}
+                </p>
+                <p className="text-[#171A1F]/80">
+                  <strong className="text-[#171A1F]">Localidade:</strong> {budget.work.city} /{' '}
+                  {budget.work.state}
+                  {budget.work.totalAreaM2
+                    ? ` • Área: ${budget.work.totalAreaM2.toLocaleString('pt-BR')} m²`
+                    : ''}
+                </p>
+                {/* O regime tributário foi removido dos dados da obra a pedido do usuário */}
+                <p className="font-semibold text-[#171A1F] text-[11px]">
+                  Responsável Técnico: {cleanAuthor}
+                </p>
+              </div>
+            </div>
+
+            {/* Rodapé da Capa com Slogan */}
+            <div className="pt-8 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="italic font-bold text-[#FF6B1F]">
+                  "Conce é conceito. Conce é concreto."
+                </span>
+              </div>
+              <span className="text-[#171A1F]/50 text-[11px]">
+                Página 1 • Capa Institucional CONCE
               </span>
             </div>
-            <span className="text-[#171A1F]/50 text-[11px]">
-              Página 1 • Capa Institucional CONCE
-            </span>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* ============================================================ */}
         {/* NÍVEL 1: SIMPLIFICADO / COMERCIAL */}
@@ -1400,171 +1650,175 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
         {/* ============================================================ */}
         {/* SEÇÃO FINAL: CONDIÇÕES COMERCIAIS & ASSINATURAS OFICIAIS */}
-        {/* Presente em todos os formatos (Simplificado, Etapas, Completo) */}
-        {/* Valor da proposta apresentado de forma sóbria e discreta no fechamento */}
+        {/* Presente nos formatos Simplificado, Etapas e Completo */}
+        {/* (No formato 'valor_final', o fechamento já está contido na sua página única) */}
         {/* ============================================================ */}
-        <section className="space-y-6 print:page-break-inside-avoid">
-          <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#294C87]">
-                FECHAMENTO & CONDIÇÕES CONTRATUAIS
-              </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
-                Condições Comerciais & Valor da Proposta
-              </h2>
-            </div>
-            <Award className="w-5 h-5 text-[#294C87]" />
-          </div>
-
-          {/* Bloco de Valor da Proposta: Sóbrio, Discreto e Posicionado no Fechamento */}
-          <div className="p-5 rounded-xl bg-white border border-[#171A1F]/20 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-[#294C87] tracking-wider block">
-                Investimento Global Proposto
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-extrabold text-[#171A1F] font-mono tracking-tight">
-                  {formatCurrencyBRL(summary.finalSalePrice)}
-                </span>
-                <span className="text-xs text-[#171A1F]/60">
-                  ({budget.stages.length} etapas • {summary.servicesCount} itens)
-                </span>
-              </div>
-              <p className="text-[11px] text-[#171A1F]/70">
-                Preço final fechado para execução integral do escopo proposto, impostos inclusos
-                (Simples Nacional).
-              </p>
-            </div>
-
-            <div className="text-left md:text-right border-t md:border-t-0 md:border-l border-[#171A1F]/10 pt-3 md:pt-0 md:pl-5 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 block">
-                Validade da Proposta
-              </span>
-              <span className="text-xs sm:text-sm font-bold text-[#294C87] block">
-                {cleanValidityDays}{' '}
-                {cleanValidityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'}
-              </span>
-              <span className="text-[10px] text-[#171A1F]/50 block">
-                A contar da data de emissão: {new Date().toLocaleDateString('pt-BR')}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            {/* Bloco 1: Forma de Pagamento e Prazo de Execução */}
-            <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-3">
+        {selectedMode !== 'valor_final' && (
+          <section className="space-y-6 print:page-break-inside-avoid">
+            <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
               <div>
-                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block mb-1">
-                  Forma & Condições de Pagamento
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#294C87]">
+                  FECHAMENTO & CONDIÇÕES CONTRATUAIS
                 </span>
-                <p className="text-[#171A1F]/90 leading-relaxed font-medium">
-                  • {cleanPaymentTerms}
-                </p>
-                <p className="text-[#171A1F]/70 text-[11px] mt-1">
-                  • Faturamento e emissão de Notas Fiscais emitidas pela CONCE — Serviço de
-                  Engenharia e Consultoria LTDA sob o CNPJ 57.149.101/0001-46.
+                <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
+                  Condições Comerciais & Valor da Proposta
+                </h2>
+              </div>
+              <Award className="w-5 h-5 text-[#294C87]" />
+            </div>
+
+            {/* Bloco de Valor da Proposta: Sóbrio, Discreto e Posicionado no Fechamento */}
+            <div className="p-5 rounded-xl bg-white border border-[#171A1F]/20 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-[#294C87] tracking-wider block">
+                  Investimento Global Proposto
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-[#171A1F] font-mono tracking-tight">
+                    {formatCurrencyBRL(summary.finalSalePrice)}
+                  </span>
+                  <span className="text-xs text-[#171A1F]/60">
+                    ({budget.stages.length} etapas • {summary.servicesCount} itens)
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#171A1F]/70">
+                  Preço final fechado para execução integral do escopo proposto, impostos inclusos
+                  (Simples Nacional).
                 </p>
               </div>
 
-              {cleanExecutionDeadline && (
-                <div className="pt-2 border-t border-[#171A1F]/10">
-                  <span className="font-bold uppercase tracking-wider text-[#FF6B1F] text-[10px] block mb-1">
-                    Prazo de Execução & Condições de Gestão
+              <div className="text-left md:text-right border-t md:border-t-0 md:border-l border-[#171A1F]/10 pt-3 md:pt-0 md:pl-5 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 block">
+                  Validade da Proposta
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-[#294C87] block">
+                  {cleanValidityDays}{' '}
+                  {cleanValidityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'}
+                </span>
+                <span className="text-[10px] text-[#171A1F]/50 block">
+                  A contar da data de emissão: {new Date().toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              {/* Bloco 1: Forma de Pagamento e Prazo de Execução */}
+              <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-3">
+                <div>
+                  <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block mb-1">
+                    Forma & Condições de Pagamento
                   </span>
                   <p className="text-[#171A1F]/90 leading-relaxed font-medium">
-                    • {cleanExecutionDeadline}
+                    • {cleanPaymentTerms}
+                  </p>
+                  <p className="text-[#171A1F]/70 text-[11px] mt-1">
+                    • Faturamento e emissão de Notas Fiscais emitidas pela CONCE — Serviço de
+                    Engenharia e Consultoria LTDA sob o CNPJ 57.149.101/0001-46.
                   </p>
                 </div>
-              )}
 
-              {budget.commercialNotes && (
-                <p className="text-[#171A1F]/80 pt-2 border-t border-[#171A1F]/10">
-                  <strong className="text-[#171A1F]">Notas:</strong> {budget.commercialNotes}
+                {cleanExecutionDeadline && (
+                  <div className="pt-2 border-t border-[#171A1F]/10">
+                    <span className="font-bold uppercase tracking-wider text-[#FF6B1F] text-[10px] block mb-1">
+                      Prazo de Execução & Condições de Gestão
+                    </span>
+                    <p className="text-[#171A1F]/90 leading-relaxed font-medium">
+                      • {cleanExecutionDeadline}
+                    </p>
+                  </div>
+                )}
+
+                {budget.commercialNotes && (
+                  <p className="text-[#171A1F]/80 pt-2 border-t border-[#171A1F]/10">
+                    <strong className="text-[#171A1F]">Notas:</strong> {budget.commercialNotes}
+                  </p>
+                )}
+              </div>
+
+              {/* Bloco 2: Garantia e Obrigações Técnicas */}
+              <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2">
+                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
+                  Garantia e Obrigações Técnicas
+                </span>
+                <p className="text-[#171A1F]/80">
+                  • Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) vinculada ao
+                  CREA/RS sob responsabilidade do RT {cleanAuthor}.
                 </p>
-              )}
+                <p className="text-[#171A1F]/80">
+                  • Garantia legal de 5 (cinco) anos para estabilidade e solidez da obra, conforme
+                  previsto no Artigo 618 do Código Civil Brasileiro.
+                </p>
+                <p className="text-[#171A1F]/80">
+                  • Atendimento irrestrito às normas técnicas da ABNT e NRs de Segurança e Saúde no
+                  Trabalho da Construção Civil.
+                </p>
+              </div>
             </div>
 
-            {/* Bloco 2: Garantia e Obrigações Técnicas */}
-            <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2">
-              <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
-                Garantia e Obrigações Técnicas
-              </span>
-              <p className="text-[#171A1F]/80">
-                • Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) vinculada ao
-                CREA/RS sob responsabilidade do RT {cleanAuthor}.
-              </p>
-              <p className="text-[#171A1F]/80">
-                • Garantia legal de 5 (cinco) anos para estabilidade e solidez da obra, conforme
-                previsto no Artigo 618 do Código Civil Brasileiro.
-              </p>
-              <p className="text-[#171A1F]/80">
-                • Atendimento irrestrito às normas técnicas da ABNT e NRs de Segurança e Saúde no
-                Trabalho da Construção Civil.
-              </p>
-            </div>
-          </div>
-
-          {/* Identificação das Partes e Endereços para Fechamento */}
-          <div className="p-3.5 rounded-xl bg-[#171A1F]/[0.02] border border-[#171A1F]/10 text-[11px] grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <span className="font-bold text-[#294C87]">Contratante:</span>{' '}
-              <span className="font-semibold text-[#171A1F]">{cleanClientName}</span>
-              {budget.client.document && ` (${budget.client.document})`}
-              <br />
-              <span className="text-[#171A1F]/70">
-                Endereço: {budget.client.address || 'Não informado'} • {budget.client.city}/
-                {budget.client.state}
-              </span>
-            </div>
-            <div>
-              <span className="font-bold text-[#294C87]">Local de Execução:</span>{' '}
-              <span className="font-semibold text-[#171A1F]">{cleanWorkName}</span>
-              <br />
-              <span className="text-[#171A1F]/70">
-                Endereço da Obra: {budget.work.address || 'Não informado'} • {budget.work.city}/
-                {budget.work.state}
-              </span>
-            </div>
-          </div>
-
-          {/* Campos Oficiais de Assinatura */}
-          <div className="pt-10 grid grid-cols-1 sm:grid-cols-2 gap-10 text-center text-xs">
-            <div className="space-y-2">
-              <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
-              <p className="font-bold text-sm text-[#171A1F]">{cleanAuthor}</p>
-              <p className="text-[#171A1F]/70">CONCE — Serviço de Engenharia e Consultoria LTDA</p>
-              <p className="text-[11px] text-[#294C87] font-semibold">
-                Responsável Técnico • CREA/RS-252397
-              </p>
+            {/* Identificação das Partes e Endereços para Fechamento */}
+            <div className="p-3.5 rounded-xl bg-[#171A1F]/[0.02] border border-[#171A1F]/10 text-[11px] grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <span className="font-bold text-[#294C87]">Contratante:</span>{' '}
+                <span className="font-semibold text-[#171A1F]">{cleanClientName}</span>
+                {budget.client.document && ` (${budget.client.document})`}
+                <br />
+                <span className="text-[#171A1F]/70">
+                  Endereço: {budget.client.address || 'Não informado'} • {budget.client.city}/
+                  {budget.client.state}
+                </span>
+              </div>
+              <div>
+                <span className="font-bold text-[#294C87]">Local de Execução:</span>{' '}
+                <span className="font-semibold text-[#171A1F]">{cleanWorkName}</span>
+                <br />
+                <span className="text-[#171A1F]/70">
+                  Endereço da Obra: {budget.work.address || 'Não informado'} • {budget.work.city}/
+                  {budget.work.state}
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
-              <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
-              <p className="text-[#171A1F]/70">CNPJ/CPF: {budget.client.document || '---'}</p>
-              <p className="text-[11px] text-[#294C87] font-semibold">
-                De Acordo / Representante Legal
-              </p>
-            </div>
-          </div>
+            {/* Campos Oficiais de Assinatura */}
+            <div className="pt-10 grid grid-cols-1 sm:grid-cols-2 gap-10 text-center text-xs">
+              <div className="space-y-2">
+                <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-sm text-[#171A1F]">{cleanAuthor}</p>
+                <p className="text-[#171A1F]/70">
+                  CONCE — Serviço de Engenharia e Consultoria LTDA
+                </p>
+                <p className="text-[11px] text-[#294C87] font-semibold">
+                  Responsável Técnico • CREA/RS-252397
+                </p>
+              </div>
 
-          {/* Rodapé Final com Logo e Slogan Obrigatório */}
-          <div className="pt-6 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-3">
-              <ConceLogo height={20} variant="light" />
-              <span className="italic font-bold text-[#FF6B1F]">
-                "Conce é conceito. Conce é concreto."
+              <div className="space-y-2">
+                <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
+                <p className="text-[#171A1F]/70">CNPJ/CPF: {budget.client.document || '---'}</p>
+                <p className="text-[11px] text-[#294C87] font-semibold">
+                  De Acordo / Representante Legal
+                </p>
+              </div>
+            </div>
+
+            {/* Rodapé Final com Logo e Slogan Obrigatório */}
+            <div className="pt-6 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-3">
+                <ConceLogo height={20} variant="light" />
+                <span className="italic font-bold text-[#FF6B1F]">
+                  "Conce é conceito. Conce é concreto."
+                </span>
+              </div>
+              <span className="text-[#171A1F]/50 text-[11px]">
+                {selectedMode === 'simplificado'
+                  ? 'Proposta Comercial Simplificada emitida por CONCE Engenharia'
+                  : selectedMode === 'etapas'
+                    ? 'Proposta Sintética por Etapas emitida por CONCE Engenharia'
+                    : 'Documento Técnico Oficial emitido por CONCE Engenharia'}
               </span>
             </div>
-            <span className="text-[#171A1F]/50 text-[11px]">
-              {selectedMode === 'simplificado'
-                ? 'Proposta Comercial Simplificada emitida por CONCE Engenharia'
-                : selectedMode === 'etapas'
-                  ? 'Proposta Sintética por Etapas emitida por CONCE Engenharia'
-                  : 'Documento Técnico Oficial emitido por CONCE Engenharia'}
-            </span>
-          </div>
-        </section>
+          </section>
+        )}
       </div>
     </div>
   )

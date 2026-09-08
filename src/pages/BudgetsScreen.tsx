@@ -85,7 +85,7 @@ export const BudgetsScreen: React.FC = () => {
 
   // Modais de Inteligência e Exportação
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
-  const [pdfInitialMode, setPdfInitialMode] = useState<PdfExportMode>('simplificado')
+  const [pdfInitialMode, setPdfInitialMode] = useState<PdfExportMode>('valor_final')
   const [isRevisionsModalOpen, setIsRevisionsModalOpen] = useState(false)
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
 
@@ -497,7 +497,7 @@ export const BudgetsScreen: React.FC = () => {
             budget={activeBudget}
             onSave={handleSaveActiveBudget}
             onOpenPdfModal={() => {
-              setPdfInitialMode('simplificado')
+              setPdfInitialMode('valor_final')
               setIsPdfModalOpen(true)
             }}
             onOpenExcelExport={() => exportBudgetSpreadsheet(activeBudget, 'completo')}
@@ -988,11 +988,11 @@ export const BudgetsScreen: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setActiveBudget(b)
-                              setPdfInitialMode('simplificado')
+                              setPdfInitialMode('valor_final')
                               setIsPdfModalOpen(true)
                             }}
                             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#294C87] text-[#171A1F] hover:text-white text-xs font-bold transition-colors"
-                            title="Exportar Proposta PDF (Simplificado ou Completo)"
+                            title="Exportar Proposta PDF (Valor Final, Simplificado, Etapas ou Completo)"
                           >
                             <FileSpreadsheet className="w-3.5 h-3.5 text-[#FF6B1F]" />
                             <span className="hidden sm:inline">Exportar PDF</span>
