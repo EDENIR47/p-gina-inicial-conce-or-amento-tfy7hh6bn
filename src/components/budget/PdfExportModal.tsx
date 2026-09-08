@@ -205,7 +205,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   const cleanClientName = sanitizeDocumentText(budget.client.name) || 'Cliente Contratante'
   const cleanPaymentTerms =
     budget.paymentTerms ||
-    'Medições quinzenais com base no avanço físico comprovado em diário de obra; liquidação em até 10 dias após emissão da NF.'
+    '30% de entrada; 30% na entrega dos projetos base; 20% após montagem das estruturas metálicas; saldo após vistoria de entrega.'
   const cleanValidityDays = budget.validityDays ?? 5
   const cleanValidityDaysType =
     budget.validityDaysType || (budget.validityDays === 5 ? 'uteis' : 'corridos')
@@ -400,7 +400,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
       {/* ============================================================ */}
       <div
         ref={printContainerRef}
-        className="w-full max-w-5xl bg-white text-[#171A1F] rounded-2xl shadow-2xl p-6 sm:p-12 mb-12 space-y-10 print:shadow-none print:m-0 print:p-8 print:max-w-none print:w-full print:rounded-none"
+        className="w-full max-w-5xl bg-white text-[#171A1F] rounded-2xl shadow-2xl p-6 sm:p-12 mb-12 space-y-8 print:space-y-4 print:shadow-none print:m-0 print:p-0 print:max-w-none print:w-full print:rounded-none"
         id="conce-printable-proposal"
       >
         {/* ============================================================ */}
@@ -411,15 +411,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Zero itens, zero serviços, zero coeficientes, zero BDI ou dados técnicos. */}
         {/* ============================================================ */}
         {selectedMode === 'valor_final' && (
-          <section className="print-page-section print-single-page min-h-[960px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-0 print:border-4 print:p-8 print:m-0 print:page-break-inside-avoid">
+          <section className="print-page-section print-single-page min-h-[960px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-0 print:border-4 print:p-6 print:m-0 print:page-break-inside-avoid">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
             <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
             {/* Topo: Logo Oficial e Dados Cadastrais Enxutos */}
-            <div className="flex items-start justify-between pt-4 border-b border-[#171A1F]/15 pb-6">
+            <div className="flex items-start justify-between pt-3 border-b border-[#171A1F]/15 pb-4 print:pt-1 print:pb-3">
               <div>
-                <ConceLogo height={42} variant="light" />
-                <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-2">
+                <ConceLogo height={38} variant="light" />
+                <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-1.5 print:mt-1">
                   CONCE — SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
                 </p>
                 <p className="text-[10px] text-[#171A1F]/70 font-medium">
@@ -428,14 +428,14 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </div>
 
               <div className="text-right">
-                <span className="inline-block px-3 py-1 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
+                <span className="inline-block px-2.5 py-0.5 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
                   {cleanCode}
                 </span>
-                <p className="text-[11px] text-[#171A1F]/60 mt-1 font-mono">
+                <p className="text-[10px] text-[#171A1F]/60 mt-0.5 font-mono">
                   Emissão: {new Date().toLocaleDateString('pt-BR')}
                 </p>
-                <div className="mt-1">
-                  <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/15 text-[#294C87]">
+                <div className="mt-0.5">
+                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/15 text-[#294C87]">
                     Proposta Comercial — Valor Global
                   </span>
                 </div>
@@ -443,22 +443,22 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Cabeçalho do Objeto e Título da Proposta */}
-            <div className="py-4 space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-xs font-bold uppercase tracking-wider">
-                <Award className="w-4 h-4 text-[#FF6B1F]" />
+            <div className="py-3 print:py-2 space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-[11px] font-bold uppercase tracking-wider">
+                <Award className="w-3.5 h-3.5 text-[#FF6B1F]" />
                 <span>Proposta Comercial Direta</span>
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#171A1F] tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-[#171A1F] tracking-tight">
                   {cleanProposalTitle}
                 </h1>
                 {cleanProposalTitle !== cleanWorkName && (
-                  <p className="text-sm font-semibold text-[#294C87] mt-0.5">
+                  <p className="text-xs font-semibold text-[#294C87] mt-0.5">
                     Obra: {cleanWorkName}
                   </p>
                 )}
               </div>
-              <p className="text-xs sm:text-sm text-[#171A1F]/80 leading-relaxed max-w-3xl">
+              <p className="text-xs text-[#171A1F]/80 leading-relaxed max-w-3xl">
                 Apresentamos a presente proposta comercial para execução integral dos serviços de
                 engenharia civil no empreendimento indicado abaixo, sob responsabilidade técnica da
                 CONCE Engenharia, conforme escopo, especificações e prazos acordados entre as
@@ -467,51 +467,51 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Identificação das Partes: Cliente e Obra */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="space-y-1.5 p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs print:gap-2.5">
+              <div className="space-y-1 p-3.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs print:p-2.5">
                 <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
                   <span>👤 Cliente / Contratante</span>
                 </span>
-                <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
+                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanClientName}</p>
                 {budget.client.document && (
-                  <p className="text-[#171A1F]/80">
+                  <p className="text-[#171A1F]/80 text-[11px]">
                     <strong className="text-[#171A1F]">CPF/CNPJ:</strong> {budget.client.document}
                   </p>
                 )}
                 {budget.client.address && (
-                  <p className="text-[#171A1F]/80">
+                  <p className="text-[#171A1F]/80 text-[11px]">
                     <strong className="text-[#171A1F]">Endereço:</strong> {budget.client.address}
                   </p>
                 )}
-                <p className="text-[#171A1F]/80">
+                <p className="text-[#171A1F]/80 text-[11px]">
                   <strong className="text-[#171A1F]">Localidade:</strong>{' '}
                   {budget.client.city || 'Porto Alegre'}/{budget.client.state || 'RS'}
                   {budget.client.phone ? ` • Tel.: ${budget.client.phone}` : ''}
                 </p>
                 {budget.client.email && (
-                  <p className="text-[#171A1F]/70">
+                  <p className="text-[#171A1F]/70 text-[11px]">
                     <strong className="text-[#171A1F]">E-mail:</strong> {budget.client.email}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs">
+              <div className="space-y-1 p-3.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs print:p-2.5">
                 <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
                   <span>🏗️ Dados & Local da Obra</span>
                 </span>
-                <p className="font-bold text-sm text-[#171A1F]">{cleanWorkName}</p>
-                <p className="text-[#171A1F]/80">
+                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanWorkName}</p>
+                <p className="text-[#171A1F]/80 text-[11px]">
                   <strong className="text-[#171A1F]">Endereço da Obra:</strong>{' '}
                   {budget.work.address || 'Rua Tomaz Gonzaga, 610, Ap. 1803'}
                 </p>
-                <p className="text-[#171A1F]/80">
+                <p className="text-[#171A1F]/80 text-[11px]">
                   <strong className="text-[#171A1F]">Cidade/UF:</strong>{' '}
                   {budget.work.city || 'Porto Alegre'} / {budget.work.state || 'RS'}
                   {budget.work.totalAreaM2
                     ? ` • Área: ${budget.work.totalAreaM2.toLocaleString('pt-BR')} m²`
                     : ''}
                 </p>
-                <p className="font-semibold text-[#171A1F] text-[11px] pt-1">
+                <p className="font-semibold text-[#171A1F] text-[10px] pt-0.5">
                   Responsável Técnico: {cleanAuthor}
                 </p>
               </div>
@@ -519,51 +519,51 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
             {/* ELEMENTO CENTRAL: O VALOR FINAL DA OBRA */}
             {/* Sóbrio, elegante, em Poppins, fundo neutro, sem destaque laranja chamativo */}
-            <div className="my-2 p-6 sm:p-7 rounded-2xl bg-[#F4F6F9] border-2 border-[#294C87]/30 shadow-xs text-center space-y-2">
-              <span className="text-[11px] uppercase tracking-widest font-extrabold text-[#294C87] block">
+            <div className="my-1.5 p-4 sm:p-5 rounded-2xl bg-[#F4F6F9] border-2 border-[#294C87]/30 shadow-xs text-center space-y-1.5 print:p-3.5 print:my-1">
+              <span className="text-[10px] uppercase tracking-widest font-extrabold text-[#294C87] block">
                 VALOR FINAL DA OBRA (PREÇO GLOBAL FECHADO)
               </span>
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#171A1F] font-mono tracking-tight py-1">
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#171A1F] font-mono tracking-tight py-0.5">
                 {formatCurrencyBRL(summary.finalSalePrice)}
               </div>
-              <p className="text-xs text-[#171A1F]/70 max-w-xl mx-auto leading-relaxed">
+              <p className="text-[11px] text-[#171A1F]/70 max-w-xl mx-auto leading-relaxed">
                 Valor total integral com todos os encargos, materiais, serviços técnicos e impostos
                 inclusos (CONCE — Serviço de Engenharia e Consultoria LTDA).
               </p>
             </div>
 
             {/* Condições Comerciais: Forma de Pagamento, Prazo de Execução, Validade */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 space-y-2 shadow-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs print:gap-2.5">
+              <div className="p-3.5 rounded-xl bg-white border border-[#171A1F]/15 space-y-1.5 shadow-xs print:p-2.5">
                 <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
                   Forma & Condições de Pagamento
                 </span>
-                <p className="text-[#171A1F]/90 leading-relaxed font-medium">
+                <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[11px]">
                   • {cleanPaymentTerms}
                 </p>
-                <p className="text-[#171A1F]/70 text-[11px] pt-1 border-t border-[#171A1F]/10">
+                <p className="text-[#171A1F]/70 text-[10px] pt-1 border-t border-[#171A1F]/10">
                   • Faturamento direto pela CONCE — Serviço de Engenharia e Consultoria LTDA (CNPJ
                   57.149.101/0001-46).
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 space-y-2 shadow-xs">
+              <div className="p-3.5 rounded-xl bg-white border border-[#171A1F]/15 space-y-1.5 shadow-xs print:p-2.5">
                 <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
                   Prazo de Execução & Validade
                 </span>
-                <p className="text-[#171A1F]/90 leading-relaxed font-medium">
+                <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[11px]">
                   • <strong className="text-[#171A1F]">Validade da Proposta:</strong>{' '}
                   {cleanValidityDays}{' '}
                   {cleanValidityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'} (a contar da
                   emissão).
                 </p>
                 {cleanExecutionDeadline && (
-                  <p className="text-[#171A1F]/90 leading-relaxed text-[11px]">
+                  <p className="text-[#171A1F]/90 leading-relaxed text-[10px]">
                     • <strong className="text-[#171A1F]">Prazo:</strong> {cleanExecutionDeadline}
                   </p>
                 )}
                 {budget.commercialNotes && (
-                  <p className="text-[#171A1F]/75 text-[11px] pt-1 border-t border-[#171A1F]/10">
+                  <p className="text-[#171A1F]/75 text-[10px] pt-1 border-t border-[#171A1F]/10">
                     <strong className="text-[#171A1F]">Observações:</strong>{' '}
                     {budget.commercialNotes}
                   </p>
@@ -572,11 +572,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Termo de Garantia e Responsabilidade Técnica */}
-            <div className="p-3.5 rounded-xl bg-white/80 border border-[#171A1F]/10 text-[11px] space-y-1">
-              <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
+            <div className="p-2.5 rounded-xl bg-white/80 border border-[#171A1F]/10 text-[10.5px] space-y-0.5 print:p-2">
+              <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9.5px] block">
                 Garantia e Responsabilidade Técnica
               </span>
-              <p className="text-[#171A1F]/80 leading-relaxed">
+              <p className="text-[#171A1F]/80 leading-relaxed text-[10px]">
                 • Emissão de Anotação de Responsabilidade Técnica (ART) junto ao CREA/RS sob
                 responsabilidade do RT Eng. Edenir Souza da Rosa (CREA/RS-252397). Garantia técnica
                 quinquenal conforme preconiza o Artigo 618 do Código Civil Brasileiro.
@@ -584,35 +584,37 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Bloco de Assinaturas Formais */}
-            <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-8 text-center text-xs">
-              <div className="space-y-1.5">
-                <div className="w-60 mx-auto border-t-2 border-[#171A1F]" />
-                <p className="font-bold text-sm text-[#171A1F]">{cleanAuthor}</p>
-                <p className="text-[#171A1F]/70">
+            <div className="pt-4 print:pt-3 grid grid-cols-1 sm:grid-cols-2 gap-6 print:gap-4 text-center text-xs">
+              <div className="space-y-1">
+                <div className="w-52 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanAuthor}</p>
+                <p className="text-[10px] text-[#171A1F]/70">
                   CONCE — Serviço de Engenharia e Consultoria LTDA
                 </p>
-                <p className="text-[11px] text-[#294C87] font-semibold">
+                <p className="text-[10px] text-[#294C87] font-semibold">
                   Responsável Técnico • CREA/RS-252397
                 </p>
               </div>
 
-              <div className="space-y-1.5">
-                <div className="w-60 mx-auto border-t-2 border-[#171A1F]" />
-                <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
-                <p className="text-[#171A1F]/70">CNPJ/CPF: {budget.client.document || '---'}</p>
-                <p className="text-[11px] text-[#294C87] font-semibold">De Acordo / Contratante</p>
+              <div className="space-y-1">
+                <div className="w-52 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanClientName}</p>
+                <p className="text-[10px] text-[#171A1F]/70">
+                  CNPJ/CPF: {budget.client.document || '---'}
+                </p>
+                <p className="text-[10px] text-[#294C87] font-semibold">De Acordo / Contratante</p>
               </div>
             </div>
 
             {/* Rodapé Oficial com Logo e Slogan */}
-            <div className="pt-4 border-t border-[#171A1F]/15 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-3">
-                <ConceLogo height={20} variant="light" />
-                <span className="italic font-bold text-[#FF6B1F]">
+            <div className="pt-3 print:pt-2 border-t border-[#171A1F]/15 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs">
+              <div className="flex items-center gap-2.5">
+                <ConceLogo height={18} variant="light" />
+                <span className="italic font-bold text-[#FF6B1F] text-[11px]">
                   "Conce é conceito. Conce é concreto."
                 </span>
               </div>
-              <span className="text-[#171A1F]/50 text-[11px]">
+              <span className="text-[#171A1F]/50 text-[10px]">
                 Proposta Comercial de Valor Global • CONCE Engenharia
               </span>
             </div>
@@ -623,15 +625,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* 1. CAPA INSTITUCIONAL CONCE (Presente nos formatos Simplificado, Etapas e Completo) */}
         {/* ============================================================ */}
         {selectedMode !== 'valor_final' && (
-          <section className="print-page-section print-cover-page min-h-[920px] print:min-h-0 print:h-auto flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-4 print:p-8 print:m-0 print:page-break-after-always">
+          <section className="print-page-section print-cover-page min-h-[920px] print:min-h-0 print:h-auto flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-4 print:p-6 print:m-0 print-force-page-break">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
             <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
             {/* Topo da Capa: Logo Oficial */}
-            <div className="flex items-start justify-between pt-4">
+            <div className="flex items-start justify-between pt-3 print:pt-1">
               <div>
-                <ConceLogo height={44} variant="light" />
-                <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-2">
+                <ConceLogo height={40} variant="light" />
+                <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-1.5 print:mt-1">
                   SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
                 </p>
                 <p className="text-[10px] text-[#171A1F]/70 font-medium">
@@ -640,14 +642,14 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </div>
 
               <div className="text-right">
-                <span className="inline-block px-3 py-1 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
+                <span className="inline-block px-2.5 py-0.5 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
                   {cleanCode}
                 </span>
-                <p className="text-[11px] text-[#171A1F]/60 mt-1 font-mono">
+                <p className="text-[10px] text-[#171A1F]/60 mt-0.5 font-mono">
                   Emissão: {new Date().toLocaleDateString('pt-BR')}
                 </p>
-                <div className="mt-1 flex flex-col items-end gap-1">
-                  <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/15 text-[#294C87]">
+                <div className="mt-0.5 flex flex-col items-end gap-0.5">
+                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/15 text-[#294C87]">
                     {selectedMode === 'simplificado'
                       ? 'Proposta Simplificada'
                       : selectedMode === 'etapas'
@@ -655,7 +657,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         : 'Relatório Técnico Completo'}
                   </span>
                   {budget.publicWork?.enabled && (
-                    <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F]">
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F]">
                       Licitação Pública ({budget.publicWork.modality})
                     </span>
                   )}
@@ -664,22 +666,24 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Miolo da Capa: Título do Empreendimento e Proposta */}
-            <div className="my-auto py-10 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-xs font-bold uppercase tracking-wider">
+            <div className="my-auto py-6 print:py-4 space-y-4 print:space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-xs font-bold uppercase tracking-wider">
                 <Award className="w-4 h-4 text-[#FF6B1F]" />
                 <span>{proposalTypeLabel}</span>
               </div>
 
               <div>
-                <h1 className="text-2xl sm:text-4xl font-extrabold text-[#171A1F] tracking-tight leading-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#171A1F] tracking-tight leading-tight">
                   {cleanProposalTitle}
                 </h1>
                 {cleanProposalTitle !== cleanWorkName && (
-                  <p className="text-sm font-semibold text-[#294C87] mt-1">Obra: {cleanWorkName}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-[#294C87] mt-0.5">
+                    Obra: {cleanWorkName}
+                  </p>
                 )}
               </div>
 
-              <p className="text-sm text-[#171A1F]/80 max-w-2xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#171A1F]/80 max-w-2xl leading-relaxed">
                 {cleanWorkDesc ||
                   (selectedMode === 'simplificado'
                     ? 'Proposta comercial para execução de serviços de engenharia civil com relação discriminada de itens e escopo contratual.'
@@ -688,19 +692,19 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
               {/* Apresentação de valor e prazo na capa (oculta no modelo Comercial/Simplificado a pedido do usuário: o valor fica somente na última página) */}
               {selectedMode !== 'simplificado' && (
-                <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-4">
+                <div className="p-3.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-3 print:p-2.5">
                   <div className="space-y-0.5">
                     <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 tracking-wider block">
                       Estimativa Global da Proposta
                     </span>
-                    <span className="text-lg sm:text-xl font-bold text-[#171A1F] font-mono block">
+                    <span className="text-base sm:text-lg font-bold text-[#171A1F] font-mono block">
                       {formatCurrencyBRL(summary.finalSalePrice)}
                     </span>
                     <span className="text-[10px] text-[#171A1F]/50 block">
                       Condições comerciais detalhadas ao final deste documento
                     </span>
                   </div>
-                  <div className="text-right border-l border-[#171A1F]/10 pl-4 shrink-0">
+                  <div className="text-right border-l border-[#171A1F]/10 pl-3 shrink-0">
                     <span className="text-[10px] uppercase font-semibold text-[#294C87] block">
                       Prazo de Execução
                     </span>
@@ -716,63 +720,62 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Dados de Identificação Completos do Cliente e da Obra */}
-            <div className="border-t-2 border-[#171A1F]/15 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
-              <div className="space-y-1.5 p-3.5 rounded-xl bg-white/70 border border-[#171A1F]/10">
+            <div className="border-t-2 border-[#171A1F]/15 pt-4 print:pt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 print:gap-3 text-xs">
+              <div className="space-y-1 p-3 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-2.5">
                 <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
                   <span>👤 Dados do Cliente / Contratante</span>
                 </span>
-                <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
-                <p className="text-[#171A1F]/80">
+                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanClientName}</p>
+                <p className="text-[#171A1F]/80 text-[11px]">
                   <strong className="text-[#171A1F]">CPF/CNPJ:</strong>{' '}
                   {budget.client.document || 'Não informado'}
                 </p>
-                <p className="text-[#171A1F]/80">
+                <p className="text-[#171A1F]/80 text-[11px]">
                   <strong className="text-[#171A1F]">Endereço:</strong>{' '}
                   {budget.client.address || 'Não informado'}
                 </p>
-                <p className="text-[#171A1F]/80">
+                <p className="text-[#171A1F]/80 text-[11px]">
                   <strong className="text-[#171A1F]">Cidade/UF:</strong>{' '}
                   {budget.client.city || 'São Paulo'}/{budget.client.state || 'SP'}
                   {budget.client.phone && ` • Tel.: ${budget.client.phone}`}
                 </p>
                 {budget.client.email && (
-                  <p className="text-[#171A1F]/70">
+                  <p className="text-[#171A1F]/70 text-[11px]">
                     <strong className="text-[#171A1F]">E-mail:</strong> {budget.client.email}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-1.5 p-3.5 rounded-xl bg-white/70 border border-[#171A1F]/10">
+              <div className="space-y-1 p-3 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-2.5">
                 <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
                   <span>🏗️ Dados & Local da Obra</span>
                 </span>
-                <p className="font-bold text-sm text-[#171A1F]">{cleanWorkName}</p>
-                <p className="text-[#171A1F]/80">
+                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanWorkName}</p>
+                <p className="text-[#171A1F]/80 text-[11px]">
                   <strong className="text-[#171A1F]">Endereço da Obra:</strong>{' '}
                   {budget.work.address || 'A definir / Conforme memorial'}
                 </p>
-                <p className="text-[#171A1F]/80">
+                <p className="text-[#171A1F]/80 text-[11px]">
                   <strong className="text-[#171A1F]">Localidade:</strong> {budget.work.city} /{' '}
                   {budget.work.state}
                   {budget.work.totalAreaM2
                     ? ` • Área: ${budget.work.totalAreaM2.toLocaleString('pt-BR')} m²`
                     : ''}
                 </p>
-                {/* O regime tributário foi removido dos dados da obra a pedido do usuário */}
-                <p className="font-semibold text-[#171A1F] text-[11px]">
+                <p className="font-semibold text-[#171A1F] text-[10.5px] pt-0.5">
                   Responsável Técnico: {cleanAuthor}
                 </p>
               </div>
             </div>
 
             {/* Rodapé da Capa com Slogan */}
-            <div className="pt-8 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <div className="pt-4 print:pt-3 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs">
               <div className="flex items-center gap-2">
-                <span className="italic font-bold text-[#FF6B1F]">
+                <span className="italic font-bold text-[#FF6B1F] text-[11px]">
                   "Conce é conceito. Conce é concreto."
                 </span>
               </div>
-              <span className="text-[#171A1F]/50 text-[11px]">
+              <span className="text-[#171A1F]/50 text-[10px]">
                 Página 1 • Capa Institucional CONCE
               </span>
             </div>
@@ -786,14 +789,14 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Tabela elegante com zebra sutil, cabeçalho sóbrio e fechamento discreto */}
         {/* ============================================================ */}
         {selectedMode === 'simplificado' && (
-          <section className="print-page-section space-y-6 print:page-break-after-always">
+          <section className="print-page-section space-y-4 print:space-y-3">
             {/* Cabeçalho da Seção com Identificação do Cliente e Obra */}
-            <div className="border-b-2 border-[#294C87] pb-3 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+            <div className="border-b-2 border-[#294C87] pb-2 flex flex-col sm:flex-row sm:items-end justify-between gap-1.5">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#294C87]">
+                <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#294C87]">
                   PLANILHA COMERCIAL DE SERVIÇOS
                 </span>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
+                <h2 className="text-lg sm:text-xl font-extrabold text-[#171A1F]">
                   Discriminação dos Serviços & Quantitativos
                 </h2>
                 <p className="text-xs text-[#171A1F]/70 mt-0.5">
@@ -803,10 +806,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 </p>
               </div>
               <div className="text-right shrink-0">
-                <span className="text-[11px] font-mono text-[#171A1F]/60 block">
+                <span className="text-[10px] font-mono text-[#171A1F]/60 block">
                   Ref.: {cleanCode}
                 </span>
-                <span className="text-[10px] text-[#294C87] font-semibold">
+                <span className="text-[9.5px] text-[#294C87] font-semibold">
                   Tributação: Simples Nacional
                 </span>
               </div>
@@ -815,13 +818,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             {/* Tabela Limpa e Elegante com Zebra Sutil */}
             <div className="overflow-x-auto border border-[#171A1F]/20 rounded-xl shadow-xs bg-white">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#171A1F] text-white uppercase text-[10px] font-bold tracking-wider">
+                <thead className="bg-[#171A1F] text-white uppercase text-[9.5px] font-bold tracking-wider">
                   <tr>
-                    <th className="py-3 px-3 w-16 text-center">Item</th>
-                    <th className="py-3 px-3">Discriminação dos Serviços Contratados</th>
-                    <th className="py-3 px-3 w-16 text-center">Unid.</th>
-                    <th className="py-3 px-3 w-24 text-right">Quantidade</th>
-                    <th className="py-3 px-4 w-40 text-right">Valor Total (R$)</th>
+                    <th className="py-2 px-2.5 w-16 text-center">Item</th>
+                    <th className="py-2 px-2.5">Discriminação dos Serviços Contratados</th>
+                    <th className="py-2 px-2.5 w-14 text-center">Unid.</th>
+                    <th className="py-2 px-2.5 w-24 text-right">Quantidade</th>
+                    <th className="py-2 px-3 w-36 text-right">Valor Total (R$)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#171A1F]/10">
@@ -833,13 +836,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                       <React.Fragment key={stage.id}>
                         {/* Linha de Macroetapa */}
                         <tr className="bg-[#294C87]/10 font-bold text-[#171A1F] border-t-2 border-[#294C87]/30">
-                          <td className="py-2.5 px-3 font-mono text-[#294C87] text-center font-bold">
+                          <td className="py-1.5 px-2.5 font-mono text-[#294C87] text-center font-bold">
                             {stage.code}
                           </td>
-                          <td className="py-2.5 px-3 uppercase text-xs tracking-wide" colSpan={3}>
+                          <td className="py-1.5 px-2.5 uppercase text-xs tracking-wide" colSpan={3}>
                             {stage.name}
                           </td>
-                          <td className="py-2.5 px-4 text-right font-mono font-bold text-[#294C87] text-xs">
+                          <td className="py-1.5 px-3 text-right font-mono font-bold text-[#294C87] text-xs">
                             {formatCurrencyBRL(stageTotalWithBdi)}
                           </td>
                         </tr>
@@ -859,22 +862,22 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                               key={service.id}
                               className={`transition-colors ${isEven ? 'bg-white' : 'bg-[#F8F9FA]/70'} hover:bg-blue-50/40`}
                             >
-                              <td className="py-2 px-3 font-mono text-[#171A1F]/70 text-center font-semibold">
+                              <td className="py-1.5 px-2.5 font-mono text-[#171A1F]/70 text-center font-semibold text-[11px]">
                                 {service.code}
                               </td>
-                              <td className="py-2 px-3 font-medium text-[#171A1F]">
+                              <td className="py-1.5 px-2.5 font-medium text-[#171A1F]">
                                 {service.description}
                               </td>
-                              <td className="py-2 px-3 text-center font-mono text-[#171A1F]/70">
+                              <td className="py-1.5 px-2.5 text-center font-mono text-[#171A1F]/70 text-[11px]">
                                 {service.unit}
                               </td>
-                              <td className="py-2 px-3 text-right font-mono text-[#171A1F]/80">
+                              <td className="py-1.5 px-2.5 text-right font-mono text-[#171A1F]/80 text-[11px]">
                                 {sQty.toLocaleString('pt-BR', {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}
                               </td>
-                              <td className="py-2 px-4 text-right font-mono font-bold text-[#171A1F]">
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-[#171A1F] text-xs">
                                 {formatCurrencyBRL(totalWithBdi)}
                               </td>
                             </tr>
@@ -888,7 +891,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Nota de Escopo Comercial */}
-            <p className="text-[11px] text-[#171A1F]/60 italic">
+            <p className="text-[10px] text-[#171A1F]/60 italic">
               * Os valores unitários dos serviços englobam mão de obra técnica especializada,
               materiais básicos e acabamentos conforme projetos e especificações acordadas,
               tributação sob regime do Simples Nacional e BDI padrão de engenharia.
@@ -901,13 +904,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Tabela apenas com as macroetapas da obra, valores e percentuais */}
         {/* ============================================================ */}
         {selectedMode === 'etapas' && (
-          <section className="print-page-section space-y-6 print:page-break-after-always">
-            <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
+          <section className="print-page-section space-y-4 print:space-y-3">
+            <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
+                <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
                   SÍNTESE FÍSICO-FINANCEIRA
                 </span>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
+                <h2 className="text-lg sm:text-xl font-extrabold text-[#171A1F]">
                   Resumo Orçamentário por Macroetapas
                 </h2>
                 <p className="text-xs text-[#171A1F]/70 mt-0.5">
@@ -915,19 +918,19 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   investimento.
                 </p>
               </div>
-              <ConceLogo height={22} variant="light" />
+              <ConceLogo height={20} variant="light" />
             </div>
 
             {/* Tabela de Macroetapas */}
             <div className="overflow-x-auto border-2 border-[#171A1F]/20 rounded-xl shadow-xs">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#171A1F] text-white uppercase text-[10px] font-bold tracking-wider">
+                <thead className="bg-[#171A1F] text-white uppercase text-[9.5px] font-bold tracking-wider">
                   <tr>
-                    <th className="py-3 px-4 w-20 text-center">Etapa</th>
-                    <th className="py-3 px-4">Descrição da Macroetapa da Obra</th>
-                    <th className="py-3 px-4 w-32 text-center">Qtd. Serviços</th>
-                    <th className="py-3 px-4 w-44 text-right">Valor Final (R$)</th>
-                    <th className="py-3 px-4 w-24 text-right">Peso %</th>
+                    <th className="py-2 px-3 w-16 text-center">Etapa</th>
+                    <th className="py-2 px-3">Descrição da Macroetapa da Obra</th>
+                    <th className="py-2 px-3 w-28 text-center">Qtd. Serviços</th>
+                    <th className="py-2 px-3 w-36 text-right">Valor Final (R$)</th>
+                    <th className="py-2 px-3 w-20 text-right">Peso %</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#171A1F]/10">
@@ -938,17 +941,19 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
                     return (
                       <tr key={stage.id} className="hover:bg-gray-50/80 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-[#294C87] text-center">
+                        <td className="py-2 px-3 font-mono font-bold text-[#294C87] text-center text-xs">
                           {stage.code}
                         </td>
-                        <td className="py-3 px-4 font-bold text-[#171A1F] text-sm">{stage.name}</td>
-                        <td className="py-3 px-4 text-center font-mono text-[#171A1F]/70">
+                        <td className="py-2 px-3 font-bold text-[#171A1F] text-xs sm:text-sm">
+                          {stage.name}
+                        </td>
+                        <td className="py-2 px-3 text-center font-mono text-[#171A1F]/70 text-[11px]">
                           {stage.services.length} {stage.services.length === 1 ? 'item' : 'itens'}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-[#171A1F] text-sm">
+                        <td className="py-2 px-3 text-right font-mono font-bold text-[#171A1F] text-xs sm:text-sm">
                           {formatCurrencyBRL(stageValue)}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-[#FF6B1F]">
+                        <td className="py-2 px-3 text-right font-mono font-bold text-[#FF6B1F] text-xs">
                           {stagePercent}%
                         </td>
                       </tr>
@@ -957,24 +962,24 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 </tbody>
                 <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs">
                   <tr>
-                    <td className="py-3 px-4 uppercase text-right" colSpan={3}>
+                    <td className="py-2 px-3 uppercase text-right" colSpan={3}>
                       TOTAL GLOBAL DA OBRA:
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-sm sm:text-base font-bold text-white">
+                    <td className="py-2 px-3 text-right font-mono text-sm sm:text-base font-bold text-white">
                       {formatCurrencyBRL(summary.finalSalePrice)}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-white/80">100%</td>
+                    <td className="py-2 px-3 text-right font-mono text-white/80">100%</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
 
             {/* Grade de Cards das Etapas com Barras Visuais */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
               {summary.stagesSubtotals.map((st) => (
                 <div
                   key={st.stageId}
-                  className="p-3.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2"
+                  className="p-2.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1.5"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs font-bold text-[#294C87]">{st.code}</span>
@@ -1005,78 +1010,78 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {selectedMode === 'completo' && (
           <>
             {/* SEÇÃO 1 • RESUMO EXECUTIVO E INDICADORES DA OBRA */}
-            <section className="print-page-section space-y-6 print:page-break-after-always">
-              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
+            <section className="print-page-section space-y-4 print:space-y-3">
+              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
+                  <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
                     SEÇÃO 1 • VISÃO GERAL
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#171A1F]">
                     Resumo Executivo do Orçamento
                   </h2>
                 </div>
-                <ConceLogo height={22} variant="light" />
+                <ConceLogo height={20} variant="light" />
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10">
-                  <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 block">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10">
+                  <span className="text-[9.5px] uppercase font-bold text-[#171A1F]/60 block">
                     Custo Direto Base
                   </span>
-                  <span className="text-base sm:text-lg font-bold text-[#171A1F] block mt-1">
+                  <span className="text-sm sm:text-base font-bold text-[#171A1F] block mt-0.5">
                     {formatCurrencyBRL(summary.directCostInputs)}
                   </span>
-                  <span className="text-[10px] text-[#171A1F]/50">Materiais, MO e Máquinas</span>
+                  <span className="text-[9.5px] text-[#171A1F]/50">Materiais, MO e Máquinas</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10">
-                  <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 block">
+                <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10">
+                  <span className="text-[9.5px] uppercase font-bold text-[#171A1F]/60 block">
                     Encargos Sociais ({budget.chargesConfig?.uf || 'RS'})
                   </span>
-                  <span className="text-base sm:text-lg font-bold text-[#294C87] block mt-1">
+                  <span className="text-sm sm:text-base font-bold text-[#294C87] block mt-0.5">
                     {formatCurrencyBRL(summary.socialChargesAmount)}
                   </span>
-                  <span className="text-[10px] text-[#171A1F]/50">
+                  <span className="text-[9.5px] text-[#171A1F]/50">
                     Taxa de {summary.socialChargesRate.toFixed(2)}%
                   </span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10">
-                  <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 block">
+                <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10">
+                  <span className="text-[9.5px] uppercase font-bold text-[#171A1F]/60 block">
                     BDI TCU Acórdão 2.622
                   </span>
-                  <span className="text-base sm:text-lg font-bold text-[#FF6B1F] block mt-1">
+                  <span className="text-sm sm:text-base font-bold text-[#FF6B1F] block mt-0.5">
                     {formatCurrencyBRL(summary.bdiAmount)}
                   </span>
-                  <span className="text-[10px] text-[#171A1F]/50">
+                  <span className="text-[9.5px] text-[#171A1F]/50">
                     Taxa de {summary.bdiRate.toFixed(2)}%
                   </span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#171A1F] text-white border border-[#171A1F]">
-                  <span className="text-[10px] uppercase font-bold text-[#FF6B1F] block">
+                <div className="p-3 rounded-xl bg-[#171A1F] text-white border border-[#171A1F]">
+                  <span className="text-[9.5px] uppercase font-bold text-[#FF6B1F] block">
                     Preço de Venda Final
                   </span>
-                  <span className="text-base sm:text-lg font-bold text-white block mt-1">
+                  <span className="text-sm sm:text-base font-bold text-white block mt-0.5">
                     {formatCurrencyBRL(summary.finalSalePrice)}
                   </span>
-                  <span className="text-[10px] text-white/60">Valor Global Fechado</span>
+                  <span className="text-[9.5px] text-white/60">Valor Global Fechado</span>
                 </div>
               </div>
 
               {/* Distribuição por Macrogrupos de Custo */}
-              <div className="p-5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#171A1F]/80">
+              <div className="p-3.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#171A1F]/80">
                   Apropriação dos Custos Diretos por Categoria
                 </h3>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                  <div className="p-3 bg-white rounded-lg border border-[#171A1F]/10">
-                    <span className="text-[#171A1F]/60 block">Materiais</span>
-                    <span className="font-bold text-[#171A1F] text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                  <div className="p-2.5 bg-white rounded-lg border border-[#171A1F]/10">
+                    <span className="text-[#171A1F]/60 block text-[11px]">Materiais</span>
+                    <span className="font-bold text-[#171A1F] text-xs sm:text-sm">
                       {formatCurrencyBRL(summary.materialDirectCost)}
                     </span>
-                    <span className="text-[10px] text-[#294C87] block font-semibold">
+                    <span className="text-[9.5px] text-[#294C87] block font-semibold">
                       {summary.totalDirectCost > 0
                         ? ((summary.materialDirectCost / summary.totalDirectCost) * 100).toFixed(1)
                         : 0}
@@ -1084,12 +1089,12 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     </span>
                   </div>
 
-                  <div className="p-3 bg-white rounded-lg border border-[#171A1F]/10">
-                    <span className="text-[#171A1F]/60 block">Mão de Obra c/ Leis</span>
-                    <span className="font-bold text-[#171A1F] text-sm">
+                  <div className="p-2.5 bg-white rounded-lg border border-[#171A1F]/10">
+                    <span className="text-[#171A1F]/60 block text-[11px]">Mão de Obra c/ Leis</span>
+                    <span className="font-bold text-[#171A1F] text-xs sm:text-sm">
                       {formatCurrencyBRL(summary.laborDirectCost + summary.socialChargesAmount)}
                     </span>
-                    <span className="text-[10px] text-[#294C87] block font-semibold">
+                    <span className="text-[9.5px] text-[#294C87] block font-semibold">
                       {summary.totalDirectCost > 0
                         ? (
                             ((summary.laborDirectCost + summary.socialChargesAmount) /
@@ -1101,12 +1106,12 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     </span>
                   </div>
 
-                  <div className="p-3 bg-white rounded-lg border border-[#171A1F]/10">
-                    <span className="text-[#171A1F]/60 block">Equipamentos</span>
-                    <span className="font-bold text-[#171A1F] text-sm">
+                  <div className="p-2.5 bg-white rounded-lg border border-[#171A1F]/10">
+                    <span className="text-[#171A1F]/60 block text-[11px]">Equipamentos</span>
+                    <span className="font-bold text-[#171A1F] text-xs sm:text-sm">
                       {formatCurrencyBRL(summary.equipmentDirectCost)}
                     </span>
-                    <span className="text-[10px] text-[#294C87] block font-semibold">
+                    <span className="text-[9.5px] text-[#294C87] block font-semibold">
                       {summary.totalDirectCost > 0
                         ? ((summary.equipmentDirectCost / summary.totalDirectCost) * 100).toFixed(1)
                         : 0}
@@ -1114,12 +1119,14 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     </span>
                   </div>
 
-                  <div className="p-3 bg-white rounded-lg border border-[#171A1F]/10">
-                    <span className="text-[#171A1F]/60 block">Serviços de Terceiros</span>
-                    <span className="font-bold text-[#171A1F] text-sm">
+                  <div className="p-2.5 bg-white rounded-lg border border-[#171A1F]/10">
+                    <span className="text-[#171A1F]/60 block text-[11px]">
+                      Serviços de Terceiros
+                    </span>
+                    <span className="font-bold text-[#171A1F] text-xs sm:text-sm">
                       {formatCurrencyBRL(summary.subcontractDirectCost)}
                     </span>
-                    <span className="text-[10px] text-[#294C87] block font-semibold">
+                    <span className="text-[9.5px] text-[#294C87] block font-semibold">
                       {summary.totalDirectCost > 0
                         ? ((summary.subcontractDirectCost / summary.totalDirectCost) * 100).toFixed(
                             1,
@@ -1133,17 +1140,17 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 2 • PLANILHA ORÇAMENTÁRIA DETALHADA COM BDI */}
-            <section className="print-page-section space-y-4 print:page-break-after-always">
-              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
+            <section className="print-page-section space-y-3">
+              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
+                  <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
                     SEÇÃO 2 • DISCRIMINAÇÃO TÉCNICA
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#171A1F]">
                     Planilha Orçamentária por Etapa e Serviço
                   </h2>
                 </div>
-                <span className="font-mono text-xs text-[#171A1F]/60">
+                <span className="font-mono text-[11px] text-[#171A1F]/60">
                   Total de Etapas: {budget.stages.length}
                 </span>
               </div>
@@ -1152,14 +1159,14 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#171A1F] text-white uppercase text-[10px] font-bold tracking-wider">
                     <tr>
-                      <th className="py-3 px-3 w-16">Item</th>
-                      <th className="py-3 px-3">Discriminação das Etapas e Serviços</th>
-                      <th className="py-3 px-3 w-16 text-center">Unid.</th>
-                      <th className="py-3 px-3 w-20 text-right">Qtd.</th>
-                      <th className="py-3 px-3 w-28 text-right">Unitário Direto</th>
-                      <th className="py-3 px-3 w-28 text-right">Unitário c/ BDI</th>
-                      <th className="py-3 px-3 w-32 text-right">Total c/ BDI</th>
-                      <th className="py-3 px-2 w-16 text-right">Peso %</th>
+                      <th className="py-2 px-2.5 w-14">Item</th>
+                      <th className="py-2 px-2.5">Discriminação das Etapas e Serviços</th>
+                      <th className="py-2 px-2 text-center w-12">Unid.</th>
+                      <th className="py-2 px-2 text-right w-16">Qtd.</th>
+                      <th className="py-2 px-2.5 text-right w-24">Unitário Direto</th>
+                      <th className="py-2 px-2.5 text-right w-24">Unitário c/ BDI</th>
+                      <th className="py-2 px-2.5 text-right w-28">Total c/ BDI</th>
+                      <th className="py-2 px-2 text-right w-14">Peso %</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#171A1F]/10">
@@ -1172,17 +1179,17 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         <React.Fragment key={stage.id}>
                           {/* Linha da Etapa */}
                           <tr className="bg-[#294C87]/10 font-extrabold text-[#171A1F] border-t-2 border-[#294C87]/40">
-                            <td className="py-2.5 px-3 font-mono text-[#294C87]">{stage.code}</td>
-                            <td className="py-2.5 px-3 uppercase text-xs" colSpan={4}>
+                            <td className="py-1.5 px-2.5 font-mono text-[#294C87]">{stage.code}</td>
+                            <td className="py-1.5 px-2.5 uppercase text-xs" colSpan={4}>
                               {stage.name}
                             </td>
-                            <td className="py-2.5 px-3 text-right text-[11px] text-[#171A1F]/60">
+                            <td className="py-1.5 px-2.5 text-right text-[10px] text-[#171A1F]/60">
                               Subtotal Etapa:
                             </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-[#294C87] text-sm">
+                            <td className="py-1.5 px-2.5 text-right font-mono font-bold text-[#294C87] text-xs">
                               {formatCurrencyBRL(stageSummary ? stageSummary.withBdi : 0)}
                             </td>
-                            <td className="py-2.5 px-2 text-right font-mono font-bold text-[#FF6B1F]">
+                            <td className="py-1.5 px-2 text-right font-mono font-bold text-[#FF6B1F] text-xs">
                               {stageSummary ? `${stageSummary.percentageOfTotal}%` : '0%'}
                             </td>
                           </tr>
@@ -1205,34 +1212,36 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                                 key={service.id}
                                 className="hover:bg-gray-50/80 transition-colors"
                               >
-                                <td className="py-2 px-3 font-mono text-[#171A1F]/60 font-semibold">
+                                <td className="py-1.5 px-2.5 font-mono text-[#171A1F]/60 font-semibold text-[11px]">
                                   {service.code}
                                 </td>
-                                <td className="py-2 px-3">
+                                <td className="py-1.5 px-2.5">
                                   <span className="font-semibold text-[#171A1F]">
                                     {service.description}
                                   </span>
                                   {service.composition && (
-                                    <span className="block font-mono text-[10px] text-[#171A1F]/50">
+                                    <span className="block font-mono text-[9.5px] text-[#171A1F]/50">
                                       Comp: {service.composition.code} (
                                       {sanitizeDocumentSource(service.composition.source)})
                                     </span>
                                   )}
                                 </td>
-                                <td className="py-2 px-3 text-center font-mono">{service.unit}</td>
-                                <td className="py-2 px-3 text-right font-mono">
+                                <td className="py-1.5 px-2 text-center font-mono text-[11px]">
+                                  {service.unit}
+                                </td>
+                                <td className="py-1.5 px-2 text-right font-mono text-[11px]">
                                   {sQty.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </td>
-                                <td className="py-2 px-3 text-right font-mono text-[#171A1F]/70">
+                                <td className="py-1.5 px-2.5 text-right font-mono text-[#171A1F]/70 text-[11px]">
                                   {formatCurrencyBRL(compUnit)}
                                 </td>
-                                <td className="py-2 px-3 text-right font-mono font-semibold text-[#294C87]">
+                                <td className="py-1.5 px-2.5 text-right font-mono font-semibold text-[#294C87] text-[11px]">
                                   {formatCurrencyBRL(unitWithBdi)}
                                 </td>
-                                <td className="py-2 px-3 text-right font-mono font-bold text-[#171A1F]">
+                                <td className="py-1.5 px-2.5 text-right font-mono font-bold text-[#171A1F] text-xs">
                                   {formatCurrencyBRL(totalWithBdi)}
                                 </td>
-                                <td className="py-2 px-2 text-right font-mono text-[11px] text-[#171A1F]/60">
+                                <td className="py-1.5 px-2 text-right font-mono text-[10px] text-[#171A1F]/60">
                                   {weight.toFixed(1)}%
                                 </td>
                               </tr>
@@ -1244,13 +1253,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   </tbody>
                   <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs">
                     <tr>
-                      <td className="py-3 px-3 uppercase text-right" colSpan={6}>
+                      <td className="py-2 px-2.5 uppercase text-right" colSpan={6}>
                         VALOR TOTAL GERAL DA PROPOSTA (PREÇO DE VENDA COM BDI):
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-sm font-bold text-white">
+                      <td className="py-2 px-2.5 text-right font-mono text-xs sm:text-sm font-bold text-white">
                         {formatCurrencyBRL(summary.finalSalePrice)}
                       </td>
-                      <td className="py-3 px-2 text-right font-mono text-white/80">100%</td>
+                      <td className="py-2 px-2 text-right font-mono text-white/80 text-[11px]">
+                        100%
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
@@ -1258,26 +1269,26 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 3 • COMPOSIÇÕES DE CUSTOS UNITÁRIOS (CPU DETALHADA) */}
-            <section className="print-page-section space-y-4 print:page-break-after-always">
-              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
+            <section className="print-page-section space-y-3">
+              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
+                  <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
                     SEÇÃO 3 • ENGENHARIA DE DETALHAMENTO
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#171A1F]">
                     Composição de Custos Unitários (CPU Analítica)
                   </h2>
                 </div>
-                <Calculator className="w-5 h-5 text-[#294C87]" />
+                <Calculator className="w-4 h-4 text-[#294C87]" />
               </div>
 
-              <p className="text-xs text-[#171A1F]/70 leading-relaxed">
+              <p className="text-[11px] text-[#171A1F]/70 leading-relaxed">
                 Detalhamento de coeficientes de consumo, categorias (material, mão de obra,
                 equipamentos) e custos base que formam as composições de referência utilizadas neste
                 orçamento.
               </p>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {budget.stages.flatMap((st) =>
                   st.services.map((serv) => {
                     const comp = serv.composition
@@ -1288,14 +1299,16 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         key={serv.id}
                         className="border border-[#171A1F]/15 rounded-xl overflow-hidden bg-white shadow-xs"
                       >
-                        <div className="bg-[#F4F6F9] px-4 py-2.5 border-b border-[#171A1F]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div className="bg-[#F4F6F9] px-3.5 py-2 border-b border-[#171A1F]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold px-2 py-0.5 rounded bg-[#294C87] text-white text-[10px]">
+                            <span className="font-mono font-bold px-1.5 py-0.5 rounded bg-[#294C87] text-white text-[9.5px]">
                               {comp.code}
                             </span>
-                            <span className="font-bold text-[#171A1F]">{serv.description}</span>
+                            <span className="font-bold text-[#171A1F] text-xs">
+                              {serv.description}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-3 text-[#171A1F]/70 text-[11px]">
+                          <div className="flex items-center gap-2.5 text-[#171A1F]/70 text-[10.5px]">
                             <span>
                               Unidade:{' '}
                               <strong className="text-[#171A1F] font-mono">{comp.unit}</strong>
@@ -1311,15 +1324,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         </div>
 
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-[#171A1F]/5 text-[#171A1F]/70 text-[10px] font-bold uppercase">
+                          <thead className="bg-[#171A1F]/5 text-[#171A1F]/70 text-[9.5px] font-bold uppercase">
                             <tr>
-                              <th className="py-2 px-3 w-24">Código Insumo</th>
-                              <th className="py-2 px-3">Descrição do Insumo / Parcela</th>
-                              <th className="py-2 px-3 w-28">Tipo</th>
-                              <th className="py-2 px-3 w-16 text-center">Unid.</th>
-                              <th className="py-2 px-3 w-24 text-right">Coeficiente</th>
-                              <th className="py-2 px-3 w-24 text-right">Custo Unit. (R$)</th>
-                              <th className="py-2 px-3 w-24 text-right">Total Parcela (R$)</th>
+                              <th className="py-1.5 px-2.5 w-24">Código Insumo</th>
+                              <th className="py-1.5 px-2.5">Descrição do Insumo / Parcela</th>
+                              <th className="py-1.5 px-2.5 w-24">Tipo</th>
+                              <th className="py-1.5 px-2 text-center w-14">Unid.</th>
+                              <th className="py-1.5 px-2 text-right w-20">Coeficiente</th>
+                              <th className="py-1.5 px-2 text-right w-24">Custo Unit. (R$)</th>
+                              <th className="py-1.5 px-2.5 text-right w-24">Total Parcela (R$)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#171A1F]/5">
@@ -1330,25 +1343,25 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
                               return (
                                 <tr key={idx} className="hover:bg-gray-50/50">
-                                  <td className="py-1.5 px-3 font-mono text-[11px] text-[#294C87]">
+                                  <td className="py-1 px-2.5 font-mono text-[10.5px] text-[#294C87]">
                                     {inp.code}
                                   </td>
-                                  <td className="py-1.5 px-3 font-medium text-[#171A1F]">
+                                  <td className="py-1 px-2.5 font-medium text-[#171A1F] text-[11px]">
                                     {inp.description}
                                   </td>
-                                  <td className="py-1.5 px-3 uppercase text-[10px] font-semibold text-[#171A1F]/60">
+                                  <td className="py-1 px-2.5 uppercase text-[9.5px] font-semibold text-[#171A1F]/60">
                                     {inp.category.replace('_', ' ')}
                                   </td>
-                                  <td className="py-1.5 px-3 text-center font-mono text-[11px]">
+                                  <td className="py-1 px-2 text-center font-mono text-[10.5px]">
                                     {inp.unit}
                                   </td>
-                                  <td className="py-1.5 px-3 text-right font-mono text-[11px]">
+                                  <td className="py-1 px-2 text-right font-mono text-[10.5px]">
                                     {coef.toFixed(4)}
                                   </td>
-                                  <td className="py-1.5 px-3 text-right font-mono text-[11px]">
+                                  <td className="py-1 px-2 text-right font-mono text-[10.5px]">
                                     {formatCurrencyBRL(unitCost)}
                                   </td>
-                                  <td className="py-1.5 px-3 text-right font-mono font-semibold text-[#171A1F]">
+                                  <td className="py-1 px-2.5 text-right font-mono font-semibold text-[#171A1F] text-[11px]">
                                     {formatCurrencyBRL(parcelCost)}
                                   </td>
                                 </tr>
@@ -1364,57 +1377,57 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 4 • CURVA ABC DE INSUMOS (PARETO) */}
-            <section className="print-page-section space-y-4 print:page-break-after-always">
-              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
+            <section className="print-page-section space-y-3">
+              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
+                  <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
                     SEÇÃO 4 • ANÁLISE DE PARETO
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#171A1F]">
                     Curva ABC dos Insumos de Maior Impacto
                   </h2>
                 </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#FF6B1F]/15 text-[#FF6B1F] text-xs font-bold">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#FF6B1F]/15 text-[#FF6B1F] text-[11px] font-bold">
                   <span>Classe A: Destaque Pumpkin Orange</span>
                 </div>
               </div>
 
               {/* Cards com os blocos A, B e C */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl bg-[#FF6B1F]/10 border-2 border-[#FF6B1F]">
-                  <span className="text-xs font-bold text-[#FF6B1F] uppercase block">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="p-3 rounded-xl bg-[#FF6B1F]/10 border-2 border-[#FF6B1F]">
+                  <span className="text-[11px] font-bold text-[#FF6B1F] uppercase block">
                     Classe A (Prioridade Máxima)
                   </span>
-                  <div className="text-lg font-extrabold text-[#171A1F] mt-1">
+                  <div className="text-base sm:text-lg font-extrabold text-[#171A1F] mt-0.5">
                     {formatCurrencyBRL(abc.classA.totalCost)}
                   </div>
-                  <p className="text-[11px] text-[#171A1F]/70 mt-0.5">
+                  <p className="text-[10.5px] text-[#171A1F]/70 mt-0.5">
                     {abc.classA.itemsCount} itens ({abc.classA.percentageOfItems}%) representam{' '}
                     <strong>{abc.classA.percentageOfCost}%</strong> do custo direto
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#294C87]/10 border border-[#294C87]/40">
-                  <span className="text-xs font-bold text-[#294C87] uppercase block">
+                <div className="p-3 rounded-xl bg-[#294C87]/10 border border-[#294C87]/40">
+                  <span className="text-[11px] font-bold text-[#294C87] uppercase block">
                     Classe B (Impacto Médio)
                   </span>
-                  <div className="text-lg font-extrabold text-[#171A1F] mt-1">
+                  <div className="text-base sm:text-lg font-extrabold text-[#171A1F] mt-0.5">
                     {formatCurrencyBRL(abc.classB.totalCost)}
                   </div>
-                  <p className="text-[11px] text-[#171A1F]/70 mt-0.5">
+                  <p className="text-[10.5px] text-[#171A1F]/70 mt-0.5">
                     {abc.classB.itemsCount} itens ({abc.classB.percentageOfItems}%) representam{' '}
                     <strong>{abc.classB.percentageOfCost}%</strong> do custo
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#171A1F]/5 border border-[#171A1F]/15">
-                  <span className="text-xs font-bold text-[#171A1F]/70 uppercase block">
+                <div className="p-3 rounded-xl bg-[#171A1F]/5 border border-[#171A1F]/15">
+                  <span className="text-[11px] font-bold text-[#171A1F]/70 uppercase block">
                     Classe C (Itens Secundários)
                   </span>
-                  <div className="text-lg font-extrabold text-[#171A1F] mt-1">
+                  <div className="text-base sm:text-lg font-extrabold text-[#171A1F] mt-0.5">
                     {formatCurrencyBRL(abc.classC.totalCost)}
                   </div>
-                  <p className="text-[11px] text-[#171A1F]/70 mt-0.5">
+                  <p className="text-[10.5px] text-[#171A1F]/70 mt-0.5">
                     {abc.classC.itemsCount} itens ({abc.classC.percentageOfItems}%) somam{' '}
                     <strong>{abc.classC.percentageOfCost}%</strong>
                   </p>
@@ -1424,17 +1437,17 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               {/* Tabela dos Principais Itens da Curva ABC */}
               <div className="overflow-x-auto border border-[#171A1F]/20 rounded-xl">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#171A1F] text-white uppercase text-[10px] font-bold">
+                  <thead className="bg-[#171A1F] text-white uppercase text-[9.5px] font-bold">
                     <tr>
-                      <th className="py-2.5 px-3 w-14 text-center">Rank</th>
-                      <th className="py-2.5 px-3 w-16 text-center">Classe</th>
-                      <th className="py-2.5 px-3 w-24">Código</th>
-                      <th className="py-2.5 px-3">Descrição do Insumo</th>
-                      <th className="py-2.5 px-3 w-20">Tipo</th>
-                      <th className="py-2.5 px-3 w-20 text-right">Qtd. Total</th>
-                      <th className="py-2.5 px-3 w-24 text-right">Custo Unit.</th>
-                      <th className="py-2.5 px-3 w-28 text-right">Custo Total</th>
-                      <th className="py-2.5 px-3 w-20 text-right">% Acumulada</th>
+                      <th className="py-2 px-2.5 w-12 text-center">Rank</th>
+                      <th className="py-2 px-2 w-14 text-center">Classe</th>
+                      <th className="py-2 px-2.5 w-20">Código</th>
+                      <th className="py-2 px-2.5">Descrição do Insumo</th>
+                      <th className="py-2 px-2 w-18">Tipo</th>
+                      <th className="py-2 px-2 text-right w-18">Qtd. Total</th>
+                      <th className="py-2 px-2.5 text-right w-22">Custo Unit.</th>
+                      <th className="py-2 px-2.5 text-right w-24">Custo Total</th>
+                      <th className="py-2 px-2 text-right w-18">% Acumulada</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#171A1F]/10">
@@ -1447,12 +1460,12 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                             : 'hover:bg-gray-50'
                         }
                       >
-                        <td className="py-2 px-3 text-center font-bold text-[#171A1F]">
+                        <td className="py-1.5 px-2.5 text-center font-bold text-[#171A1F] text-[11px]">
                           #{item.rank}
                         </td>
-                        <td className="py-2 px-3 text-center">
+                        <td className="py-1.5 px-2 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                            className={`px-1.5 py-0.5 rounded text-[9.5px] font-extrabold ${
                               item.classification === 'A'
                                 ? 'bg-[#FF6B1F] text-white'
                                 : item.classification === 'B'
@@ -1463,26 +1476,26 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                             {item.classification}
                           </span>
                         </td>
-                        <td className="py-2 px-3 font-mono text-[11px] text-[#294C87] font-bold">
+                        <td className="py-1.5 px-2.5 font-mono text-[10.5px] text-[#294C87] font-bold">
                           {item.code}
                         </td>
-                        <td className="py-2 px-3 font-semibold text-[#171A1F]">
+                        <td className="py-1.5 px-2.5 font-semibold text-[#171A1F] text-[11px]">
                           {item.description}
                         </td>
-                        <td className="py-2 px-3 uppercase text-[10px] text-[#171A1F]/60">
+                        <td className="py-1.5 px-2 uppercase text-[9.5px] text-[#171A1F]/60">
                           {item.category.replace('_', ' ')}
                         </td>
-                        <td className="py-2 px-3 text-right font-mono text-[11px]">
+                        <td className="py-1.5 px-2 text-right font-mono text-[10.5px]">
                           {item.totalQuantity.toLocaleString('pt-BR')} {item.unit}
                         </td>
-                        <td className="py-2 px-3 text-right font-mono text-[11px]">
+                        <td className="py-1.5 px-2.5 text-right font-mono text-[10.5px]">
                           {formatCurrencyBRL(item.unitCost)}
                         </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-[#171A1F]">
+                        <td className="py-1.5 px-2.5 text-right font-mono font-bold text-[#171A1F] text-[11px]">
                           {formatCurrencyBRL(item.totalCost)}
                         </td>
                         <td
-                          className={`py-2 px-3 text-right font-mono font-bold ${
+                          className={`py-1.5 px-2 text-right font-mono font-bold text-[10.5px] ${
                             item.classification === 'A' ? 'text-[#FF6B1F]' : 'text-[#294C87]'
                           }`}
                         >
@@ -1496,17 +1509,17 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </section>
 
             {/* SEÇÃO 5 • MEMÓRIA DE BDI (TCU) E ENCARGOS SOCIAIS */}
-            <section className="print-page-section space-y-4 print:page-break-after-always">
-              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
+            <section className="print-page-section space-y-3">
+              <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
+                  <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#FF6B1F]">
                     SEÇÃO 5 • CONFORMIDADE LEGAL
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#171A1F]">
                     Memória de Cálculo de BDI TCU & Encargos Sociais
                   </h2>
                 </div>
-                <ShieldCheck className="w-5 h-5 text-[#294C87]" />
+                <ShieldCheck className="w-4 h-4 text-[#294C87]" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
@@ -1667,101 +1680,101 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* (No formato 'valor_final', o fechamento já está contido na sua página única) */}
         {/* ============================================================ */}
         {selectedMode !== 'valor_final' && (
-          <section className="print-page-section space-y-6 print:page-break-inside-avoid">
-            <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-3">
+          <section className="print-page-section space-y-4 print:space-y-3 print:page-break-inside-avoid">
+            <div className="flex items-center justify-between border-b-2 border-[#294C87] pb-2">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#294C87]">
+                <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-[#294C87]">
                   FECHAMENTO & CONDIÇÕES CONTRATUAIS
                 </span>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-[#171A1F]">
+                <h2 className="text-lg sm:text-xl font-extrabold text-[#171A1F]">
                   Condições Comerciais & Valor da Proposta
                 </h2>
               </div>
-              <Award className="w-5 h-5 text-[#294C87]" />
+              <Award className="w-4 h-4 text-[#294C87]" />
             </div>
 
             {/* Bloco de Valor da Proposta: Sóbrio, Discreto e Posicionado no Fechamento */}
-            <div className="p-5 rounded-xl bg-white border border-[#171A1F]/20 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-[#294C87] tracking-wider block">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-white border border-[#171A1F]/20 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <span className="text-[9.5px] uppercase font-bold text-[#294C87] tracking-wider block">
                   Investimento Global Proposto
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-extrabold text-[#171A1F] font-mono tracking-tight">
+                  <span className="text-xl sm:text-2xl font-extrabold text-[#171A1F] font-mono tracking-tight">
                     {formatCurrencyBRL(summary.finalSalePrice)}
                   </span>
-                  <span className="text-xs text-[#171A1F]/60">
+                  <span className="text-[11px] text-[#171A1F]/60">
                     ({budget.stages.length} etapas • {summary.servicesCount} itens)
                   </span>
                 </div>
-                <p className="text-[11px] text-[#171A1F]/70">
+                <p className="text-[10.5px] text-[#171A1F]/70">
                   Preço final fechado para execução integral do escopo proposto, impostos inclusos
                   (Simples Nacional).
                 </p>
               </div>
 
-              <div className="text-left md:text-right border-t md:border-t-0 md:border-l border-[#171A1F]/10 pt-3 md:pt-0 md:pl-5 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 block">
+              <div className="text-left md:text-right border-t md:border-t-0 md:border-l border-[#171A1F]/10 pt-2 md:pt-0 md:pl-4 space-y-0.5">
+                <span className="text-[9.5px] uppercase font-bold text-[#171A1F]/60 block">
                   Validade da Proposta
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-[#294C87] block">
                   {cleanValidityDays}{' '}
                   {cleanValidityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'}
                 </span>
-                <span className="text-[10px] text-[#171A1F]/50 block">
+                <span className="text-[9.5px] text-[#171A1F]/50 block">
                   A contar da data de emissão: {new Date().toLocaleDateString('pt-BR')}
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {/* Bloco 1: Forma de Pagamento e Prazo de Execução */}
-              <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-3">
+              <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2">
                 <div>
-                  <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block mb-1">
+                  <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9.5px] block mb-0.5">
                     Forma & Condições de Pagamento
                   </span>
-                  <p className="text-[#171A1F]/90 leading-relaxed font-medium">
+                  <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[11px]">
                     • {cleanPaymentTerms}
                   </p>
-                  <p className="text-[#171A1F]/70 text-[11px] mt-1">
+                  <p className="text-[#171A1F]/70 text-[10px] mt-1">
                     • Faturamento e emissão de Notas Fiscais emitidas pela CONCE — Serviço de
                     Engenharia e Consultoria LTDA sob o CNPJ 57.149.101/0001-46.
                   </p>
                 </div>
 
                 {cleanExecutionDeadline && (
-                  <div className="pt-2 border-t border-[#171A1F]/10">
-                    <span className="font-bold uppercase tracking-wider text-[#FF6B1F] text-[10px] block mb-1">
+                  <div className="pt-1.5 border-t border-[#171A1F]/10">
+                    <span className="font-bold uppercase tracking-wider text-[#FF6B1F] text-[9.5px] block mb-0.5">
                       Prazo de Execução & Condições de Gestão
                     </span>
-                    <p className="text-[#171A1F]/90 leading-relaxed font-medium">
+                    <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[11px]">
                       • {cleanExecutionDeadline}
                     </p>
                   </div>
                 )}
 
                 {budget.commercialNotes && (
-                  <p className="text-[#171A1F]/80 pt-2 border-t border-[#171A1F]/10">
+                  <p className="text-[#171A1F]/80 pt-1.5 border-t border-[#171A1F]/10 text-[10.5px]">
                     <strong className="text-[#171A1F]">Notas:</strong> {budget.commercialNotes}
                   </p>
                 )}
               </div>
 
               {/* Bloco 2: Garantia e Obrigações Técnicas */}
-              <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2">
-                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
+              <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1.5">
+                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9.5px] block">
                   Garantia e Obrigações Técnicas
                 </span>
-                <p className="text-[#171A1F]/80">
+                <p className="text-[#171A1F]/80 text-[10.5px]">
                   • Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) vinculada ao
                   CREA/RS sob responsabilidade do RT {cleanAuthor}.
                 </p>
-                <p className="text-[#171A1F]/80">
+                <p className="text-[#171A1F]/80 text-[10.5px]">
                   • Garantia legal de 5 (cinco) anos para estabilidade e solidez da obra, conforme
                   previsto no Artigo 618 do Código Civil Brasileiro.
                 </p>
-                <p className="text-[#171A1F]/80">
+                <p className="text-[#171A1F]/80 text-[10.5px]">
                   • Atendimento irrestrito às normas técnicas da ABNT e NRs de Segurança e Saúde no
                   Trabalho da Construção Civil.
                 </p>
@@ -1769,7 +1782,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Identificação das Partes e Endereços para Fechamento */}
-            <div className="p-3.5 rounded-xl bg-[#171A1F]/[0.02] border border-[#171A1F]/10 text-[11px] grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-2.5 rounded-xl bg-[#171A1F]/[0.02] border border-[#171A1F]/10 text-[10.5px] grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
                 <span className="font-bold text-[#294C87]">Contratante:</span>{' '}
                 <span className="font-semibold text-[#171A1F]">{cleanClientName}</span>
@@ -1792,37 +1805,39 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Campos Oficiais de Assinatura */}
-            <div className="pt-10 grid grid-cols-1 sm:grid-cols-2 gap-10 text-center text-xs">
-              <div className="space-y-2">
-                <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
-                <p className="font-bold text-sm text-[#171A1F]">{cleanAuthor}</p>
-                <p className="text-[#171A1F]/70">
+            <div className="pt-5 print:pt-4 grid grid-cols-1 sm:grid-cols-2 gap-6 print:gap-4 text-center text-xs">
+              <div className="space-y-1">
+                <div className="w-52 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanAuthor}</p>
+                <p className="text-[#171A1F]/70 text-[10px]">
                   CONCE — Serviço de Engenharia e Consultoria LTDA
                 </p>
-                <p className="text-[11px] text-[#294C87] font-semibold">
+                <p className="text-[10px] text-[#294C87] font-semibold">
                   Responsável Técnico • CREA/RS-252397
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <div className="w-64 mx-auto border-t-2 border-[#171A1F]" />
-                <p className="font-bold text-sm text-[#171A1F]">{cleanClientName}</p>
-                <p className="text-[#171A1F]/70">CNPJ/CPF: {budget.client.document || '---'}</p>
-                <p className="text-[11px] text-[#294C87] font-semibold">
+              <div className="space-y-1">
+                <div className="w-52 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanClientName}</p>
+                <p className="text-[#171A1F]/70 text-[10px]">
+                  CNPJ/CPF: {budget.client.document || '---'}
+                </p>
+                <p className="text-[10px] text-[#294C87] font-semibold">
                   De Acordo / Representante Legal
                 </p>
               </div>
             </div>
 
             {/* Rodapé Final com Logo e Slogan Obrigatório */}
-            <div className="pt-6 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-3">
-                <ConceLogo height={20} variant="light" />
-                <span className="italic font-bold text-[#FF6B1F]">
+            <div className="pt-3 print:pt-2 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs">
+              <div className="flex items-center gap-2.5">
+                <ConceLogo height={18} variant="light" />
+                <span className="italic font-bold text-[#FF6B1F] text-[11px]">
                   "Conce é conceito. Conce é concreto."
                 </span>
               </div>
-              <span className="text-[#171A1F]/50 text-[11px]">
+              <span className="text-[#171A1F]/50 text-[10px]">
                 {selectedMode === 'simplificado'
                   ? 'Proposta Comercial Simplificada emitida por CONCE Engenharia'
                   : selectedMode === 'etapas'
