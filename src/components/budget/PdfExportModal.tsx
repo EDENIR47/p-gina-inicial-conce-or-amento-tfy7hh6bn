@@ -7,7 +7,8 @@
  * Todos os formatos mantêm Capa Institucional CONCE oficial, dados do cliente/obra, slogan no rodapé e assinaturas formais.
  */
 
-import React, { useRef, useState, useMemo } from 'react'
+import React, { useRef, useState, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Printer,
   X,
@@ -140,6 +141,16 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   const summary = useMemo(() => calculateFullBudget(budget), [budget])
   const abc = useMemo(() => computeAbcCurve(budget), [budget])
 
+  // Adiciona a classe conce-printing ao body enquanto o modal estiver aberto,
+  // permitindo que o CSS de impressão isole estritamente o documento da proposta
+  useEffect(() => {
+    if (!isOpen) return
+    document.body.classList.add('conce-printing')
+    return () => {
+      document.body.classList.remove('conce-printing')
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const currentOption =
@@ -203,8 +214,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
     budget.work?.executionDeadline ||
     'PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA'
 
-  return (
-    <div className="conce-pdf-modal-overlay fixed inset-0 z-50 bg-[#171A1F]/80 backdrop-blur-sm flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:fixed-none">
+  const modalContent = (
+    <div className="conce-pdf-modal-overlay fixed inset-0 z-50 bg-[#171A1F]/80 backdrop-blur-sm flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white">
       {/* ============================================================ */}
       {/* BARRA SUPERIOR FIXA (Oculta na Impressão) */}
       {/* ============================================================ */}
@@ -1824,4 +1835,6 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent
 }

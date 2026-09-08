@@ -288,7 +288,22 @@
       print-color-adjust: exact !important;
     }
 
-    /* 2. Ocultar todos os elementos da UI externa: header, footer, menus, toasts, etc. */
+    /* 2. Quando o modal de impressão estiver ativo (.conce-printing no body ou .conce-pdf-modal-overlay presente),
+       ocultar completamente toda a árvore da aplicação (#root) para garantir que NENHUMA página da tela
+       de orçamentos ou do app seja impressa antes da proposta oficial. */
+    body.conce-printing #root,
+    body:has(.conce-pdf-modal-overlay) #root {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+    }
+
+    /* Ocultar elementos globais da interface (fallback de segurança) */
     header,
     footer,
     nav,
