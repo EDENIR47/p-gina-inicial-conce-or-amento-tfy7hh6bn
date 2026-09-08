@@ -411,31 +411,31 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Zero itens, zero serviços, zero coeficientes, zero BDI ou dados técnicos. */}
         {/* ============================================================ */}
         {selectedMode === 'valor_final' && (
-          <section className="print-page-section print-single-page min-h-[960px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-0 print:border-4 print:p-6 print:m-0 print:page-break-inside-avoid">
+          <section className="print-page-section print-single-page min-h-[960px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-0 print:border-2 print:p-4 print:m-0 print:page-break-inside-avoid">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
-            <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
+            <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
             {/* Topo: Logo Oficial e Dados Cadastrais Enxutos */}
-            <div className="flex items-start justify-between pt-3 border-b border-[#171A1F]/15 pb-4 print:pt-1 print:pb-3">
+            <div className="flex items-start justify-between pt-2 border-b border-[#171A1F]/15 pb-2.5 print:pt-0.5 print:pb-2">
               <div>
-                <ConceLogo height={38} variant="light" />
-                <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-1.5 print:mt-1">
+                <ConceLogo height={34} variant="light" />
+                <p className="text-[10.5px] font-bold tracking-widest text-[#294C87] uppercase mt-1 print:mt-0.5">
                   CONCE — SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
                 </p>
-                <p className="text-[10px] text-[#171A1F]/70 font-medium">
+                <p className="text-[9.5px] text-[#171A1F]/70 font-medium">
                   CNPJ: 57.149.101/0001-46 • RT: Eng. Edenir Souza da Rosa - CREA/RS-252397
                 </p>
               </div>
 
               <div className="text-right">
-                <span className="inline-block px-2.5 py-0.5 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
+                <span className="inline-block px-2 py-0.5 rounded bg-[#171A1F] text-white font-mono text-[11px] font-bold uppercase tracking-wider">
                   {cleanCode}
                 </span>
-                <p className="text-[10px] text-[#171A1F]/60 mt-0.5 font-mono">
+                <p className="text-[9.5px] text-[#171A1F]/60 mt-0.5 font-mono">
                   Emissão: {new Date().toLocaleDateString('pt-BR')}
                 </p>
                 <div className="mt-0.5">
-                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/15 text-[#294C87]">
+                  <span className="inline-block px-2 py-0.5 rounded text-[9.5px] font-bold bg-[#294C87]/15 text-[#294C87]">
                     Proposta Comercial — Valor Global
                   </span>
                 </div>
@@ -443,13 +443,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Cabeçalho do Objeto e Título da Proposta */}
-            <div className="py-3 print:py-2 space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-[11px] font-bold uppercase tracking-wider">
-                <Award className="w-3.5 h-3.5 text-[#FF6B1F]" />
+            <div className="py-2 print:py-1.5 space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-[10px] font-bold uppercase tracking-wider">
+                <Award className="w-3 h-3 text-[#FF6B1F]" />
                 <span>Proposta Comercial Direta</span>
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-extrabold text-[#171A1F] tracking-tight">
+                <h1 className="text-lg sm:text-xl font-extrabold text-[#171A1F] tracking-tight leading-snug">
                   {cleanProposalTitle}
                 </h1>
                 {cleanProposalTitle !== cleanWorkName && (
@@ -458,7 +458,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   </p>
                 )}
               </div>
-              <p className="text-xs text-[#171A1F]/80 leading-relaxed max-w-3xl">
+              <p className="text-[11px] text-[#171A1F]/80 leading-relaxed max-w-3xl">
                 Apresentamos a presente proposta comercial para execução integral dos serviços de
                 engenharia civil no empreendimento indicado abaixo, sob responsabilidade técnica da
                 CONCE Engenharia, conforme escopo, especificações e prazos acordados entre as
@@ -467,103 +467,102 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Identificação das Partes: Cliente e Obra */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs print:gap-2.5">
-              <div className="space-y-1 p-3.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs print:p-2.5">
-                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs print:gap-2">
+              <div className="space-y-0.5 p-2.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs print:p-2">
+                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[9.5px] flex items-center gap-1">
                   <span>👤 Cliente / Contratante</span>
                 </span>
-                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanClientName}</p>
+                <p className="font-bold text-xs text-[#171A1F]">{cleanClientName}</p>
                 {budget.client.document && (
-                  <p className="text-[#171A1F]/80 text-[11px]">
+                  <p className="text-[#171A1F]/80 text-[10px]">
                     <strong className="text-[#171A1F]">CPF/CNPJ:</strong> {budget.client.document}
                   </p>
                 )}
                 {budget.client.address && (
-                  <p className="text-[#171A1F]/80 text-[11px]">
+                  <p className="text-[#171A1F]/80 text-[10px]">
                     <strong className="text-[#171A1F]">Endereço:</strong> {budget.client.address}
                   </p>
                 )}
-                <p className="text-[#171A1F]/80 text-[11px]">
+                <p className="text-[#171A1F]/80 text-[10px]">
                   <strong className="text-[#171A1F]">Localidade:</strong>{' '}
                   {budget.client.city || 'Porto Alegre'}/{budget.client.state || 'RS'}
                   {budget.client.phone ? ` • Tel.: ${budget.client.phone}` : ''}
                 </p>
                 {budget.client.email && (
-                  <p className="text-[#171A1F]/70 text-[11px]">
+                  <p className="text-[#171A1F]/70 text-[10px]">
                     <strong className="text-[#171A1F]">E-mail:</strong> {budget.client.email}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-1 p-3.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs print:p-2.5">
-                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+              <div className="space-y-0.5 p-2.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-xs print:p-2">
+                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[9.5px] flex items-center gap-1">
                   <span>🏗️ Dados & Local da Obra</span>
                 </span>
-                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanWorkName}</p>
-                <p className="text-[#171A1F]/80 text-[11px]">
+                <p className="font-bold text-xs text-[#171A1F]">{cleanWorkName}</p>
+                <p className="text-[#171A1F]/80 text-[10px]">
                   <strong className="text-[#171A1F]">Endereço da Obra:</strong>{' '}
                   {budget.work.address || 'Rua Tomaz Gonzaga, 610, Ap. 1803'}
                 </p>
-                <p className="text-[#171A1F]/80 text-[11px]">
+                <p className="text-[#171A1F]/80 text-[10px]">
                   <strong className="text-[#171A1F]">Cidade/UF:</strong>{' '}
                   {budget.work.city || 'Porto Alegre'} / {budget.work.state || 'RS'}
                   {budget.work.totalAreaM2
                     ? ` • Área: ${budget.work.totalAreaM2.toLocaleString('pt-BR')} m²`
                     : ''}
                 </p>
-                <p className="font-semibold text-[#171A1F] text-[10px] pt-0.5">
+                <p className="font-semibold text-[#171A1F] text-[9.5px] pt-0.5">
                   Responsável Técnico: {cleanAuthor}
                 </p>
               </div>
             </div>
 
             {/* ELEMENTO CENTRAL: O VALOR FINAL DA OBRA */}
-            {/* Sóbrio, elegante, em Poppins, fundo neutro, sem destaque laranja chamativo */}
-            <div className="my-1.5 p-4 sm:p-5 rounded-2xl bg-[#F4F6F9] border-2 border-[#294C87]/30 shadow-xs text-center space-y-1.5 print:p-3.5 print:my-1">
-              <span className="text-[10px] uppercase tracking-widest font-extrabold text-[#294C87] block">
+            <div className="my-1 p-3 rounded-xl bg-[#F4F6F9] border-2 border-[#294C87]/30 shadow-xs text-center space-y-1 print:p-2.5 print:my-0.5">
+              <span className="text-[9.5px] uppercase tracking-widest font-extrabold text-[#294C87] block">
                 VALOR FINAL DA OBRA (PREÇO GLOBAL FECHADO)
               </span>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#171A1F] font-mono tracking-tight py-0.5">
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#171A1F] font-mono tracking-tight py-0.5">
                 {formatCurrencyBRL(summary.finalSalePrice)}
               </div>
-              <p className="text-[11px] text-[#171A1F]/70 max-w-xl mx-auto leading-relaxed">
+              <p className="text-[10px] text-[#171A1F]/70 max-w-xl mx-auto leading-relaxed">
                 Valor total integral com todos os encargos, materiais, serviços técnicos e impostos
                 inclusos (CONCE — Serviço de Engenharia e Consultoria LTDA).
               </p>
             </div>
 
             {/* Condições Comerciais: Forma de Pagamento, Prazo de Execução, Validade */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs print:gap-2.5">
-              <div className="p-3.5 rounded-xl bg-white border border-[#171A1F]/15 space-y-1.5 shadow-xs print:p-2.5">
-                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs print:gap-2">
+              <div className="p-2.5 rounded-xl bg-white border border-[#171A1F]/15 space-y-1 shadow-xs print:p-2">
+                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9.5px] block">
                   Forma & Condições de Pagamento
                 </span>
-                <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[11px]">
+                <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[10.5px]">
                   • {cleanPaymentTerms}
                 </p>
-                <p className="text-[#171A1F]/70 text-[10px] pt-1 border-t border-[#171A1F]/10">
+                <p className="text-[#171A1F]/70 text-[9.5px] pt-0.5 border-t border-[#171A1F]/10">
                   • Faturamento direto pela CONCE — Serviço de Engenharia e Consultoria LTDA (CNPJ
                   57.149.101/0001-46).
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-white border border-[#171A1F]/15 space-y-1.5 shadow-xs print:p-2.5">
-                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[10px] block">
+              <div className="p-2.5 rounded-xl bg-white border border-[#171A1F]/15 space-y-1 shadow-xs print:p-2">
+                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9.5px] block">
                   Prazo de Execução & Validade
                 </span>
-                <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[11px]">
+                <p className="text-[#171A1F]/90 leading-relaxed font-medium text-[10.5px]">
                   • <strong className="text-[#171A1F]">Validade da Proposta:</strong>{' '}
                   {cleanValidityDays}{' '}
                   {cleanValidityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'} (a contar da
                   emissão).
                 </p>
                 {cleanExecutionDeadline && (
-                  <p className="text-[#171A1F]/90 leading-relaxed text-[10px]">
+                  <p className="text-[#171A1F]/90 leading-relaxed text-[9.5px]">
                     • <strong className="text-[#171A1F]">Prazo:</strong> {cleanExecutionDeadline}
                   </p>
                 )}
                 {budget.commercialNotes && (
-                  <p className="text-[#171A1F]/75 text-[10px] pt-1 border-t border-[#171A1F]/10">
+                  <p className="text-[#171A1F]/75 text-[9.5px] pt-0.5 border-t border-[#171A1F]/10">
                     <strong className="text-[#171A1F]">Observações:</strong>{' '}
                     {budget.commercialNotes}
                   </p>
@@ -572,11 +571,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Termo de Garantia e Responsabilidade Técnica */}
-            <div className="p-2.5 rounded-xl bg-white/80 border border-[#171A1F]/10 text-[10.5px] space-y-0.5 print:p-2">
-              <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9.5px] block">
+            <div className="p-2 rounded-xl bg-white/80 border border-[#171A1F]/10 text-[9.5px] space-y-0.5 print:p-1.5">
+              <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9px] block">
                 Garantia e Responsabilidade Técnica
               </span>
-              <p className="text-[#171A1F]/80 leading-relaxed text-[10px]">
+              <p className="text-[#171A1F]/80 leading-relaxed text-[9.5px]">
                 • Emissão de Anotação de Responsabilidade Técnica (ART) junto ao CREA/RS sob
                 responsabilidade do RT Eng. Edenir Souza da Rosa (CREA/RS-252397). Garantia técnica
                 quinquenal conforme preconiza o Artigo 618 do Código Civil Brasileiro.
@@ -584,37 +583,37 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Bloco de Assinaturas Formais */}
-            <div className="pt-4 print:pt-3 grid grid-cols-1 sm:grid-cols-2 gap-6 print:gap-4 text-center text-xs">
-              <div className="space-y-1">
-                <div className="w-52 mx-auto border-t-2 border-[#171A1F]" />
-                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanAuthor}</p>
-                <p className="text-[10px] text-[#171A1F]/70">
+            <div className="pt-2.5 print:pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 print:gap-3 text-center text-xs">
+              <div className="space-y-0.5">
+                <div className="w-44 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-xs text-[#171A1F]">{cleanAuthor}</p>
+                <p className="text-[9.5px] text-[#171A1F]/70">
                   CONCE — Serviço de Engenharia e Consultoria LTDA
                 </p>
-                <p className="text-[10px] text-[#294C87] font-semibold">
+                <p className="text-[9.5px] text-[#294C87] font-semibold">
                   Responsável Técnico • CREA/RS-252397
                 </p>
               </div>
 
-              <div className="space-y-1">
-                <div className="w-52 mx-auto border-t-2 border-[#171A1F]" />
-                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanClientName}</p>
-                <p className="text-[10px] text-[#171A1F]/70">
+              <div className="space-y-0.5">
+                <div className="w-44 mx-auto border-t-2 border-[#171A1F]" />
+                <p className="font-bold text-xs text-[#171A1F]">{cleanClientName}</p>
+                <p className="text-[9.5px] text-[#171A1F]/70">
                   CNPJ/CPF: {budget.client.document || '---'}
                 </p>
-                <p className="text-[10px] text-[#294C87] font-semibold">De Acordo / Contratante</p>
+                <p className="text-[9.5px] text-[#294C87] font-semibold">De Acordo / Contratante</p>
               </div>
             </div>
 
             {/* Rodapé Oficial com Logo e Slogan */}
-            <div className="pt-3 print:pt-2 border-t border-[#171A1F]/15 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs">
-              <div className="flex items-center gap-2.5">
-                <ConceLogo height={18} variant="light" />
-                <span className="italic font-bold text-[#FF6B1F] text-[11px]">
+            <div className="pt-2 print:pt-1.5 border-t border-[#171A1F]/15 flex flex-col sm:flex-row items-center justify-between gap-1 text-xs">
+              <div className="flex items-center gap-2">
+                <ConceLogo height={16} variant="light" />
+                <span className="italic font-bold text-[#FF6B1F] text-[10.5px]">
                   "Conce é conceito. Conce é concreto."
                 </span>
               </div>
-              <span className="text-[#171A1F]/50 text-[10px]">
+              <span className="text-[#171A1F]/50 text-[9.5px]">
                 Proposta Comercial de Valor Global • CONCE Engenharia
               </span>
             </div>
@@ -625,31 +624,31 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* 1. CAPA INSTITUCIONAL CONCE (Presente nos formatos Simplificado, Etapas e Completo) */}
         {/* ============================================================ */}
         {selectedMode !== 'valor_final' && (
-          <section className="print-page-section print-cover-page min-h-[920px] print:min-h-0 print:h-auto flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-4 print:p-6 print:m-0 print-force-page-break">
+          <section className="print-page-section print-cover-page min-h-[920px] print:min-h-0 print:h-auto flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:border-2 print:p-4 print:m-0 print-force-page-break">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
-            <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
+            <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
             {/* Topo da Capa: Logo Oficial */}
-            <div className="flex items-start justify-between pt-3 print:pt-1">
+            <div className="flex items-start justify-between pt-2 print:pt-0.5">
               <div>
-                <ConceLogo height={40} variant="light" />
-                <p className="text-[11px] font-bold tracking-widest text-[#294C87] uppercase mt-1.5 print:mt-1">
+                <ConceLogo height={34} variant="light" />
+                <p className="text-[10px] font-bold tracking-widest text-[#294C87] uppercase mt-1 print:mt-0.5">
                   SERVIÇO DE ENGENHARIA E CONSULTORIA LTDA
                 </p>
-                <p className="text-[10px] text-[#171A1F]/70 font-medium">
+                <p className="text-[9.5px] text-[#171A1F]/70 font-medium">
                   CNPJ: 57.149.101/0001-46 • RT: Eng. Edenir Souza da Rosa - CREA/RS-252397
                 </p>
               </div>
 
               <div className="text-right">
-                <span className="inline-block px-2.5 py-0.5 rounded bg-[#171A1F] text-white font-mono text-xs font-bold uppercase tracking-wider">
+                <span className="inline-block px-2 py-0.5 rounded bg-[#171A1F] text-white font-mono text-[11px] font-bold uppercase tracking-wider">
                   {cleanCode}
                 </span>
-                <p className="text-[10px] text-[#171A1F]/60 mt-0.5 font-mono">
+                <p className="text-[9.5px] text-[#171A1F]/60 mt-0.5 font-mono">
                   Emissão: {new Date().toLocaleDateString('pt-BR')}
                 </p>
                 <div className="mt-0.5 flex flex-col items-end gap-0.5">
-                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/15 text-[#294C87]">
+                  <span className="inline-block px-2 py-0.5 rounded text-[9.5px] font-bold bg-[#294C87]/15 text-[#294C87]">
                     {selectedMode === 'simplificado'
                       ? 'Proposta Simplificada'
                       : selectedMode === 'etapas'
@@ -657,7 +656,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         : 'Relatório Técnico Completo'}
                   </span>
                   {budget.publicWork?.enabled && (
-                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F]">
+                    <span className="inline-block px-2 py-0.5 rounded text-[9.5px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F]">
                       Licitação Pública ({budget.publicWork.modality})
                     </span>
                   )}
@@ -666,24 +665,24 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Miolo da Capa: Título do Empreendimento e Proposta */}
-            <div className="my-auto py-6 print:py-4 space-y-4 print:space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-xs font-bold uppercase tracking-wider">
-                <Award className="w-4 h-4 text-[#FF6B1F]" />
+            <div className="my-auto py-3 print:py-2 space-y-2.5 print:space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-[10.5px] font-bold uppercase tracking-wider">
+                <Award className="w-3.5 h-3.5 text-[#FF6B1F]" />
                 <span>{proposalTypeLabel}</span>
               </div>
 
               <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#171A1F] tracking-tight leading-tight">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-[#171A1F] tracking-tight leading-snug">
                   {cleanProposalTitle}
                 </h1>
                 {cleanProposalTitle !== cleanWorkName && (
-                  <p className="text-xs sm:text-sm font-semibold text-[#294C87] mt-0.5">
+                  <p className="text-xs font-semibold text-[#294C87] mt-0.5">
                     Obra: {cleanWorkName}
                   </p>
                 )}
               </div>
 
-              <p className="text-xs sm:text-sm text-[#171A1F]/80 max-w-2xl leading-relaxed">
+              <p className="text-[11px] text-[#171A1F]/80 max-w-2xl leading-relaxed">
                 {cleanWorkDesc ||
                   (selectedMode === 'simplificado'
                     ? 'Proposta comercial para execução de serviços de engenharia civil com relação discriminada de itens e escopo contratual.'
@@ -692,26 +691,26 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
               {/* Apresentação de valor e prazo na capa (oculta no modelo Comercial/Simplificado a pedido do usuário: o valor fica somente na última página) */}
               {selectedMode !== 'simplificado' && (
-                <div className="p-3.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-3 print:p-2.5">
+                <div className="p-2.5 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-3 print:p-2">
                   <div className="space-y-0.5">
-                    <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 tracking-wider block">
+                    <span className="text-[9.5px] uppercase font-bold text-[#171A1F]/60 tracking-wider block">
                       Estimativa Global da Proposta
                     </span>
                     <span className="text-base sm:text-lg font-bold text-[#171A1F] font-mono block">
                       {formatCurrencyBRL(summary.finalSalePrice)}
                     </span>
-                    <span className="text-[10px] text-[#171A1F]/50 block">
+                    <span className="text-[9.5px] text-[#171A1F]/50 block">
                       Condições comerciais detalhadas ao final deste documento
                     </span>
                   </div>
                   <div className="text-right border-l border-[#171A1F]/10 pl-3 shrink-0">
-                    <span className="text-[10px] uppercase font-semibold text-[#294C87] block">
+                    <span className="text-[9.5px] uppercase font-semibold text-[#294C87] block">
                       Prazo de Execução
                     </span>
                     <span className="text-xs sm:text-sm font-bold text-[#171A1F]">
                       {budget.work.deadlineMonths} meses
                     </span>
-                    <span className="text-[10px] text-[#171A1F]/50 block mt-0.5">
+                    <span className="text-[9.5px] text-[#171A1F]/50 block mt-0.5">
                       Validade: {cleanValidityDays} dias
                     </span>
                   </div>
@@ -720,62 +719,62 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Dados de Identificação Completos do Cliente e da Obra */}
-            <div className="border-t-2 border-[#171A1F]/15 pt-4 print:pt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 print:gap-3 text-xs">
-              <div className="space-y-1 p-3 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-2.5">
-                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+            <div className="border-t-2 border-[#171A1F]/15 pt-2.5 print:pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 print:gap-2 text-xs">
+              <div className="space-y-0.5 p-2.5 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-2">
+                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[9.5px] flex items-center gap-1">
                   <span>👤 Dados do Cliente / Contratante</span>
                 </span>
-                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanClientName}</p>
-                <p className="text-[#171A1F]/80 text-[11px]">
+                <p className="font-bold text-xs text-[#171A1F]">{cleanClientName}</p>
+                <p className="text-[#171A1F]/80 text-[10px]">
                   <strong className="text-[#171A1F]">CPF/CNPJ:</strong>{' '}
                   {budget.client.document || 'Não informado'}
                 </p>
-                <p className="text-[#171A1F]/80 text-[11px]">
+                <p className="text-[#171A1F]/80 text-[10px]">
                   <strong className="text-[#171A1F]">Endereço:</strong>{' '}
                   {budget.client.address || 'Não informado'}
                 </p>
-                <p className="text-[#171A1F]/80 text-[11px]">
+                <p className="text-[#171A1F]/80 text-[10px]">
                   <strong className="text-[#171A1F]">Cidade/UF:</strong>{' '}
                   {budget.client.city || 'São Paulo'}/{budget.client.state || 'SP'}
                   {budget.client.phone && ` • Tel.: ${budget.client.phone}`}
                 </p>
                 {budget.client.email && (
-                  <p className="text-[#171A1F]/70 text-[11px]">
+                  <p className="text-[#171A1F]/70 text-[10px]">
                     <strong className="text-[#171A1F]">E-mail:</strong> {budget.client.email}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-1 p-3 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-2.5">
-                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[10px] flex items-center gap-1.5">
+              <div className="space-y-0.5 p-2.5 rounded-xl bg-white/70 border border-[#171A1F]/10 print:p-2">
+                <span className="font-extrabold uppercase tracking-wider text-[#294C87] block text-[9.5px] flex items-center gap-1">
                   <span>🏗️ Dados & Local da Obra</span>
                 </span>
-                <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanWorkName}</p>
-                <p className="text-[#171A1F]/80 text-[11px]">
+                <p className="font-bold text-xs text-[#171A1F]">{cleanWorkName}</p>
+                <p className="text-[#171A1F]/80 text-[10px]">
                   <strong className="text-[#171A1F]">Endereço da Obra:</strong>{' '}
                   {budget.work.address || 'A definir / Conforme memorial'}
                 </p>
-                <p className="text-[#171A1F]/80 text-[11px]">
+                <p className="text-[#171A1F]/80 text-[10px]">
                   <strong className="text-[#171A1F]">Localidade:</strong> {budget.work.city} /{' '}
                   {budget.work.state}
                   {budget.work.totalAreaM2
                     ? ` • Área: ${budget.work.totalAreaM2.toLocaleString('pt-BR')} m²`
                     : ''}
                 </p>
-                <p className="font-semibold text-[#171A1F] text-[10.5px] pt-0.5">
+                <p className="font-semibold text-[#171A1F] text-[9.5px] pt-0.5">
                   Responsável Técnico: {cleanAuthor}
                 </p>
               </div>
             </div>
 
             {/* Rodapé da Capa com Slogan */}
-            <div className="pt-4 print:pt-3 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="italic font-bold text-[#FF6B1F] text-[11px]">
+            <div className="pt-2.5 print:pt-2 border-t border-[#171A1F]/10 flex flex-col sm:flex-row items-center justify-between gap-1 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="italic font-bold text-[#FF6B1F] text-[10.5px]">
                   "Conce é conceito. Conce é concreto."
                 </span>
               </div>
-              <span className="text-[#171A1F]/50 text-[10px]">
+              <span className="text-[#171A1F]/50 text-[9.5px]">
                 Página 1 • Capa Institucional CONCE
               </span>
             </div>

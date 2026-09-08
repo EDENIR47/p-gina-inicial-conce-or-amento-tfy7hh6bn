@@ -385,10 +385,16 @@
       page-break-inside: auto !important;
     }
 
-    /* Capa institucional isolada na primeira página */
+    /* Capa institucional isolada na primeira página - dimensionada para caber rigorosamente na folha 1 A4 */
     .print-cover-page {
-      min-height: 250mm !important;
+      box-sizing: border-box !important;
+      width: 100% !important;
+      min-height: 0 !important;
+      height: 270mm !important;
       max-height: 270mm !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 6mm 8mm !important;
       page-break-after: always !important;
       break-after: page !important;
       page-break-inside: avoid !important;
@@ -397,8 +403,13 @@
 
     /* Formato de Valor Final (página única fechada, sem quebra extra) */
     .print-single-page {
+      box-sizing: border-box !important;
+      width: 100% !important;
       min-height: 0 !important;
-      max-height: none !important;
+      max-height: 270mm !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 6mm 8mm !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       page-break-after: auto !important;
