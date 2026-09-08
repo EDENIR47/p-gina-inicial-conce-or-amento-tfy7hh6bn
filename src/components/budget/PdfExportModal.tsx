@@ -675,31 +675,33 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     : 'Orçamento analítico e discriminado de obras civis com detalhamento de insumos, encargos sociais e cálculo do BDI em conformidade com o Acórdão 2.622/2013 do Plenário do Tribunal de Contas da União.')}
               </p>
 
-              {/* Apresentação sóbria e discreta na capa conforme pedido do usuário (sem megadestaque) */}
-              <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-4">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 tracking-wider block">
-                    Estimativa Global da Proposta
-                  </span>
-                  <span className="text-lg sm:text-xl font-bold text-[#171A1F] font-mono block">
-                    {formatCurrencyBRL(summary.finalSalePrice)}
-                  </span>
-                  <span className="text-[10px] text-[#171A1F]/50 block">
-                    Condições comerciais detalhadas ao final deste documento
-                  </span>
+              {/* Apresentação de valor e prazo na capa (oculta no modelo Comercial/Simplificado a pedido do usuário: o valor fica somente na última página) */}
+              {selectedMode !== 'simplificado' && (
+                <div className="p-4 rounded-xl bg-white border border-[#171A1F]/15 shadow-sm max-w-lg flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] uppercase font-bold text-[#171A1F]/60 tracking-wider block">
+                      Estimativa Global da Proposta
+                    </span>
+                    <span className="text-lg sm:text-xl font-bold text-[#171A1F] font-mono block">
+                      {formatCurrencyBRL(summary.finalSalePrice)}
+                    </span>
+                    <span className="text-[10px] text-[#171A1F]/50 block">
+                      Condições comerciais detalhadas ao final deste documento
+                    </span>
+                  </div>
+                  <div className="text-right border-l border-[#171A1F]/10 pl-4 shrink-0">
+                    <span className="text-[10px] uppercase font-semibold text-[#294C87] block">
+                      Prazo de Execução
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold text-[#171A1F]">
+                      {budget.work.deadlineMonths} meses
+                    </span>
+                    <span className="text-[10px] text-[#171A1F]/50 block mt-0.5">
+                      Validade: {cleanValidityDays} dias
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right border-l border-[#171A1F]/10 pl-4 shrink-0">
-                  <span className="text-[10px] uppercase font-semibold text-[#294C87] block">
-                    Prazo de Execução
-                  </span>
-                  <span className="text-xs sm:text-sm font-bold text-[#171A1F]">
-                    {budget.work.deadlineMonths} meses
-                  </span>
-                  <span className="text-[10px] text-[#171A1F]/50 block mt-0.5">
-                    Validade: {cleanValidityDays} dias
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Dados de Identificação Completos do Cliente e da Obra */}
