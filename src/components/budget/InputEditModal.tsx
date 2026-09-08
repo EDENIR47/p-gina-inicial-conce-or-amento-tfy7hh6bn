@@ -6,6 +6,7 @@
 import React, { useState } from 'react'
 import { X, Check, Package, AlertCircle } from 'lucide-react'
 import { BudgetInput, InputCategory } from '@/types/budgetEngine'
+import { UnitSelect } from './UnitSelect'
 
 interface InputEditModalProps {
   isOpen: boolean
@@ -156,12 +157,14 @@ export const InputEditModal: React.FC<InputEditModalProps> = ({
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-bold text-[#171A1F] block mb-1">Unidade *</label>
-              <input
-                type="text"
+              <UnitSelect
                 value={unit}
-                onChange={(e) => setUnit(e.target.value)}
+                onChange={(val) => {
+                  setUnit(val)
+                  if (error) setError('')
+                }}
+                showQuickPills
                 placeholder="Ex: kg, m², h"
-                className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs focus:outline-none focus:border-[#294C87]"
               />
             </div>
 

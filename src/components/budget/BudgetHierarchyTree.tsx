@@ -53,6 +53,7 @@ import {
 import { StageEditModal } from './StageEditModal'
 import { ServiceEditModal } from './ServiceEditModal'
 import { InputEditModal } from './InputEditModal'
+import { UnitSelect } from './UnitSelect'
 
 interface BudgetHierarchyTreeProps {
   budget: FullBudget
@@ -548,6 +549,80 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     setDeleteDialog((prev) => ({ ...prev, isOpen: false }))
   }
 
+  // Edição rápida de unidade do serviço inline com auditoria
+  const handleInlineServiceUnitUpdate = (stageId: string, serviceId: string, unit: string) => {
+    let serviceDesc = ''
+    let prevUnit = ''
+    const cleanUnit = (unit || '').trim() || 'un'
+
+    const newStages = budget.stages.map((st) => {
+      if (st.id !== stageId) return st
+      const updatedServices = st.services.map((srv) => {
+        if (srv.id !== serviceId) return srv
+        serviceDesc = srv.description
+        prevUnit = srv.unit
+        return { ...srv, unit: cleanUnit }
+      })
+      return { ...st, services: updatedServices }
+    })
+
+    if (prevUnit !== cleanUnit) {
+      logAuditEvent({
+        budgetId: budget.id,
+        action: 'edicao_servico',
+        title: `Ajuste de Unidade do Serviço: ${serviceDesc}`,
+        details: `Unidade de medida alterada de "${prevUnit}" para "${cleanUnit}".`,
+        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Usuário)',
+        metadata: { stageId, serviceId, prevUnit, newUnit: cleanUnit },
+      })
+    }
+
+    onChange({ ...budget, stages: newStages })
+  }
+
+  // Edição rápida de unidade do insumo inline com auditoria
+  const handleInlineInputUnitUpdate = (
+    stageId: string,
+    serviceId: string,
+    inputId: string,
+    unit: string,
+  ) => {
+    let changedInputName = ''
+    let prevUnit = ''
+    const cleanUnit = (unit || '').trim() || 'un'
+
+    const newStages = budget.stages.map((st) => {
+      if (st.id !== stageId) return st
+      const updatedServices = st.services.map((srv) => {
+        if (srv.id !== serviceId) return srv
+        const updatedInputs = (srv.composition.inputs || []).map((inp) => {
+          if (inp.id !== inputId) return inp
+          changedInputName = inp.description || inp.code
+          prevUnit = inp.unit
+          return { ...inp, unit: cleanUnit }
+        })
+        return {
+          ...srv,
+          composition: { ...srv.composition, inputs: updatedInputs },
+        }
+      })
+      return { ...st, services: updatedServices }
+    })
+
+    if (prevUnit !== cleanUnit) {
+      logAuditEvent({
+        budgetId: budget.id,
+        action: 'edicao_insumo',
+        title: `Edição Inline de Unidade do Insumo: ${changedInputName}`,
+        details: `Unidade do insumo alterada de "${prevUnit}" para "${cleanUnit}".`,
+        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Usuário)',
+        metadata: { stageId, serviceId, inputId, prevUnit, newUnit: cleanUnit },
+      })
+    }
+
+    onChange({ ...budget, stages: newStages })
+  }
+
   // Edição rápida de coeficiente ou custo do insumo inline com rastreamento de fonte "Usuário"
   const handleInlineInputUpdate = (
     stageId: string,
@@ -973,7 +1048,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                               {/* Quantidade Inline, Custo Unitário e Total do Serviço */}
                               <div className="flex items-center justify-between sm:justify-end gap-3 pl-7 sm:pl-0">
                                 <div className="flex items-center gap-2">
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center gap-1.5">
                                     <input
                                       type="number"
                                       step="0.01"
@@ -988,10 +1063,23 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                         )
                                       }
                                       className="w-20 px-2 py-1 text-right rounded border border-[#171A1F]/20 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                                      title="Quantidade do serviço"
                                     />
-                                    <span className="text-xs font-bold text-[#171A1F]/70">
-                                      {service.unit}
-                                    </span>
+                                    <div className="w-20">
+                                      <UnitSelect
+                                        value={service.unit}
+                                        onChange={(newUnit) =>
+                                          handleInlineServiceUnitUpdate(
+                                            stage.id,
+                                            service.id,
+                                            newUnit,
+                                          )
+                                        }
+                                        size="sm"
+                                        disabled={disabled}
+                                        ariaLabel={`Unidade do serviço ${service.code}`}
+                                      />
+                                    </div>
                                   </div>
 
                                   <span className="text-xs text-[#171A1F]/40 font-mono">×</span>
@@ -1294,8 +1382,21 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                                     {badge.label}
                                                   </span>
                                                 </td>
-                                                <td className="py-2 px-3 font-bold text-[#171A1F]/70">
-                                                  {inp.unit}
+                                                <td className="py-2 px-3 font-bold text-[#171A1F]/70 w-24">
+                                                  <UnitSelect
+                                                    value={inp.unit}
+                                                    onChange={(newUnit) =>
+                                                      handleInlineInputUnitUpdate(
+                                                        stage.id,
+                                                        service.id,
+                                                        inp.id,
+                                                        newUnit,
+                                                      )
+                                                    }
+                                                    size="sm"
+                                                    disabled={disabled}
+                                                    ariaLabel={`Unidade do insumo ${inp.code}`}
+                                                  />
                                                 </td>
                                                 <td className="py-2 px-3 text-right">
                                                   <input

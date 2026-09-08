@@ -44,6 +44,7 @@ import {
 } from '@/types/budgetEngine'
 import { BRAZIL_STATES_LIST, BRAZIL_STATES_CHARGES } from '@/lib/chargesData'
 import { DEFAULT_BDI_CONFIG, calculateFullBudget } from '@/lib/budgetEngine'
+import { UnitSelect } from './UnitSelect'
 import { getStoredCompositions, saveSingleBudget, getStoredFullBudgets } from '@/lib/budgetsStorage'
 import { logAuditEvent, saveBudgetRevision } from '@/lib/intelligenceStorage'
 import { formatCurrencyBRL, getSourceBadgeInfo } from '@/lib/formatters'
@@ -510,6 +511,48 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
         services: stg.services.map((srv) =>
           srv.id === serviceId ? { ...srv, quantity: Math.max(0, newQty) } : srv,
         ),
+      }
+    })
+    setDraftBudget({ ...draftBudget, stages: updatedStages })
+  }
+
+  // Ajuste de unidade de um serviço
+  const handleServiceUnitChange = (stageId: string, serviceId: string, newUnit: string) => {
+    if (!draftBudget) return
+    const clean = (newUnit || '').trim() || 'un'
+    const updatedStages = draftBudget.stages.map((stg) => {
+      if (stg.id !== stageId) return stg
+      return {
+        ...stg,
+        services: stg.services.map((srv) => (srv.id === serviceId ? { ...srv, unit: clean } : srv)),
+      }
+    })
+    setDraftBudget({ ...draftBudget, stages: updatedStages })
+  }
+
+  // Ajuste de unidade de um insumo
+  const handleInputUnitChange = (
+    stageId: string,
+    serviceId: string,
+    inputId: string,
+    newUnit: string,
+  ) => {
+    if (!draftBudget) return
+    const clean = (newUnit || '').trim() || 'un'
+    const updatedStages = draftBudget.stages.map((stg) => {
+      if (stg.id !== stageId) return stg
+      return {
+        ...stg,
+        services: stg.services.map((srv) => {
+          if (srv.id !== serviceId) return srv
+          const updatedInputs = (srv.composition.inputs || []).map((inp) =>
+            inp.id === inputId ? { ...inp, unit: clean } : inp,
+          )
+          return {
+            ...srv,
+            composition: { ...srv.composition, inputs: updatedInputs },
+          }
+        }),
       }
     })
     setDraftBudget({ ...draftBudget, stages: updatedStages })
@@ -1237,9 +1280,15 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                                           }
                                           className="w-16 px-1 py-0.5 rounded bg-white border border-[#171A1F]/20 text-xs font-bold text-[#171A1F] text-right"
                                         />
-                                        <span className="text-[10px] font-semibold text-[#171A1F]/70">
-                                          {srv.unit}
-                                        </span>
+                                        <div className="w-20">
+                                          <UnitSelect
+                                            value={srv.unit}
+                                            onChange={(u) =>
+                                              handleServiceUnitChange(stage.id, srv.id, u)
+                                            }
+                                            size="sm"
+                                          />
+                                        </div>
                                       </div>
 
                                       <button
@@ -1348,9 +1397,20 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
                                                 className="w-16 px-1.5 py-0.5 text-right font-mono font-bold text-xs rounded bg-white border border-[#171A1F]/20 text-[#171A1F]"
                                                 title="Coeficiente de consumo"
                                               />
-                                              <span className="text-[10px] text-[#171A1F]/60">
-                                                {inp.unit}
-                                              </span>
+                                              <div className="w-18">
+                                                <UnitSelect
+                                                  value={inp.unit}
+                                                  onChange={(u) =>
+                                                    handleInputUnitChange(
+                                                      stage.id,
+                                                      srv.id,
+                                                      inp.id,
+                                                      u,
+                                                    )
+                                                  }
+                                                  size="sm"
+                                                />
+                                              </div>
                                             </div>
 
                                             {/* Custo Unitário com destaque em Pumpkin Orange se sem fonte */}

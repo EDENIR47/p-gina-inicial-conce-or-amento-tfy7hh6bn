@@ -9,6 +9,7 @@ import { BudgetComposition, BudgetInput } from '@/types/budgetEngine'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
+import { UnitSelect } from './UnitSelect'
 
 interface CompositionEditModalProps {
   isOpen: boolean
@@ -176,12 +177,14 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
               <label className="text-xs font-bold text-[#171A1F] block mb-1">
                 Unidade da CPU *
               </label>
-              <input
-                type="text"
+              <UnitSelect
                 value={unit}
-                onChange={(e) => setUnit(e.target.value)}
+                onChange={(val) => {
+                  setUnit(val)
+                  if (error) setError('')
+                }}
+                showQuickPills
                 placeholder="m², m³, un, kg"
-                className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-bold focus:outline-none focus:border-[#294C87]"
               />
             </div>
 
@@ -366,12 +369,12 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
                               <option value="outros">Outros</option>
                             </select>
                           </td>
-                          <td className="py-1.5 px-2.5">
-                            <input
-                              type="text"
+                          <td className="py-1.5 px-2.5 w-24">
+                            <UnitSelect
                               value={inp.unit}
-                              onChange={(e) => handleUpdateInput(inp.id, 'unit', e.target.value)}
-                              className="w-12 px-1 py-0.5 rounded border border-[#171A1F]/15 text-xs text-center font-bold"
+                              onChange={(val) => handleUpdateInput(inp.id, 'unit', val)}
+                              size="sm"
+                              ariaLabel={`Unidade do insumo ${inp.code}`}
                             />
                           </td>
                           <td className="py-1.5 px-2.5 text-right">

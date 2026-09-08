@@ -10,6 +10,7 @@ import { CompositionPickerModal } from './CompositionPickerModal'
 import { CONCE_CANONICAL_COMPOSITIONS } from '@/lib/compositionsData'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
+import { UnitSelect } from './UnitSelect'
 
 interface ServiceEditModalProps {
   isOpen: boolean
@@ -265,12 +266,14 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
 
               <div>
                 <label className="text-xs font-bold text-[#171A1F] block mb-1">Unidade *</label>
-                <input
-                  type="text"
+                <UnitSelect
                   value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
-                  placeholder="Ex: m², m³, un, vb, kg"
-                  className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-bold focus:outline-none focus:border-[#294C87]"
+                  onChange={(val) => {
+                    setUnit(val)
+                    if (error) setError('')
+                  }}
+                  showQuickPills
+                  placeholder="Selecione..."
                 />
               </div>
 
