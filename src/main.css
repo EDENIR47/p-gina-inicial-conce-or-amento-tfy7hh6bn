@@ -264,11 +264,13 @@
   }
 
   /* REGRAS DE IMPRESSÃO PROFISSIONAL CONCE */
-  /* @page com margem SUPERIOR (cabeçalho) de 3cm (30mm) e margem INFERIOR (rodapé) de 2cm (20mm),
-     ambas como respiro físico em branco puro (sem informação), mantendo margens laterais de 8mm. */
+  /* @page margin: 0 elimina a área de margem física do navegador, impedindo que URLs,
+     datas, títulos ou numerações de página do navegador sejam impressos no cabeçalho ou rodapé.
+     Os respiros oficiais CONCE (30mm topo / 20mm base / 8mm laterais) são aplicados como padding
+     interno do documento (#conce-printable-proposal), preservando os respiros em branco sem nenhuma informação. */
   @page {
     size: A4 portrait;
-    margin: 30mm 8mm 20mm 8mm;
+    margin: 0;
   }
 
   @media print {
@@ -369,13 +371,16 @@
     }
 
     /* 4. Isolamento estrito do documento imprimível CONCE */
+    /* Com @page margin: 0, os respiros obrigatórios de 3cm (30mm) no topo, 2cm (20mm) na base
+       e 8mm nas laterais são criados como padding interno do próprio documento.
+       Isso impede que o navegador imprima a URL do site no rodapé e mantém o visual impecável. */
     #conce-printable-proposal {
       position: static !important;
       display: block !important;
       width: 100% !important;
       box-shadow: none !important;
       border: none !important;
-      padding: 0 !important;
+      padding: 30mm 8mm 20mm 8mm !important;
       margin: 0 !important;
       max-width: 100% !important;
       background: #ffffff !important;
@@ -419,15 +424,16 @@
     }
 
     /* Formato de Valor Final (página única fechada de exata 1 folha, preservado a pedido do cliente)
-       Com altura da folha A4 de 297mm, margem superior de 30mm (3cm) e inferior de 20mm (2cm),
-       a área útil vertical é 297mm - 30mm - 20mm = 247mm. Calibrado para 240mm (max 244mm)
-       garantindo que feche em EXATAMENTE 1 folha física sem transbordo. */
+       Na folha A4 total de 297mm x 210mm com @page margin: 0 e padding no #conce-printable-proposal
+       de 30mm topo e 20mm base, a área útil interna disponível é 297mm - 50mm = 247mm.
+       Fixamos a altura do cartão de valor final em 238mm (máx 242mm) para garantir que feche
+       em EXATAMENTE 1 folha física, sem empurrar quebra nem gerar folha em branco residual. */
     .print-single-page {
       box-sizing: border-box !important;
       width: 100% !important;
       min-height: 0 !important;
-      height: 240mm !important;
-      max-height: 244mm !important;
+      height: 238mm !important;
+      max-height: 242mm !important;
       overflow: hidden !important;
       margin: 0 0 0 0 !important;
       padding: 3.5mm 4.5mm !important;
