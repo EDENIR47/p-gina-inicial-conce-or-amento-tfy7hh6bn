@@ -32,7 +32,12 @@ import {
   WorkData,
 } from '@/types/budgetEngine'
 import { BRAZIL_STATES_LIST } from '@/lib/chargesData'
-import { getBudgetDeadline, formatBudgetDeadline } from '@/lib/formatters'
+import {
+  getBudgetDeadline,
+  formatBudgetDeadline,
+  DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT,
+  DEFAULT_TECHNICAL_OBLIGATIONS_TEXT,
+} from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
 
 interface BudgetHeaderFormProps {
@@ -830,6 +835,167 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
               placeholder="Ex.: Preços com tributação pelo Simples Nacional inclusa; despesas com fornecimento de água/energia da obra por conta do contratante."
               className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm focus:outline-none focus:border-[#294C87]"
             />
+          </div>
+
+          {/* Campo Editável 1: Garantia e Responsabilidade Técnica */}
+          <div className="sm:col-span-3 pt-2 border-t border-[#171A1F]/10 space-y-1.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <label className="text-xs font-bold text-[#171A1F] flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#294C87]" />
+                Garantia e Responsabilidade Técnica
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[#171A1F]/60">
+                  Exibido na Proposta Comercial / Valor Global
+                </span>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    const prevVal =
+                      budget.technicalResponsibilityText ??
+                      budget.work?.technicalResponsibilityText ??
+                      DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT
+                    if (prevVal !== DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT) {
+                      logAuditEvent({
+                        budgetId: budget.id,
+                        action: 'edicao_garantia',
+                        title: 'Garantia e Responsabilidade Técnica Restaurada',
+                        details:
+                          'Cláusula restaurada para o texto padrão oficial da CONCE (ART CREA/RS + Art. 618 Código Civil).',
+                        oldValue: prevVal,
+                        newValue: DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT,
+                        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                        metadata: {
+                          field: 'technicalResponsibilityText',
+                          restoredDefault: true,
+                          signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                        },
+                      })
+                    }
+                    onChange({
+                      ...budget,
+                      technicalResponsibilityText: DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT,
+                      work: {
+                        ...budget.work,
+                        technicalResponsibilityText: DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT,
+                      },
+                    })
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded bg-[#294C87]/10 text-[#294C87] hover:bg-[#294C87]/20 font-bold transition-colors"
+                  title="Restaurar texto padrão da CONCE Engenharia"
+                >
+                  Restaurar Padrão
+                </button>
+              </div>
+            </div>
+            <textarea
+              rows={3}
+              disabled={disabled}
+              value={
+                budget.technicalResponsibilityText ??
+                budget.work?.technicalResponsibilityText ??
+                DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT
+              }
+              onChange={(e) => {
+                const val = e.target.value
+                onChange({
+                  ...budget,
+                  technicalResponsibilityText: val,
+                  work: {
+                    ...budget.work,
+                    technicalResponsibilityText: val,
+                  },
+                })
+              }}
+              placeholder={DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-medium leading-relaxed focus:outline-none focus:border-[#294C87]"
+            />
+            <p className="text-[10.5px] text-[#171A1F]/60">
+              Caso vazio, o sistema aplicará automaticamente a garantia legal quinquenal do Art. 618
+              do Código Civil e ART junto ao CREA/RS sob responsabilidade do Eng. Edenir Souza da
+              Rosa.
+            </p>
+          </div>
+
+          {/* Campo Editável 2: Garantia e Obrigações Técnicas */}
+          <div className="sm:col-span-3 pt-2 border-t border-[#171A1F]/10 space-y-1.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <label className="text-xs font-bold text-[#171A1F] flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#FF6B1F]" />
+                Garantia e Obrigações Técnicas
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[#171A1F]/60">
+                  Exibido nos formatos Simplificado, Etapas e Completo
+                </span>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    const prevVal =
+                      budget.technicalObligationsText ??
+                      budget.work?.technicalObligationsText ??
+                      DEFAULT_TECHNICAL_OBLIGATIONS_TEXT
+                    if (prevVal !== DEFAULT_TECHNICAL_OBLIGATIONS_TEXT) {
+                      logAuditEvent({
+                        budgetId: budget.id,
+                        action: 'edicao_garantia',
+                        title: 'Garantia e Obrigações Técnicas Restaurada',
+                        details:
+                          'Cláusula restaurada para o texto padrão oficial da CONCE (ART CREA/RS + Art. 618 Código Civil + ABNT/NRs).',
+                        oldValue: prevVal,
+                        newValue: DEFAULT_TECHNICAL_OBLIGATIONS_TEXT,
+                        userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                        metadata: {
+                          field: 'technicalObligationsText',
+                          restoredDefault: true,
+                          signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                        },
+                      })
+                    }
+                    onChange({
+                      ...budget,
+                      technicalObligationsText: DEFAULT_TECHNICAL_OBLIGATIONS_TEXT,
+                      work: {
+                        ...budget.work,
+                        technicalObligationsText: DEFAULT_TECHNICAL_OBLIGATIONS_TEXT,
+                      },
+                    })
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded bg-[#FF6B1F]/10 text-[#FF6B1F] hover:bg-[#FF6B1F]/20 font-bold transition-colors"
+                  title="Restaurar texto padrão da CONCE Engenharia"
+                >
+                  Restaurar Padrão
+                </button>
+              </div>
+            </div>
+            <textarea
+              rows={4}
+              disabled={disabled}
+              value={
+                budget.technicalObligationsText ??
+                budget.work?.technicalObligationsText ??
+                DEFAULT_TECHNICAL_OBLIGATIONS_TEXT
+              }
+              onChange={(e) => {
+                const val = e.target.value
+                onChange({
+                  ...budget,
+                  technicalObligationsText: val,
+                  work: {
+                    ...budget.work,
+                    technicalObligationsText: val,
+                  },
+                })
+              }}
+              placeholder={DEFAULT_TECHNICAL_OBLIGATIONS_TEXT}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-medium leading-relaxed focus:outline-none focus:border-[#294C87]"
+            />
+            <p className="text-[10.5px] text-[#171A1F]/60">
+              Itens contratuais de garantia quinquenal (Art. 618 Código Civil), emissão de ART
+              CREA/RS e cumprimento irrestrito às normas da ABNT e NRs.
+            </p>
           </div>
         </div>
       </div>

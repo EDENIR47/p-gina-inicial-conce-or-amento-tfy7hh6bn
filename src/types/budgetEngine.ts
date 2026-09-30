@@ -102,6 +102,8 @@ export interface WorkData {
   expectedEndDate?: string
   totalAreaM2?: number
   executionDeadline?: string // Prazo de execução descritivo detalhado (ex: projetos 15 dias úteis, etc.)
+  technicalResponsibilityText?: string // Texto de "Garantia e Responsabilidade Técnica" (opcional/personalizável)
+  technicalObligationsText?: string // Texto de "Garantia e Obrigações Técnicas" (opcional/personalizável)
 }
 
 export interface PublicWorkData {
@@ -190,6 +192,8 @@ export interface FullBudget {
   validityDaysType?: 'corridos' | 'uteis' // Tipo de contagem de dias: 'corridos' ou 'uteis' (default: 'uteis' ou 'corridos')
   executionDeadline?: string // Prazo de execução da proposta / escopo de gestão
   commercialNotes?: string // Observações e condições comerciais adicionais
+  technicalResponsibilityText?: string // Texto editável de "Garantia e Responsabilidade Técnica" (nível proposta)
+  technicalObligationsText?: string // Texto editável de "Garantia e Obrigações Técnicas" (nível proposta)
   stages: BudgetStage[]
   chargesConfig: {
     uf: string

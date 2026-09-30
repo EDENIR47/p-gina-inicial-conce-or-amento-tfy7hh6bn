@@ -32,6 +32,8 @@ import {
   formatBudgetDeadline,
   sanitizeDocumentSource,
   sanitizeDocumentText,
+  getTechnicalResponsibilityText,
+  getTechnicalObligationsText,
 } from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
 
@@ -218,6 +220,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
     budget.executionDeadline ||
     budget.work?.executionDeadline ||
     'PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA'
+  const technicalResponsibilityText = getTechnicalResponsibilityText(budget)
+  const technicalObligationsText = getTechnicalObligationsText(budget, cleanAuthor)
 
   const modalContent = (
     <div className="conce-pdf-modal-overlay fixed inset-0 z-50 bg-[#171A1F]/80 backdrop-blur-sm flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white">
@@ -585,10 +589,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9px] block">
                 Garantia e Responsabilidade Técnica
               </span>
-              <p className="text-[#171A1F]/80 leading-relaxed text-[9.5px]">
-                • Emissão de Anotação de Responsabilidade Técnica (ART) junto ao CREA/RS sob
-                responsabilidade do RT Eng. Edenir Souza da Rosa (CREA/RS-252397). Garantia técnica
-                quinquenal conforme preconiza o Artigo 618 do Código Civil Brasileiro.
+              <p className="text-[#171A1F]/80 leading-relaxed text-[9.5px] whitespace-pre-wrap">
+                {technicalResponsibilityText}
               </p>
             </div>
 
@@ -1790,18 +1792,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9.5px] block">
                   Garantia e Obrigações Técnicas
                 </span>
-                <p className="text-[#171A1F]/80 text-[10.5px]">
-                  • Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) vinculada ao
-                  CREA/RS sob responsabilidade do RT {cleanAuthor}.
-                </p>
-                <p className="text-[#171A1F]/80 text-[10.5px]">
-                  • Garantia legal de 5 (cinco) anos para estabilidade e solidez da obra, conforme
-                  previsto no Artigo 618 do Código Civil Brasileiro.
-                </p>
-                <p className="text-[#171A1F]/80 text-[10.5px]">
-                  • Atendimento irrestrito às normas técnicas da ABNT e NRs de Segurança e Saúde no
-                  Trabalho da Construção Civil.
-                </p>
+                <div className="text-[#171A1F]/80 text-[10.5px] leading-relaxed whitespace-pre-wrap space-y-1">
+                  {technicalObligationsText.split('\n').map((line, idx) => (
+                    <p key={idx} className="leading-snug">
+                      {line}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
 

@@ -11,7 +11,13 @@
 import { FullBudget } from '@/types/budgetEngine'
 import { calculateFullBudget, getServiceEffectiveUnitCost } from './budgetEngine'
 import { computeAbcCurve } from './abcAnalysis'
-import { formatCurrencyBRL, formatBudgetDeadline, sanitizeDocumentText } from './formatters'
+import {
+  formatCurrencyBRL,
+  formatBudgetDeadline,
+  sanitizeDocumentText,
+  getTechnicalResponsibilityText,
+  getTechnicalObligationsText,
+} from './formatters'
 import { logAuditEvent } from './intelligenceStorage'
 import { CONCE_COMPANY } from './conceCompany'
 
@@ -100,6 +106,11 @@ export function exportBudgetSpreadsheet(
       `${budget.validityDays || 30} ${budget.validityDaysType === 'uteis' ? 'dias úteis' : 'dias corridos'}`,
       'Condições de Pagamento:',
       budget.paymentTerms || 'Conforme proposta comercial',
+    ],
+    ['Garantia e Responsabilidade:', getTechnicalResponsibilityText(budget)],
+    [
+      'Garantia e Obrigações Técnicas:',
+      getTechnicalObligationsText(budget, cleanAuthor).replace(/\n/g, ' | '),
     ],
     [
       'Regime Tributário:',

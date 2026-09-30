@@ -233,6 +233,53 @@ export function formatBudgetDeadline(work?: {
   return value === 1 ? '1 mês' : `${value} meses`
 }
 
+/**
+ * Textos padrão oficiais da CONCE Engenharia para as cláusulas de garantia:
+ * 1. Garantia e Responsabilidade Técnica (Proposta Comercial Simples / Valor Global)
+ * 2. Garantia e Obrigações Técnicas (Fechamento Comercial / Níveis Simplificado, Etapas e Completo)
+ */
+export const DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT =
+  '• Emissão de Anotação de Responsabilidade Técnica (ART) junto ao CREA/RS sob responsabilidade do RT Eng. Edenir Souza da Rosa (CREA/RS-252397). Garantia técnica quinquenal conforme preconiza o Artigo 618 do Código Civil Brasileiro.'
+
+export const DEFAULT_TECHNICAL_OBLIGATIONS_TEXT =
+  '• Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) vinculada ao CREA/RS sob responsabilidade do RT Eng. Edenir Souza da Rosa - CREA/RS-252397.\n• Garantia legal de 5 (cinco) anos para estabilidade e solidez da obra, conforme previsto no Artigo 618 do Código Civil Brasileiro.\n• Atendimento irrestrito às normas técnicas da ABNT e NRs de Segurança e Saúde no Trabalho da Construção Civil.'
+
+/**
+ * Retorna o texto efetivo de Garantia e Responsabilidade Técnica do orçamento,
+ * recorrendo ao texto padrão da CONCE caso esteja vazio ou não preenchido.
+ */
+export function getTechnicalResponsibilityText(budget?: {
+  technicalResponsibilityText?: string
+  work?: { technicalResponsibilityText?: string }
+}): string {
+  const custom =
+    budget?.technicalResponsibilityText?.trim() || budget?.work?.technicalResponsibilityText?.trim()
+  return custom || DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT
+}
+
+/**
+ * Retorna o texto efetivo de Garantia e Obrigações Técnicas do orçamento,
+ * recorrendo ao texto padrão da CONCE (com o responsável técnico contextual se omitido).
+ */
+export function getTechnicalObligationsText(
+  budget?: {
+    technicalObligationsText?: string
+    work?: { technicalObligationsText?: string }
+    author?: string
+  },
+  authorFallback?: string,
+): string {
+  const custom =
+    budget?.technicalObligationsText?.trim() || budget?.work?.technicalObligationsText?.trim()
+  if (custom) return custom
+
+  const author =
+    sanitizeDocumentText(budget?.author || authorFallback) ||
+    'Eng. Edenir Souza da Rosa - CREA/RS-252397'
+
+  return `• Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) vinculada ao CREA/RS sob responsabilidade do RT ${author}.\n• Garantia legal de 5 (cinco) anos para estabilidade e solidez da obra, conforme previsto no Artigo 618 do Código Civil Brasileiro.\n• Atendimento irrestrito às normas técnicas da ABNT e NRs de Segurança e Saúde no Trabalho da Construção Civil.`
+}
+
 export function sanitizeDocumentText(text?: string): string {
   if (!text) return ''
   let sanitized = String(text)

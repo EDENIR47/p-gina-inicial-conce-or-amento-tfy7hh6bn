@@ -321,6 +321,49 @@ export const BudgetsScreen: React.FC = () => {
         })
       }
 
+      // 5.1 Alteração de Garantia e Responsabilidade Técnica
+      const prevResp =
+        previousBudget.technicalResponsibilityText ??
+        previousBudget.work?.technicalResponsibilityText
+      const currResp =
+        activeBudget.technicalResponsibilityText ?? activeBudget.work?.technicalResponsibilityText
+      if (prevResp !== currResp) {
+        logAuditEvent({
+          budgetId: activeBudget.id,
+          action: 'edicao_garantia',
+          title: 'Garantia e Responsabilidade Técnica Atualizada',
+          details: 'Texto de garantia e responsabilidade técnica editado no orçamento.',
+          oldValue: prevResp || 'Padrão CONCE (ART CREA/RS + Art. 618 Código Civil)',
+          newValue: currResp || 'Padrão CONCE (ART CREA/RS + Art. 618 Código Civil)',
+          userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          metadata: {
+            field: 'technicalResponsibilityText',
+            signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          },
+        })
+      }
+
+      // 5.2 Alteração de Garantia e Obrigações Técnicas
+      const prevOblig =
+        previousBudget.technicalObligationsText ?? previousBudget.work?.technicalObligationsText
+      const currOblig =
+        activeBudget.technicalObligationsText ?? activeBudget.work?.technicalObligationsText
+      if (prevOblig !== currOblig) {
+        logAuditEvent({
+          budgetId: activeBudget.id,
+          action: 'edicao_garantia',
+          title: 'Garantia e Obrigações Técnicas Atualizada',
+          details: 'Texto de garantia e obrigações técnicas editado no orçamento.',
+          oldValue: prevOblig || 'Padrão CONCE (ART CREA/RS + Art. 618 Código Civil + ABNT/NRs)',
+          newValue: currOblig || 'Padrão CONCE (ART CREA/RS + Art. 618 Código Civil + ABNT/NRs)',
+          userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          metadata: {
+            field: 'technicalObligationsText',
+            signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          },
+        })
+      }
+
       // 5. Alteração de regime tributário
       const prevReg =
         previousBudget.chargesConfig?.taxRegime ||
