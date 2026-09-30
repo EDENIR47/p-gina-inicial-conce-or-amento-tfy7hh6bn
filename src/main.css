@@ -264,11 +264,11 @@
   }
 
   /* REGRAS DE IMPRESSÃO PROFISSIONAL CONCE */
-  /* @page com respiro superior de 10mm e margem inferior de 10mm para garantir que o cabeçalho/conteúdo
-     não saia colado no topo físico da folha em nenhuma página, mantendo margens laterais de 8mm. */
+  /* @page com margem SUPERIOR (cabeçalho) de 3cm (30mm) e margem INFERIOR (rodapé) de 2cm (20mm),
+     ambas como respiro físico em branco puro (sem informação), mantendo margens laterais de 8mm. */
   @page {
     size: A4 portrait;
-    margin: 10mm 8mm 10mm 8mm;
+    margin: 30mm 8mm 20mm 8mm;
   }
 
   @media print {
@@ -418,16 +418,19 @@
       break-inside: avoid !important;
     }
 
-    /* Formato de Valor Final (página única fechada de exata 1 folha, preservado a pedido do cliente) */
+    /* Formato de Valor Final (página única fechada de exata 1 folha, preservado a pedido do cliente)
+       Com altura da folha A4 de 297mm, margem superior de 30mm (3cm) e inferior de 20mm (2cm),
+       a área útil vertical é 297mm - 30mm - 20mm = 247mm. Calibrado para 240mm (max 244mm)
+       garantindo que feche em EXATAMENTE 1 folha física sem transbordo. */
     .print-single-page {
       box-sizing: border-box !important;
       width: 100% !important;
       min-height: 0 !important;
-      height: 255mm !important;
-      max-height: 255mm !important;
+      height: 240mm !important;
+      max-height: 244mm !important;
       overflow: hidden !important;
       margin: 0 0 0 0 !important;
-      padding: 4mm 5mm !important;
+      padding: 3.5mm 4.5mm !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       page-break-after: auto !important;

@@ -406,13 +406,17 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </span>
           </div>
 
-          {/* Dica de acabamento para impressão limpa */}
+          {/* Dica de acabamento para impressão limpa e margens padronizadas */}
           <div className="px-3.5 py-2 rounded-xl bg-[#294C87]/25 border border-[#294C87]/50 flex items-center gap-2 text-xs text-white/90">
             <span className="text-[#FF6B1F] font-bold text-sm shrink-0">💡</span>
             <p className="text-[11px] leading-tight text-white/80">
-              <strong className="text-white">Dica para impressão perfeita:</strong> na janela de
-              impressão do seu navegador, desmarque a opção <em>"Cabeçalhos e rodapés"</em> para um
-              documento sem URLs ou datas automáticas.
+              <strong className="text-white">
+                Margens oficiais CONCE (Cabeçalho 3 cm e Rodapé 2 cm sem informação):
+              </strong>{' '}
+              na janela de impressão do navegador (Ctrl+P), desmarque a opção{' '}
+              <em>"Cabeçalhos e rodapés"</em> (para que não saiam URLs, datas ou número de páginas)
+              e mantenha as <em>"Margens: Padrão"</em> (o sistema já aplica exatamente 30mm no topo,
+              20mm na base e 8mm nas laterais).
             </p>
           </div>
         </div>
