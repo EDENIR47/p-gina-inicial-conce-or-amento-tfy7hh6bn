@@ -34,6 +34,8 @@ import {
   sanitizeDocumentText,
   getTechnicalResponsibilityText,
   getTechnicalObligationsText,
+  DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT,
+  DEFAULT_TECHNICAL_OBLIGATIONS_TEXT,
 } from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
 
@@ -220,8 +222,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
     budget.executionDeadline ||
     budget.work?.executionDeadline ||
     'PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA'
-  const technicalResponsibilityText = getTechnicalResponsibilityText(budget)
-  const technicalObligationsText = getTechnicalObligationsText(budget, cleanAuthor)
+  const technicalResponsibilityText =
+    getTechnicalResponsibilityText(budget) || DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT
+  const technicalObligationsText =
+    getTechnicalObligationsText(budget, cleanAuthor) || DEFAULT_TECHNICAL_OBLIGATIONS_TEXT
 
   const modalContent = (
     <div className="conce-pdf-modal-overlay fixed inset-0 z-50 bg-[#171A1F]/80 backdrop-blur-sm flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white">
@@ -589,9 +593,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9px] block">
                 Garantia e Responsabilidade Técnica
               </span>
-              <p className="text-[#171A1F]/80 leading-relaxed text-[9.5px] whitespace-pre-wrap">
-                {technicalResponsibilityText}
-              </p>
+              <div className="text-[#171A1F]/80 leading-relaxed text-[9.5px] whitespace-pre-wrap space-y-0.5">
+                {technicalResponsibilityText.split('\n').map((line, idx) => (
+                  <p key={idx} className="leading-snug">
+                    {line}
+                  </p>
+                ))}
+              </div>
             </div>
 
             {/* Bloco de Assinaturas Formais */}
