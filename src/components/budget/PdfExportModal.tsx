@@ -405,6 +405,16 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               {selectedMode === 'completo' && '✓ Relatório técnico pleno (TCU + ABC + CPU)'}
             </span>
           </div>
+
+          {/* Dica de acabamento para impressão limpa */}
+          <div className="px-3.5 py-2 rounded-xl bg-[#294C87]/25 border border-[#294C87]/50 flex items-center gap-2 text-xs text-white/90">
+            <span className="text-[#FF6B1F] font-bold text-sm shrink-0">💡</span>
+            <p className="text-[11px] leading-tight text-white/80">
+              <strong className="text-white">Dica para impressão perfeita:</strong> na janela de
+              impressão do seu navegador, desmarque a opção <em>"Cabeçalhos e rodapés"</em> para um
+              documento sem URLs ou datas automáticas.
+            </p>
+          </div>
         </div>
       </div>
 

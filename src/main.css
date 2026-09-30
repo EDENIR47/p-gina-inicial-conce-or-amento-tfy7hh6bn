@@ -264,15 +264,15 @@
   }
 
   /* REGRAS DE IMPRESSÃO PROFISSIONAL CONCE */
-  /* margin: 0 no @page suprime os cabeçalhos/rodapés nativos do navegador que imprimem URL/hostname, data e título */
+  /* @page com respiro superior de 10mm e margem inferior de 10mm para garantir que o cabeçalho/conteúdo
+     não saia colado no topo físico da folha em nenhuma página, mantendo margens laterais de 8mm. */
   @page {
     size: A4 portrait;
-    margin: 0;
+    margin: 10mm 8mm 10mm 8mm;
   }
 
   @media print {
     /* 1. Reset básico do documento para impressão limpa e compacta */
-    /* Padding na folha para garantir margem útil de 10mm top/bottom e 8mm laterais sem disparar o header/footer do navegador */
     html {
       background-color: #ffffff !important;
       background: #ffffff !important;
@@ -375,7 +375,7 @@
       width: 100% !important;
       box-shadow: none !important;
       border: none !important;
-      padding: 8mm 10mm !important;
+      padding: 0 !important;
       margin: 0 !important;
       max-width: 100% !important;
       background: #ffffff !important;
@@ -423,11 +423,11 @@
       box-sizing: border-box !important;
       width: 100% !important;
       min-height: 0 !important;
-      height: 265mm !important;
-      max-height: 265mm !important;
+      height: 255mm !important;
+      max-height: 255mm !important;
       overflow: hidden !important;
       margin: 0 0 0 0 !important;
-      padding: 5mm 6mm !important;
+      padding: 4mm 5mm !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       page-break-after: auto !important;
