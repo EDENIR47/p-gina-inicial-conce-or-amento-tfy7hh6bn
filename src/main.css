@@ -264,13 +264,13 @@
   }
 
   /* REGRAS DE IMPRESSÃO PROFISSIONAL CONCE */
-  /* @page margin: 0 elimina a área de margem física do navegador, impedindo que URLs,
-     datas, títulos ou numerações de página do navegador sejam impressos no cabeçalho ou rodapé.
-     Os respiros oficiais CONCE (30mm topo / 20mm base / 8mm laterais) são aplicados como padding
-     interno do documento (#conce-printable-proposal), preservando os respiros em branco sem nenhuma informação. */
+  /* Margens físicas do @page aplicadas automaticamente em TODAS as páginas após as quebras,
+     garantindo respiro superior de 3cm (30mm) e respiro inferior de 2cm (20mm), com 8mm nas laterais.
+     Para evitar que URLs ou títulos do navegador apareçam nas margens, o usuário mantém desmarcada
+     a opção "Cabeçalhos e rodapés" na caixa de diálogo de impressão do navegador. */
   @page {
     size: A4 portrait;
-    margin: 0;
+    margin: 30mm 8mm 20mm 8mm;
   }
 
   @media print {
@@ -371,16 +371,16 @@
     }
 
     /* 4. Isolamento estrito do documento imprimível CONCE */
-    /* Com @page margin: 0, os respiros obrigatórios de 3cm (30mm) no topo, 2cm (20mm) na base
-       e 8mm nas laterais são criados como padding interno do próprio documento.
-       Isso impede que o navegador imprima a URL do site no rodapé e mantém o visual impecável. */
+    /* Com @page margin: 30mm 8mm 20mm 8mm, as margens físicas do navegador garantem os respiros
+       de 3cm no topo e 2cm na base em TODAS as páginas (inclusive após quebras automáticas).
+       O padding interno de 30mm/20mm foi removido do contêiner, mantendo padding zero na impressão. */
     #conce-printable-proposal {
       position: static !important;
       display: block !important;
       width: 100% !important;
       box-shadow: none !important;
       border: none !important;
-      padding: 30mm 8mm 20mm 8mm !important;
+      padding: 0 !important;
       margin: 0 !important;
       max-width: 100% !important;
       background: #ffffff !important;
@@ -424,16 +424,16 @@
     }
 
     /* Formato de Valor Final (página única fechada de exata 1 folha, preservado a pedido do cliente)
-       Na folha A4 total de 297mm x 210mm com @page margin: 0 e padding no #conce-printable-proposal
-       de 30mm topo e 20mm base, a área útil interna disponível é 297mm - 50mm = 247mm.
-       Fixamos a altura do cartão de valor final em 238mm (máx 242mm) para garantir que feche
+       Na folha A4 total de 297mm x 210mm com margens físicas de @page (30mm topo e 20mm base),
+       a área útil vertical disponível por folha é exatamente 297mm - 50mm = 247mm.
+       Fixamos a altura do cartão de valor final em 240mm (máx 244mm) para garantir que feche
        em EXATAMENTE 1 folha física, sem empurrar quebra nem gerar folha em branco residual. */
     .print-single-page {
       box-sizing: border-box !important;
       width: 100% !important;
       min-height: 0 !important;
-      height: 238mm !important;
-      max-height: 242mm !important;
+      height: 240mm !important;
+      max-height: 244mm !important;
       overflow: hidden !important;
       margin: 0 0 0 0 !important;
       padding: 3.5mm 4.5mm !important;

@@ -411,13 +411,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             <span className="text-[#FF6B1F] font-bold text-sm shrink-0">💡</span>
             <p className="text-[11px] leading-tight text-white/80">
               <strong className="text-white">
-                Impressão Oficial CONCE (Respiros de 3 cm topo e 2 cm base sem URL ou rodapé do
-                navegador):
+                Impressão Oficial CONCE (Respiros de 3 cm topo e 2 cm base em TODAS as páginas):
               </strong>{' '}
-              o sistema já embute os respiros físicos diretamente no documento. Na janela de
-              impressão (Ctrl+P), utilize <em>"Margens: Padrão"</em> (ou <em>"Nenhuma"</em>) e, se
-              desejar confirmação extra, desmarque <em>"Cabeçalhos e rodapés"</em>. O endereço do
-              site não é impresso.
+              as margens de 30mm no topo e 20mm na base são aplicadas automaticamente em cada folha,
+              inclusive após quebras de página. Na janela de impressão (Ctrl+P), selecione{' '}
+              <em>"Margens: Padrão"</em> e certifique-se de <strong>desmarcar</strong> a opção{' '}
+              <em>"Cabeçalhos e rodapés"</em> para que nenhum endereço de site, data ou numeração do
+              navegador seja exibido nas margens.
             </p>
           </div>
         </div>
