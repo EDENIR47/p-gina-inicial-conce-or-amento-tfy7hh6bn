@@ -121,7 +121,15 @@ export function createCanonicalDemoBudget(): FullBudget {
         totalTaxes: 11.0,
         simplesDas: 11.0,
       },
-      calculatedBdi: 24.32,
+      // BDI TCU calculado dinamicamente com base nos parâmetros acima e tributos DAS 11%
+      calculatedBdi: calculateTcuBdi({
+        administrationCentral: 4.5,
+        risk: 1.25,
+        insuranceAndGuarantee: 0.85,
+        financialExpenses: 1.15,
+        profit: 7.8,
+        taxesTotal: 11.0,
+      }).bdiPercent,
     },
     stages: [
       {
@@ -392,11 +400,16 @@ export function getStoredFullBudgets(): FullBudget[] {
                   : 11.0
 
             const tcuRecalc = calculateTcuBdi({
-              administrationCentral: updatedBudget.bdiConfig?.administrationCentral ?? 4.0,
-              risk: updatedBudget.bdiConfig?.risk ?? 1.27,
-              insuranceAndGuarantee: updatedBudget.bdiConfig?.insuranceAndGuarantee ?? 0.8,
-              financialExpenses: updatedBudget.bdiConfig?.financialExpenses ?? 1.23,
-              profit: updatedBudget.bdiConfig?.profit ?? 7.4,
+              administrationCentral:
+                updatedBudget.bdiConfig?.administrationCentral ??
+                DEFAULT_BDI_CONFIG.administrationCentral,
+              risk: updatedBudget.bdiConfig?.risk ?? DEFAULT_BDI_CONFIG.risk,
+              insuranceAndGuarantee:
+                updatedBudget.bdiConfig?.insuranceAndGuarantee ??
+                DEFAULT_BDI_CONFIG.insuranceAndGuarantee,
+              financialExpenses:
+                updatedBudget.bdiConfig?.financialExpenses ?? DEFAULT_BDI_CONFIG.financialExpenses,
+              profit: updatedBudget.bdiConfig?.profit ?? DEFAULT_BDI_CONFIG.profit,
               taxesTotal: currentRate,
             })
 
@@ -482,11 +495,17 @@ export function getStoredFullBudgets(): FullBudget[] {
               hasFixed = true
               const effectiveDas = needsDasFix ? 11.0 : currentDas
               const tcuRecalc = calculateTcuBdi({
-                administrationCentral: updatedBudget.bdiConfig?.administrationCentral ?? 4.0,
-                risk: updatedBudget.bdiConfig?.risk ?? 1.27,
-                insuranceAndGuarantee: updatedBudget.bdiConfig?.insuranceAndGuarantee ?? 0.8,
-                financialExpenses: updatedBudget.bdiConfig?.financialExpenses ?? 1.23,
-                profit: updatedBudget.bdiConfig?.profit ?? 7.4,
+                administrationCentral:
+                  updatedBudget.bdiConfig?.administrationCentral ??
+                  DEFAULT_BDI_CONFIG.administrationCentral,
+                risk: updatedBudget.bdiConfig?.risk ?? DEFAULT_BDI_CONFIG.risk,
+                insuranceAndGuarantee:
+                  updatedBudget.bdiConfig?.insuranceAndGuarantee ??
+                  DEFAULT_BDI_CONFIG.insuranceAndGuarantee,
+                financialExpenses:
+                  updatedBudget.bdiConfig?.financialExpenses ??
+                  DEFAULT_BDI_CONFIG.financialExpenses,
+                profit: updatedBudget.bdiConfig?.profit ?? DEFAULT_BDI_CONFIG.profit,
                 taxesTotal: effectiveDas,
               })
               return {

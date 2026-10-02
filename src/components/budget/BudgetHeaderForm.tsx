@@ -31,6 +31,7 @@ import {
   TaxRegime,
   WorkData,
 } from '@/types/budgetEngine'
+import { calculateTcuBdi } from '@/lib/budgetEngine'
 import { BRAZIL_STATES_LIST } from '@/lib/chargesData'
 import {
   getBudgetDeadline,
@@ -116,6 +117,15 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
 
   const handleSimplesDasInputChange = (rate: number) => {
     const val = Math.max(0, rate)
+    const tcuRecalc = calculateTcuBdi({
+      administrationCentral: budget.bdiConfig.administrationCentral,
+      risk: budget.bdiConfig.risk,
+      insuranceAndGuarantee: budget.bdiConfig.insuranceAndGuarantee,
+      financialExpenses: budget.bdiConfig.financialExpenses,
+      profit: budget.bdiConfig.profit,
+      taxesTotal: val,
+    })
+
     onChange({
       ...budget,
       chargesConfig: {
@@ -124,6 +134,7 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
       },
       bdiConfig: {
         ...budget.bdiConfig,
+        calculatedBdi: tcuRecalc.bdiPercent,
         taxes: {
           ...budget.bdiConfig.taxes,
           simplesDas: val,

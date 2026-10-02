@@ -155,7 +155,13 @@ export function getServiceCostBreakdown(service: BudgetService): {
   let subcontractCost = 0
   let hasLaborInputs = false
 
-  if (service.unitPrice !== undefined && service.unitPrice !== null) {
+  // Só trata como preço manual travado quando a FONTE do preço for 'Usuário' (ou serviço sem insumos com preço definido).
+  // Quando a fonte for 'Composição' ou 'SINAPI', recalcula sempre a partir dos coeficientes × custos dos insumos da CPU.
+  const isUserManual =
+    service.unitPriceSource === 'Usuário' ||
+    (!hasInputs && service.unitPrice !== undefined && service.unitPrice !== null)
+
+  if (isUserManual && service.unitPrice !== undefined && service.unitPrice !== null) {
     const manualUnit = Number(service.unitPrice) || 0
     const serviceTotal = manualUnit * sQty
 

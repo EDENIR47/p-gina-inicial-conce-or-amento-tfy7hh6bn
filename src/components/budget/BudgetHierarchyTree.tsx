@@ -35,6 +35,7 @@ import {
 } from '@/types/budgetEngine'
 import {
   calculateCompositionUnitCost,
+  calculateFullBudget,
   calculateServiceDirectCost,
   calculateStageDirectCost,
   getBudgetLaborMultiplier,
@@ -132,7 +133,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
   })
 
   const laborMultiplier = getBudgetLaborMultiplier(budget)
-  const generalBdiRate = budget.bdiConfig?.calculatedBdi ?? 22.84
+  const calculatedSummary = calculateFullBudget(budget)
+  const generalBdiRate = calculatedSummary.bdiRate
 
   // Alterna expansão de Etapa
   const toggleStage = (stageId: string) => {
@@ -853,7 +855,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         return {
           ...srv,
           unitPrice: newCpuCost,
-          unitPriceSource: srv.composition?.source || 'Composição',
+          unitPriceSource: 'Composição',
         }
       })
       return { ...st, services: updatedServices }
