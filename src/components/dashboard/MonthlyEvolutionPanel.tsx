@@ -64,59 +64,65 @@ export const MonthlyEvolutionPanel: React.FC<MonthlyEvolutionPanelProps> = ({ it
         </div>
 
         {/* Gráfico de Linha / Área com paleta CONCE */}
-        <div className="w-full h-[250px] sm:h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={items} margin={{ top: 15, right: 15, left: -20, bottom: 5 }}>
-              <defs>
-                {/* Preenchimento Cobalt a 10% */}
-                <linearGradient id="cobaltArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#294C87" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#294C87" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#171A1F"
-                strokeOpacity={0.08}
-                vertical={false}
-              />
-              <XAxis
-                dataKey="month"
-                tick={{ fill: '#171A1F', fontSize: 12, fontWeight: 500 }}
-                axisLine={{ stroke: '#171A1F', strokeOpacity: 0.15 }}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: '#171A1F', fontSize: 11 }}
-                axisLine={{ stroke: '#171A1F', strokeOpacity: 0.15 }}
-                tickLine={false}
-                allowDecimals={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="count"
-                stroke="#294C87"
-                strokeWidth={3}
-                fillOpacity={1}
-                fill="url(#cobaltArea)"
-                dot={{
-                  fill: '#FF6B1F',
-                  stroke: '#FFFFFF',
-                  strokeWidth: 2,
-                  r: 4.5,
-                }}
-                activeDot={{
-                  fill: '#FF6B1F',
-                  stroke: '#294C87',
-                  strokeWidth: 2,
-                  r: 6,
-                }}
-                animationDuration={900}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {items.length === 0 ? (
+          <div className="w-full h-[200px] flex items-center justify-center text-xs text-[#171A1F]/50">
+            Nenhuma movimentação mensal registrada.
+          </div>
+        ) : (
+          <div className="w-full h-[250px] sm:h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={items} margin={{ top: 15, right: 15, left: -20, bottom: 5 }}>
+                <defs>
+                  {/* Preenchimento Cobalt a 10% */}
+                  <linearGradient id="cobaltArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#294C87" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#294C87" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#171A1F"
+                  strokeOpacity={0.08}
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: '#171A1F', fontSize: 12, fontWeight: 500 }}
+                  axisLine={{ stroke: '#171A1F', strokeOpacity: 0.15 }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: '#171A1F', fontSize: 11 }}
+                  axisLine={{ stroke: '#171A1F', strokeOpacity: 0.15 }}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#294C87"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#cobaltArea)"
+                  dot={{
+                    fill: '#FF6B1F',
+                    stroke: '#FFFFFF',
+                    strokeWidth: 2,
+                    r: 4.5,
+                  }}
+                  activeDot={{
+                    fill: '#FF6B1F',
+                    stroke: '#294C87',
+                    strokeWidth: 2,
+                    r: 6,
+                  }}
+                  animationDuration={900}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* Rodapé explicativo */}

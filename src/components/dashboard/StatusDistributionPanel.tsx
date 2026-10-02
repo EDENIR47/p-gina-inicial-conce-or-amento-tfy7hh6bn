@@ -62,20 +62,33 @@ export const StatusDistributionPanel: React.FC<StatusDistributionPanelProps> = (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={items}
+                data={
+                  total > 0
+                    ? items
+                    : [{ status: 'nenhum', label: 'Sem orçamentos', count: 1, color: '#E5E7EB' }]
+                }
                 cx="50%"
                 cy="50%"
                 innerRadius={65}
                 outerRadius={95}
-                paddingAngle={3}
+                paddingAngle={total > 0 ? 3 : 0}
                 dataKey="count"
                 animationDuration={900}
               >
-                {items.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} stroke="#FFFFFF" strokeWidth={2} />
-                ))}
+                {total > 0 ? (
+                  items.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.color}
+                      stroke="#FFFFFF"
+                      strokeWidth={2}
+                    />
+                  ))
+                ) : (
+                  <Cell fill="#E5E7EB" stroke="#FFFFFF" strokeWidth={2} />
+                )}
               </Pie>
-              <Tooltip content={<CustomTooltip total={total} />} />
+              {total > 0 && <Tooltip content={<CustomTooltip total={total} />} />}
             </PieChart>
           </ResponsiveContainer>
 
@@ -85,7 +98,7 @@ export const StatusDistributionPanel: React.FC<StatusDistributionPanelProps> = (
               {total}
             </span>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#171A1F]/60 mt-0.5">
-              Orçamentos
+              {total === 1 ? 'Orçamento' : 'Orçamentos'}
             </span>
           </div>
         </div>
@@ -93,7 +106,7 @@ export const StatusDistributionPanel: React.FC<StatusDistributionPanelProps> = (
         {/* Legenda dos Status com contagem e percentual */}
         <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-[#171A1F]/10">
           {items.map((entry) => {
-            const pct = Math.round((entry.count / total) * 100)
+            const pct = total > 0 ? Math.round((entry.count / total) * 100) : 0
             return (
               <div
                 key={entry.status}
@@ -120,7 +133,11 @@ export const StatusDistributionPanel: React.FC<StatusDistributionPanelProps> = (
 
       {/* Rodapé informativo */}
       <div className="mt-4 pt-3 border-t border-[#171A1F]/10 flex items-center justify-between text-[11px] text-[#171A1F]/60">
-        <span>Taxa de conversão atual de propostas: 28,6% de aprovação direta.</span>
+        <span>
+          {total > 0
+            ? `Taxa de conversão atual de propostas: ${Math.round(((items.find((i) => i.status === 'aprovado')?.count || 0) / total) * 100)}% de aprovação direta.`
+            : 'Aguardando cadastro de propostas e aprovação de clientes.'}
+        </span>
       </div>
     </div>
   )

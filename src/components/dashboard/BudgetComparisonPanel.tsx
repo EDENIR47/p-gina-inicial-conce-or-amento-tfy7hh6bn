@@ -92,52 +92,58 @@ export const BudgetComparisonPanel: React.FC<BudgetComparisonPanelProps> = ({ it
       </div>
 
       {/* Gráfico de Barras Agrupadas */}
-      <div className="w-full h-[290px] sm:h-[330px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={items}
-            margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
-            barCategoryGap="20%"
-            barGap={6}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#171A1F"
-              strokeOpacity={0.08}
-              vertical={false}
-            />
-            <XAxis
-              dataKey="workName"
-              tick={{ fill: '#171A1F', fontSize: 12, fontWeight: 500 }}
-              axisLine={{ stroke: '#171A1F', strokeOpacity: 0.15 }}
-              tickLine={false}
-              dy={10}
-            />
-            <YAxis
-              tick={{ fill: '#171A1F', fontSize: 11 }}
-              axisLine={{ stroke: '#171A1F', strokeOpacity: 0.15 }}
-              tickLine={false}
-              tickFormatter={(v) => `R$ ${v}k`}
-              dx={-5}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar
-              dataKey="budgetedThousands"
-              name="Orçado"
-              fill="#294C87"
-              radius={[4, 4, 0, 0]}
-              animationDuration={800}
-            />
-            <Bar
-              dataKey="actualThousands"
-              name="Realizado"
-              fill="#FF6B1F"
-              radius={[4, 4, 0, 0]}
-              animationDuration={800}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      {items.length === 0 ? (
+        <div className="w-full h-[200px] flex items-center justify-center text-xs text-[#171A1F]/50">
+          Nenhuma obra cadastrada para comparação orçado versus realizado.
+        </div>
+      ) : (
+        <div className="w-full h-[290px] sm:h-[330px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={items}
+              margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+              barCategoryGap="20%"
+              barGap={6}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#171A1F"
+                strokeOpacity={0.08}
+                vertical={false}
+              />
+              <XAxis
+                dataKey="workName"
+                tick={{ fill: '#171A1F', fontSize: 12, fontWeight: 500 }}
+                axisLine={{ stroke: '#171A1F', strokeOpacity: 0.15 }}
+                tickLine={false}
+                dy={10}
+              />
+              <YAxis
+                tick={{ fill: '#171A1F', fontSize: 11 }}
+                axisLine={{ stroke: '#171A1F', strokeOpacity: 0.15 }}
+                tickLine={false}
+                tickFormatter={(v) => `R$ ${v}k`}
+                dx={-5}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar
+                dataKey="budgetedThousands"
+                name="Orçado"
+                fill="#294C87"
+                radius={[4, 4, 0, 0]}
+                animationDuration={800}
+              />
+              <Bar
+                dataKey="actualThousands"
+                name="Realizado"
+                fill="#FF6B1F"
+                radius={[4, 4, 0, 0]}
+                animationDuration={800}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Nota de rodapé da análise */}
       <div className="mt-4 pt-3 border-t border-[#171A1F]/10 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#171A1F]/60">

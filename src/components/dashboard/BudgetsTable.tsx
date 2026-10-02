@@ -113,10 +113,10 @@ export const BudgetsTable: React.FC<BudgetsTableProps> = ({ budgets }) => {
               className="pl-3 pr-8 py-1.5 text-xs rounded-lg border border-[#171A1F]/20 focus:border-[#294C87] bg-white text-[#171A1F] font-medium outline-none cursor-pointer"
             >
               <option value="todos">Todos os Status</option>
-              <option value="em_andamento">Em Andamento (15)</option>
-              <option value="aprovado">Aprovados (12)</option>
-              <option value="vencido">Vencidos (5)</option>
-              <option value="em_analise">Em Análise (10)</option>
+              <option value="em_andamento">Em Andamento</option>
+              <option value="aprovado">Aprovados</option>
+              <option value="vencido">Vencidos</option>
+              <option value="em_analise">Em Análise</option>
             </select>
           </div>
         </div>

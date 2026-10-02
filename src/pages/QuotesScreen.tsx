@@ -30,7 +30,8 @@ import {
 } from 'lucide-react'
 import { FullBudget } from '@/types/budgetEngine'
 import { InputQuoteComparison } from '@/types/intelligence'
-import { getStoredFullBudgets } from '@/lib/budgetsStorage'
+import { getStoredFullBudgets, purgeTestBudgetsFromStorage } from '@/lib/budgetsStorage'
+import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
 import {
   getStoredQuotes,
   seedQuotesForBudgetIfEmpty,
@@ -49,6 +50,12 @@ export const QuotesScreen: React.FC = () => {
 
   const activeBudget = budgets.find((b) => b.id === selectedBudgetId) || budgets[0]
 
+  // Limpeza de resíduos de teste
+  useEffect(() => {
+    purgeTestBudgetsFromStorage()
+    purgeTestIntelligenceData()
+  }, [])
+
   // Cotações do orçamento ativo
   const [quotesList, setQuotesList] = useState<InputQuoteComparison[]>([])
   const [selectedComparison, setSelectedComparison] = useState<InputQuoteComparison | null>(null)
@@ -58,11 +65,11 @@ export const QuotesScreen: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('todos')
 
-  // Inicialização e semente inteligente se vazio
+  // Carrega cotações persistidas do orçamento ativo
   useEffect(() => {
     if (activeBudget) {
-      const seeded = seedQuotesForBudgetIfEmpty(activeBudget)
-      setQuotesList(seeded)
+      const quotes = getStoredQuotes(activeBudget.id)
+      setQuotesList(quotes)
     }
   }, [activeBudget])
 
@@ -303,10 +310,11 @@ export const QuotesScreen: React.FC = () => {
           <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-[#171A1F]/20 space-y-3">
             <ShoppingBag className="w-12 h-12 text-[#171A1F]/30 mx-auto" />
             <h4 className="text-base font-bold text-[#171A1F]">
-              Nenhum mapa de cotação encontrado
+              Nenhum mapa de cotação cadastrado ainda
             </h4>
             <p className="text-xs text-[#171A1F]/60 max-w-sm mx-auto">
-              Utilize o botão acima para abrir um novo mapa de cotação para insumos da obra.
+              Adicione cotações reais para os insumos do orçamento utilizando a lista de sugestões
+              de Classe A acima ou criando um mapa personalizado.
             </p>
           </div>
         ) : (

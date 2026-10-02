@@ -56,51 +56,57 @@ export const ProfitabilityPanel: React.FC<ProfitabilityPanelProps> = ({ items })
         </div>
 
         {/* Barras Horizontais com animação */}
-        <div className="space-y-4">
-          {items.map((item) => {
-            const colorInfo = getMarginColor(item.marginPercent)
-            // Escala de largura máxima visual: 40% margem equivale a 100% da barra
-            const barWidthPercent = Math.min(100, Math.round((item.marginPercent / 40) * 100))
+        {items.length === 0 ? (
+          <div className="py-8 text-center text-xs text-[#171A1F]/50">
+            Nenhuma obra com cálculo de lucratividade registrado.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {items.map((item) => {
+              const colorInfo = getMarginColor(item.marginPercent)
+              // Escala de largura máxima visual: 40% margem equivale a 100% da barra
+              const barWidthPercent = Math.min(100, Math.round((item.marginPercent / 40) * 100))
 
-            return (
-              <div key={item.id} className="space-y-1.5">
-                <div className="flex items-baseline justify-between text-xs sm:text-sm">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-semibold text-[#171A1F]">{item.workName}</span>
-                    <span className="text-[11px] text-[#171A1F]/50 hidden sm:inline">
-                      ({item.statusText})
-                    </span>
+              return (
+                <div key={item.id} className="space-y-1.5">
+                  <div className="flex items-baseline justify-between text-xs sm:text-sm">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-semibold text-[#171A1F]">{item.workName}</span>
+                      <span className="text-[11px] text-[#171A1F]/50 hidden sm:inline">
+                        ({item.statusText})
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[11px] text-[#171A1F]/60">
+                        Venda: {formatCurrencyBRL(item.saleValue)}
+                      </span>
+                      <span
+                        className="font-extrabold text-sm sm:text-base px-2 py-0.5 rounded"
+                        style={{
+                          color: colorInfo.hex,
+                          backgroundColor: `${colorInfo.hex}15`,
+                        }}
+                      >
+                        {formatPercent(item.marginPercent)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[11px] text-[#171A1F]/60">
-                      Venda: {formatCurrencyBRL(item.saleValue)}
-                    </span>
-                    <span
-                      className="font-extrabold text-sm sm:text-base px-2 py-0.5 rounded"
+
+                  {/* Trilho de fundo e barra preenchida */}
+                  <div className="h-3.5 w-full bg-[#171A1F]/10 rounded-full overflow-hidden p-0.5">
+                    <div
+                      className="h-full rounded-full transition-all duration-700 ease-out"
                       style={{
-                        color: colorInfo.hex,
-                        backgroundColor: `${colorInfo.hex}15`,
+                        width: animated ? `${barWidthPercent}%` : '0%',
+                        backgroundColor: colorInfo.hex,
                       }}
-                    >
-                      {formatPercent(item.marginPercent)}
-                    </span>
+                    />
                   </div>
                 </div>
-
-                {/* Trilho de fundo e barra preenchida */}
-                <div className="h-3.5 w-full bg-[#171A1F]/10 rounded-full overflow-hidden p-0.5">
-                  <div
-                    className="h-full rounded-full transition-all duration-700 ease-out"
-                    style={{
-                      width: animated ? `${barWidthPercent}%` : '0%',
-                      backgroundColor: colorInfo.hex,
-                    }}
-                  />
-                </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Nota técnica sobre BDI */}

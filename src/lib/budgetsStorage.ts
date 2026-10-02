@@ -14,6 +14,25 @@ export const STORAGE_KEYS_BUDGETS = {
   ACTIVE_BUDGET_ID: 'conce_active_budget_id',
 } as const
 
+/**
+ * Remove qualquer orçamento de teste/demonstração que tenha sido gravado anteriormente em localStorage,
+ * garantindo a preservação exclusiva dos orçamentos reais ("Andreia", "Jader", "Tomaz Gonzaga").
+ */
+export function purgeTestBudgetsFromStorage(): void {
+  if (typeof window === 'undefined') return
+  const raw = localStorage.getItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS)
+  if (!raw) return
+  try {
+    const list = JSON.parse(raw)
+    if (Array.isArray(list)) {
+      const real = list.filter((b: FullBudget) => !isDemoOrTestBudget(b))
+      localStorage.setItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS, JSON.stringify(real))
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 export function createCanonicalDemoBudget(): FullBudget {
   const compConcreto = CONCE_CANONICAL_COMPOSITIONS[0] // SINAPI-94964
   const compArmacao = CONCE_CANONICAL_COMPOSITIONS[1] // SINAPI-92778
@@ -25,7 +44,7 @@ export function createCanonicalDemoBudget(): FullBudget {
   return {
     id: 'budget-conce-001',
     code: 'ORC-2025-001',
-    title: 'Construção Civil — Edifício Residencial Horizonte Jardins',
+    title: 'Reforma e Estrutura Residencial — Apto 1803',
     status: 'em_andamento',
     createdAt: '2025-04-10',
     updatedAt: new Date().toISOString(),
@@ -67,16 +86,16 @@ export function createCanonicalDemoBudget(): FullBudget {
     },
     publicWork: {
       enabled: false,
-      tenderNumber: 'LIC-2025/044-SP',
-      contractNumber: 'CT-9820/2025',
-      agency: 'Prefeitura do Município de São Paulo - SIURB',
+      tenderNumber: '',
+      contractNumber: '',
+      agency: '',
       modality: 'Concorrência',
       sinapiReferenceMonth: '04/2025',
       sicroReferenceMonth: '03/2025',
-      hasDisallowanceClause: true,
+      hasDisallowanceClause: false,
     },
     chargesConfig: {
-      uf: 'SP',
+      uf: 'RS',
       isRelieved: false,
       taxRegime: 'simples_nacional', // CONCE trabalha no Simples Nacional
       simplesCollectionOption: 'cpp_inclusa_das',
@@ -99,7 +118,8 @@ export function createCanonicalDemoBudget(): FullBudget {
         pis: 0.65,
         cofins: 3.0,
         inssOrCprb: 0.0,
-        totalTaxes: 7.65,
+        totalTaxes: 11.0,
+        simplesDas: 11.0,
       },
       calculatedBdi: 24.32,
     },
@@ -194,125 +214,48 @@ export function createCanonicalDemoBudget(): FullBudget {
 /**
  * Cria orçamento público modelo
  */
-export function createPublicDemoBudget(): FullBudget {
-  const compConcreto = CONCE_CANONICAL_COMPOSITIONS[0]
-  const compArmacao = CONCE_CANONICAL_COMPOSITIONS[1]
-  const compAlvenaria = CONCE_CANONICAL_COMPOSITIONS[2]
+// Orçamento público fictício de demonstração descontinuado conforme solicitação do usuário
 
-  return {
-    id: 'budget-public-002',
-    code: 'ORC-PUB-2025-014',
-    title: 'Edificação Escolar Técnica Estadual — Bloco Pedagógico e Poliesportivo',
-    status: 'em_analise',
-    createdAt: '2025-04-14',
-    updatedAt: new Date().toISOString(),
-    author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
-    paymentTerms:
-      'Medições mensais com liquidação em até 30 dias após emissão da NF e ateste fiscal.',
-    validityDays: 60,
-    commercialNotes:
-      'Proposta em conformidade com a Lei Federal nº 14.133/2021 e Acórdão 2.622/2013-TCU.',
-    client: {
-      name: 'Secretaria de Obras e Serviços Públicos do Estado',
-      document: '46.379.400/0001-50',
-      email: 'licitacoes@obras.gov.br',
-      phone: '(11) 3218-4000',
-      address: 'Palácio dos Bandeirantes, Av. Morumbi 4500',
-      city: 'São Paulo',
-      state: 'SP',
-    },
-    work: {
-      name: 'Construção de Escola Técnica Estadual — 12 Salas e Quadra Poliesportiva',
-      address: 'Estrada do Campo Limpo, 890',
-      city: 'São Paulo',
-      state: 'SP',
-      description:
-        'Edificação escolar completa com bloco administrativo, salas de aula, laboratórios e quadra coberta.',
-      deadlineMonths: 12,
-      startDate: '2025-07-01',
-      expectedEndDate: '2026-06-30',
-      totalAreaM2: 3200.0,
-    },
-    publicWork: {
-      enabled: true,
-      tenderNumber: 'EDITAL-CP-009/2025-FDE',
-      contractNumber: 'CT-FDE-1044/2025',
-      agency: 'FDE - Fundação para o Desenvolvimento da Educação',
-      modality: 'Concorrência',
-      sinapiReferenceMonth: '04/2025 com desoneração',
-      sicroReferenceMonth: '03/2025',
-      hasDisallowanceClause: true,
-    },
-    chargesConfig: {
-      uf: 'SP',
-      isRelieved: true, // Com desoneração (77.97% em SP)
-      taxRegime: 'com_desoneracao',
-      simplesDasRate: 0,
-    },
-    bdiConfig: {
-      administrationCentral: 3.8,
-      risk: 1.1,
-      insuranceAndGuarantee: 0.8,
-      financialExpenses: 1.05,
-      profit: 6.85,
-      taxes: {
-        iss: 3.0,
-        pis: 0.65,
-        cofins: 3.0,
-        inssOrCprb: 4.5, // CPRB Lei 12.546/2011 desonerado
-        totalTaxes: 11.15,
-      },
-      calculatedBdi: 26.15,
-      differentiatedEquipBdi: 14.5,
-    },
-    stages: [
-      {
-        id: 'stage-pub-1',
-        order: 1,
-        code: '01',
-        name: 'ESTRUTURA DE CONCRETO ARMADO',
-        notes: 'Conforme projeto executivo estrutural FDE-2025',
-        services: [
-          {
-            id: 'serv-pub-1',
-            order: 1,
-            code: '01.01',
-            description: 'Concreto FCK 25MPa com betoneira',
-            unit: 'm³',
-            quantity: 320.0,
-            composition: compConcreto,
-          },
-          {
-            id: 'serv-pub-2',
-            order: 2,
-            code: '01.02',
-            description: 'Aço CA-50 10mm montado e posicionado',
-            unit: 'kg',
-            quantity: 22500.0,
-            composition: compArmacao,
-          },
-        ],
-      },
-      {
-        id: 'stage-pub-2',
-        order: 2,
-        code: '02',
-        name: 'ALVENARIAS E FECHAMENTOS',
-        notes: 'Paredes em bloco cerâmico e divisórias técnicas',
-        services: [
-          {
-            id: 'serv-pub-3',
-            order: 1,
-            code: '02.01',
-            description: 'Alvenaria de vedação 9x19x19cm argamassa mista',
-            unit: 'm²',
-            quantity: 1400.0,
-            composition: compAlvenaria,
-          },
-        ],
-      },
-    ],
+/**
+ * Lê todos os orçamentos completos persistidos
+ */
+/**
+ * Verifica se um orçamento é de teste/demonstração fictício para limpeza.
+ * Os orçamentos reais dos clientes "Andreia" e "Jader" ou endereço "Tomaz Gonzaga"
+ * JAMAIS devem ser classificados como demo.
+ */
+export function isDemoOrTestBudget(budget: FullBudget): boolean {
+  // Orçamentos reais sagrados:
+  const clientName = (budget.client?.name || '').toLowerCase()
+  const workName = (budget.work?.name || '').toLowerCase()
+  const address = (budget.work?.address || '').toLowerCase()
+
+  if (
+    clientName.includes('andreia') ||
+    clientName.includes('jader') ||
+    address.includes('tomaz gonzaga') ||
+    budget.id === 'budget-conce-001'
+  ) {
+    return false
   }
+
+  // Exemplos fictícios de teste / demonstração conhecidos
+  if (
+    budget.id === 'budget-public-002' ||
+    budget.code === 'ORC-PUB-2025-014' ||
+    clientName.includes('secretaria de obras e serviços públicos') ||
+    workName.includes('escola técnica estadual') ||
+    workName.includes('bloco pedagógico') ||
+    clientName.includes('incorporadora horizonte') ||
+    clientName.includes('família albuquerque') ||
+    clientName.includes('grupo vértice') ||
+    clientName.includes('secretaria mun. de obras') ||
+    clientName.includes('condomínio altos do morumbi')
+  ) {
+    return true
+  }
+
+  return false
 }
 
 /**
@@ -320,7 +263,7 @@ export function createPublicDemoBudget(): FullBudget {
  */
 export function getStoredFullBudgets(): FullBudget[] {
   if (typeof window === 'undefined') {
-    return [createCanonicalDemoBudget(), createPublicDemoBudget()]
+    return [createCanonicalDemoBudget()]
   }
 
   const raw = localStorage.getItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS)
@@ -328,14 +271,21 @@ export function getStoredFullBudgets(): FullBudget[] {
     try {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Migração de sanitização:
-        // - No Simples Nacional: regra do usuário Eng. Edenir Souza da Rosa:
-        //   Encargos trabalhistas (Grupos A, B, C e D) devem ficar ZERADOS (0,00%).
-        //   Tributação exclusiva pelo DAS preenchido manualmente.
-        // - Nos demais regimes (sem ou com desoneração): se todos os grupos somarem 0 sem isExplicitZero,
-        //   restaura os grupos oficiais SINAPI da UF para proteger integridade.
+        // Filtrar e remover orçamentos de teste fictícios (ex: budget-public-002),
+        // preservando os orçamentos reais do usuário ("Andreia", "Jader", "Rua Tomaz Gonzaga 610").
+        const realBudgets = parsed.filter((b: FullBudget) => !isDemoOrTestBudget(b))
+
         let hasFixed = false
-        const sanitized = parsed.map((b: FullBudget) => {
+        if (realBudgets.length !== parsed.length) {
+          hasFixed = true
+        }
+
+        const listToProcess = realBudgets.length > 0 ? realBudgets : [createCanonicalDemoBudget()]
+        if (realBudgets.length === 0) {
+          hasFixed = true
+        }
+
+        const sanitized = listToProcess.map((b: FullBudget) => {
           const regime =
             b.chargesConfig?.taxRegime ||
             (b.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
@@ -461,7 +411,7 @@ export function getStoredFullBudgets(): FullBudget[] {
             }
           }
 
-          // 2. Sanitização tributária e encargos
+          // 2. Sanitização tributária e encargos — Alíquota DAS padrão da CONCE é 11%
           if (regime === 'simples_nacional') {
             const hasNonZeroGroups =
               (updatedBudget.chargesConfig?.customGroupA ?? 0) > 0 ||
@@ -469,18 +419,31 @@ export function getStoredFullBudgets(): FullBudget[] {
               (updatedBudget.chargesConfig?.customGroupC ?? 0) > 0 ||
               (updatedBudget.chargesConfig?.customGroupD ?? 0) > 0
 
-            if (hasNonZeroGroups || !updatedBudget.chargesConfig?.isExplicitZero) {
+            const currentDas = updatedBudget.chargesConfig?.simplesDasRate
+            const needsDasFix = currentDas === undefined || currentDas === null || currentDas === 0
+
+            if (hasNonZeroGroups || !updatedBudget.chargesConfig?.isExplicitZero || needsDasFix) {
               hasFixed = true
+              const effectiveDas = needsDasFix ? 11.0 : currentDas
               return {
                 ...updatedBudget,
                 chargesConfig: {
                   ...updatedBudget.chargesConfig,
                   taxRegime: 'simples_nacional' as const,
+                  simplesDasRate: effectiveDas,
                   customGroupA: 0,
                   customGroupB: 0,
                   customGroupC: 0,
                   customGroupD: 0,
                   isExplicitZero: true,
+                },
+                bdiConfig: {
+                  ...updatedBudget.bdiConfig,
+                  taxes: {
+                    ...updatedBudget.bdiConfig?.taxes,
+                    simplesDas: effectiveDas,
+                    totalTaxes: effectiveDas,
+                  },
                 },
               }
             }
@@ -495,9 +458,12 @@ export function getStoredFullBudgets(): FullBudget[] {
 
               if (totalSum === 0 && !updatedBudget.chargesConfig.isExplicitZero) {
                 hasFixed = true
-                const uf = updatedBudget.chargesConfig.uf || 'SP'
+                const uf = updatedBudget.chargesConfig.uf || 'RS'
                 const isRel = regime === 'com_desoneracao'
-                const stateData = BRAZIL_STATES_CHARGES[uf] || BRAZIL_STATES_CHARGES['SP']
+                const stateData =
+                  BRAZIL_STATES_CHARGES[uf] ||
+                  BRAZIL_STATES_CHARGES['RS'] ||
+                  BRAZIL_STATES_CHARGES['SP']
                 const base = isRel ? stateData.relieved : stateData.nonRelieved
                 return {
                   ...updatedBudget,
@@ -521,11 +487,11 @@ export function getStoredFullBudgets(): FullBudget[] {
         return sanitized
       }
     } catch {
-      // Ignora erro e regenera
+      // Ignora erro
     }
   }
 
-  const initial = [createCanonicalDemoBudget(), createPublicDemoBudget()]
+  const initial = [createCanonicalDemoBudget()]
   localStorage.setItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS, JSON.stringify(initial))
   return initial
 }

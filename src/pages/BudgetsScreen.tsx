@@ -33,7 +33,9 @@ import {
   saveFullBudgets,
   saveSingleBudget,
   createCanonicalDemoBudget,
+  purgeTestBudgetsFromStorage,
 } from '@/lib/budgetsStorage'
+import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
 import { calculateFullBudget } from '@/lib/budgetEngine'
 import { formatCurrencyBRL, formatBudgetDeadline } from '@/lib/formatters'
 import { BudgetHeaderForm } from '@/components/budget/BudgetHeaderForm'
@@ -50,6 +52,12 @@ import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
 
 export const BudgetsScreen: React.FC = () => {
   const location = useLocation()
+  // Limpeza de dados de teste na inicialização
+  useEffect(() => {
+    purgeTestBudgetsFromStorage()
+    purgeTestIntelligenceData()
+  }, [])
+
   // Lista de todos os orçamentos persistidos
   const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
 
@@ -103,10 +111,12 @@ export const BudgetsScreen: React.FC = () => {
   const handleCreateNewBudget = () => {
     const newId = `budget-${Date.now()}`
     const codeNum = budgetsList.length + 1
+    const baseBudget = createCanonicalDemoBudget()
     const newBudget: FullBudget = {
-      ...createCanonicalDemoBudget(),
+      ...baseBudget,
       id: newId,
       code: `ORC-2025-${String(codeNum).padStart(3, '0')}`,
+      title: 'Novo Projeto de Engenharia',
       status: 'em_andamento',
       createdAt: new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString(),
@@ -116,17 +126,36 @@ export const BudgetsScreen: React.FC = () => {
         email: '',
         phone: '',
         address: '',
-        city: 'São Paulo',
-        state: 'SP',
+        city: 'Porto Alegre',
+        state: 'RS',
       },
       work: {
         name: 'Novo Projeto de Engenharia',
         address: '',
-        city: 'São Paulo',
-        state: 'SP',
+        city: 'Porto Alegre',
+        state: 'RS',
         description: 'Construção civil conforme projetos e especificações técnicas.',
-        deadlineMonths: 12,
+        deadlineMonths: 6,
         startDate: new Date().toISOString().split('T')[0],
+      },
+      chargesConfig: {
+        ...baseBudget.chargesConfig,
+        uf: 'RS',
+        taxRegime: 'simples_nacional',
+        simplesDasRate: 11.0,
+        customGroupA: 0,
+        customGroupB: 0,
+        customGroupC: 0,
+        customGroupD: 0,
+        isExplicitZero: true,
+      },
+      bdiConfig: {
+        ...baseBudget.bdiConfig,
+        taxes: {
+          ...baseBudget.bdiConfig.taxes,
+          simplesDas: 11.0,
+          totalTaxes: 11.0,
+        },
       },
       publicWork: {
         enabled: false,
@@ -134,7 +163,7 @@ export const BudgetsScreen: React.FC = () => {
         contractNumber: '',
         agency: '',
         modality: 'Concorrência',
-        sinapiReferenceMonth: '04/2025 sem desoneração',
+        sinapiReferenceMonth: '04/2025',
         hasDisallowanceClause: false,
       },
       stages: [],

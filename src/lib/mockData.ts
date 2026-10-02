@@ -298,9 +298,168 @@ function create42Budgets() {
 /**
  * Obtém ou inicializa os dados de demonstração no localStorage
  */
-export function getOrCreateDemoData(): ConceDemoData {
+/**
+ * Gera os dados estatísticos reais para o Dashboard a partir dos orçamentos reais existentes no sistema
+ */
+import { FullBudget } from '@/types/budgetEngine'
+import { calculateFullBudget } from '@/lib/budgetEngine'
+import { computeAbcCurve } from '@/lib/abcAnalysis'
+
+export function computeDashboardFromRealBudgets(budgets: FullBudget[]): ConceDemoData {
+  if (!budgets || budgets.length === 0) {
+    return {
+      budgets: [],
+      abcItems: [],
+      profitability: [],
+      comparison: [],
+      evolution: [],
+      distribution: [
+        { status: 'em_andamento', label: 'Em andamento', count: 0, color: '#294C87' },
+        { status: 'aprovado', label: 'Aprovados', count: 0, color: '#3E8E5A' },
+        { status: 'em_analise', label: 'Em análise', count: 0, color: '#171A1F' },
+        { status: 'vencido', label: 'Vencidos', count: 0, color: '#C4453C' },
+      ],
+      summary: {
+        totalBudgets: 0,
+        totalBudgetedValue: 0,
+        inProgressCount: 0,
+        approvedCount: 0,
+        expiredCount: 0,
+        inReviewCount: 0,
+      },
+    }
+  }
+
+  let totalValue = 0
+  let inProgress = 0
+  let approved = 0
+  let expired = 0
+  let inReview = 0
+
+  const statusMap: Record<string, number> = {
+    em_andamento: 0,
+    aprovado: 0,
+    vencido: 0,
+    em_analise: 0,
+  }
+
+  const convertedBudgets = budgets.map((b) => {
+    const summary = calculateFullBudget(b)
+    const saleVal = summary.finalSalePrice || 0
+    const directCost = summary.totalDirectCost || 0
+    const bdiVal = summary.bdiAmount || 0
+    const margin = saleVal > 0 ? ((saleVal - (directCost + bdiVal)) / saleVal) * 100 : 0
+
+    totalValue += saleVal
+    if (b.status === 'em_andamento') inProgress++
+    else if (b.status === 'aprovado') approved++
+    else if (b.status === 'vencido') expired++
+    else if (b.status === 'em_analise') inReview++
+
+    statusMap[b.status] = (statusMap[b.status] || 0) + 1
+
+    return {
+      id: b.id,
+      code: b.code,
+      workName: b.title || b.work?.name || 'Orçamento de Obra',
+      client: b.client?.name || 'Não informado',
+      status: b.status,
+      budgetedValue: saleVal,
+      actualValue: saleVal,
+      directCost,
+      bdi: bdiVal,
+      saleValue: saleVal,
+      marginPercent: Math.max(0, Math.round(margin * 10) / 10),
+      createdAt: b.createdAt || new Date().toISOString().split('T')[0],
+      month: 'Abr',
+    }
+  })
+
+  // Lucratividade por obra dos orçamentos reais
+  const profitability = convertedBudgets.slice(0, 5).map((cb) => ({
+    id: `prof-${cb.id}`,
+    workName: cb.workName,
+    client: cb.client,
+    saleValue: cb.saleValue,
+    directCost: cb.directCost,
+    bdi: cb.bdi,
+    marginPercent: cb.marginPercent,
+    statusText: cb.client,
+  }))
+
+  // Curva ABC real calculada do orçamento ativo ou agregado
+  const firstWithStages = budgets.find((b) => b.stages && b.stages.length > 0) || budgets[0]
+  let abcItems: any[] = []
+  if (firstWithStages) {
+    try {
+      const abc = computeAbcCurve(firstWithStages)
+      const allAbc = [
+        ...abc.classA.items.map((it) => ({ ...it, isClassA: true })),
+        ...abc.classB.items.map((it) => ({ ...it, isClassA: false })),
+        ...abc.classC.items.map((it) => ({ ...it, isClassA: false })),
+      ].slice(0, 5)
+
+      abcItems = allAbc.map((it, idx) => ({
+        rank: idx + 1,
+        name: it.description,
+        category:
+          it.category === 'material'
+            ? 'Materiais'
+            : it.category === 'mao_de_obra'
+              ? 'Mão de Obra'
+              : 'Equipamentos & Outros',
+        value: it.totalCost,
+        accumulatedPercent: Math.min(100, Math.round(it.accumulatedPercentage * 10) / 10),
+        isClassA: it.isClassA,
+      }))
+    } catch {
+      abcItems = []
+    }
+  }
+
+  // Comparativo Orçado x Realizado real
+  const comparison = convertedBudgets.slice(0, 5).map((cb) => ({
+    workName: cb.workName.slice(0, 20),
+    budgetedThousands: Math.round(cb.budgetedValue / 1000),
+    actualThousands: Math.round(cb.actualValue / 1000),
+    budgetedFull: cb.budgetedValue,
+    actualFull: cb.actualValue,
+  }))
+
+  // Evolução mensal real
+  const evolution = [
+    { month: 'Abr', monthFull: 'Abril', count: convertedBudgets.length, totalValue },
+  ]
+
+  // Distribuição por status real
+  const distribution = [
+    { status: 'em_andamento' as const, label: 'Em andamento', count: inProgress, color: '#294C87' },
+    { status: 'aprovado' as const, label: 'Aprovados', count: approved, color: '#3E8E5A' },
+    { status: 'em_analise' as const, label: 'Em análise', count: inReview, color: '#171A1F' },
+    { status: 'vencido' as const, label: 'Vencidos', count: expired, color: '#C4453C' },
+  ]
+
+  return {
+    budgets: convertedBudgets,
+    abcItems,
+    profitability,
+    comparison,
+    evolution,
+    distribution,
+    summary: {
+      totalBudgets: convertedBudgets.length,
+      totalBudgetedValue: totalValue,
+      inProgressCount: inProgress,
+      approvedCount: approved,
+      expiredCount: expired,
+      inReviewCount: inReview,
+    },
+  }
+}
+
+export function getOrCreateDemoData(): ConceDemoData | null {
   if (typeof window === 'undefined') {
-    return generateCanonicalDemoData()
+    return null
   }
 
   const raw = localStorage.getItem(STORAGE_KEYS.DEMO_DATA)
@@ -308,13 +467,19 @@ export function getOrCreateDemoData(): ConceDemoData {
     try {
       return JSON.parse(raw) as ConceDemoData
     } catch {
-      // JSON corrompido, regenera
+      // JSON corrompido
     }
   }
 
-  const freshData = generateCanonicalDemoData()
-  localStorage.setItem(STORAGE_KEYS.DEMO_DATA, JSON.stringify(freshData))
-  return freshData
+  return null
+}
+
+/**
+ * Remove completamente os dados de teste / demonstração armazenados em localStorage
+ */
+export function clearDemoData(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(STORAGE_KEYS.DEMO_DATA)
 }
 
 /**
@@ -389,10 +554,10 @@ export function setAuthSession(session: ConceAuthSession): void {
     name: normalizeUserName(session.name),
   }
   localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(sanitizedSession))
-  // Garante semente de dados se ausente
-  if (!localStorage.getItem(STORAGE_KEYS.DEMO_DATA)) {
-    getOrCreateDemoData()
-  }
+  // Não realiza mais semeadura automática de dados demo
+  // if (!localStorage.getItem(STORAGE_KEYS.DEMO_DATA)) {
+  //   getOrCreateDemoData()
+  // }
 }
 
 /**

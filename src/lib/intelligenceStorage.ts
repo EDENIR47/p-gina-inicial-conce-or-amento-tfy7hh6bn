@@ -27,6 +27,56 @@ export const STORAGE_KEYS_INTELLIGENCE = {
 // AUDITORIA AUTOMÁTICA
 // -------------------------------------------------------------
 
+/**
+ * Remove qualquer dado de teste/fictício armazenado anteriormente em intelligenceStorage
+ */
+export function purgeTestIntelligenceData(): void {
+  if (typeof window === 'undefined') return
+  try {
+    // 1. Audit logs
+    const rawAudit = localStorage.getItem(STORAGE_KEYS_INTELLIGENCE.AUDIT_LOGS)
+    if (rawAudit) {
+      const list: AuditLogEntry[] = JSON.parse(rawAudit)
+      if (Array.isArray(list)) {
+        const clean = list.filter((l) => {
+          if (l.budgetId === 'budget-public-002') return false
+          const detailsLower = (l.details || '').toLowerCase()
+          if (
+            detailsLower.includes('bloco pedagógico') ||
+            detailsLower.includes('escola técnica estadual')
+          ) {
+            return false
+          }
+          return true
+        })
+        localStorage.setItem(STORAGE_KEYS_INTELLIGENCE.AUDIT_LOGS, JSON.stringify(clean))
+      }
+    }
+
+    // 2. Revisions
+    const rawRevs = localStorage.getItem(STORAGE_KEYS_INTELLIGENCE.REVISIONS)
+    if (rawRevs) {
+      const list: BudgetRevision[] = JSON.parse(rawRevs)
+      if (Array.isArray(list)) {
+        const clean = list.filter((r) => r.budgetId !== 'budget-public-002')
+        localStorage.setItem(STORAGE_KEYS_INTELLIGENCE.REVISIONS, JSON.stringify(clean))
+      }
+    }
+
+    // 3. Quotes
+    const rawQuotes = localStorage.getItem(STORAGE_KEYS_INTELLIGENCE.QUOTES)
+    if (rawQuotes) {
+      const list: InputQuoteComparison[] = JSON.parse(rawQuotes)
+      if (Array.isArray(list)) {
+        const clean = list.filter((q) => q.budgetId !== 'budget-public-002')
+        localStorage.setItem(STORAGE_KEYS_INTELLIGENCE.QUOTES, JSON.stringify(clean))
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 export function getStoredAuditLogs(budgetId?: string): AuditLogEntry[] {
   if (typeof window === 'undefined') return []
   const raw = localStorage.getItem(STORAGE_KEYS_INTELLIGENCE.AUDIT_LOGS)
@@ -34,9 +84,27 @@ export function getStoredAuditLogs(budgetId?: string): AuditLogEntry[] {
   try {
     const list: AuditLogEntry[] = JSON.parse(raw)
     if (!Array.isArray(list)) return []
+
+    // Filtrar auditorias pertencentes a orçamentos de teste fictícios (ex: budget-public-002)
+    const filteredList = list.filter((l) => {
+      if (!l.budgetId) return true
+      if (l.budgetId === 'budget-public-002') return false
+      const titleLower = (l.title || '').toLowerCase()
+      const detailsLower = (l.details || '').toLowerCase()
+      if (
+        detailsLower.includes('bloco pedagógico') ||
+        detailsLower.includes('escola técnica estadual') ||
+        titleLower.includes('escola técnica estadual')
+      ) {
+        return false
+      }
+      return true
+    })
+
+    let hasChanged = filteredList.length !== list.length
+
     // Sanitização de runtime para normalizar "Denir" -> "Edenir" em registros antigos
-    let hasChanged = false
-    const sanitized = list.map((l) => {
+    const sanitized = filteredList.map((l) => {
       if (l.userName && /(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/.test(l.userName)) {
         hasChanged = true
         return {
@@ -104,9 +172,13 @@ export function getStoredRevisions(budgetId?: string): BudgetRevision[] {
   try {
     const list: BudgetRevision[] = JSON.parse(raw)
     if (!Array.isArray(list)) return []
+
+    // Filtrar revisões de orçamentos demo fictícios
+    const filteredList = list.filter((r) => r.budgetId !== 'budget-public-002')
+    let hasChanged = filteredList.length !== list.length
+
     // Sanitização de runtime para normalizar "Denir" -> "Edenir" em revisões antigas
-    let hasChanged = false
-    const sanitized = list.map((r) => {
+    const sanitized = filteredList.map((r) => {
       if (r.author && /(?<![A-Za-zÀ-ÿ])[Dd]enir(?![A-Za-zÀ-ÿ])/.test(r.author)) {
         hasChanged = true
         return {
@@ -192,10 +264,22 @@ export function getStoredQuotes(budgetId?: string): InputQuoteComparison[] {
   if (!raw) return []
   try {
     const list: InputQuoteComparison[] = JSON.parse(raw)
-    if (budgetId) {
-      return list.filter((q) => q.budgetId === budgetId)
+    if (!Array.isArray(list)) return []
+
+    // Filtrar cotações de orçamentos fictícios
+    const filteredList = list.filter((q) => q.budgetId !== 'budget-public-002')
+    if (filteredList.length !== list.length) {
+      try {
+        localStorage.setItem(STORAGE_KEYS_INTELLIGENCE.QUOTES, JSON.stringify(filteredList))
+      } catch {
+        /* intentionally ignored */
+      }
     }
-    return list
+
+    if (budgetId) {
+      return filteredList.filter((q) => q.budgetId === budgetId)
+    }
+    return filteredList
   } catch {
     return []
   }
@@ -228,6 +312,15 @@ export function saveInputQuoteComparison(comparison: InputQuoteComparison): void
  * reais/típicos de engenharia civil paulista/brasileira, demonstrando o comparativo de mercado.
  */
 export function seedQuotesForBudgetIfEmpty(budget: FullBudget): InputQuoteComparison[] {
+  // Limpeza de dados de teste: não semear mais cotações fictícias automaticamente
+  const existing = getStoredQuotes(budget.id)
+  return existing
+}
+
+/**
+ * Cria cotações demonstrativas a pedido do usuário para um orçamento específico
+ */
+export function generateQuotesForBudget(budget: FullBudget): InputQuoteComparison[] {
   const existing = getStoredQuotes(budget.id)
   if (existing.length > 0) return existing
 
