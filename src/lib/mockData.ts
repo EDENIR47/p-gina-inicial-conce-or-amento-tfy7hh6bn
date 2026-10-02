@@ -343,20 +343,73 @@ export function computeDashboardFromRealBudgets(budgets: FullBudget[]): ConceDem
     em_analise: 0,
   }
 
+  const monthAbbrList = [
+    'Jan',
+    'Fev',
+    'Mar',
+    'Abr',
+    'Mai',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Set',
+    'Out',
+    'Nov',
+    'Dez',
+  ]
+  const monthFullList = [
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
+  ]
+
+  // Mapeia cada orçamento usando calculateFullBudget (mesma fonte e motor de cálculo TCU oficial)
   const convertedBudgets = budgets.map((b) => {
     const summary = calculateFullBudget(b)
+    // Preço de venda final da proposta (com todos os encargos trabalhistas, BDI TCU e DAS 11% aplicados)
     const saleVal = summary.finalSalePrice || 0
     const directCost = summary.totalDirectCost || 0
     const bdiVal = summary.bdiAmount || 0
-    const margin = saleVal > 0 ? ((saleVal - (directCost + bdiVal)) / saleVal) * 100 : 0
 
-    totalValue += saleVal
+    // Margem Operacional Bruta / Lucro previsto conforme parâmetro L do BDI TCU do orçamento
+    // Fórmula TCU oficial: L = bdiConfig.profit (%). Caso não definido, deriva pelo lucro bruto proporcional.
+    const profitPercent =
+      b.bdiConfig?.profit !== undefined && b.bdiConfig?.profit !== null
+        ? Number(b.bdiConfig.profit)
+        : saleVal > directCost
+          ? ((saleVal - directCost) / saleVal) * 100
+          : 0
+    const margin = Math.max(0, Math.round(profitPercent * 10) / 10)
+
+    totalValue = Number((totalValue + saleVal).toFixed(2))
+
     if (b.status === 'em_andamento') inProgress++
     else if (b.status === 'aprovado') approved++
     else if (b.status === 'vencido') expired++
     else if (b.status === 'em_analise') inReview++
 
     statusMap[b.status] = (statusMap[b.status] || 0) + 1
+
+    // Determina mês de referência a partir da data de criação do orçamento
+    let budgetMonth = 'Abr'
+    if (b.createdAt) {
+      const parts = b.createdAt.split('-')
+      if (parts.length >= 2) {
+        const mIdx = parseInt(parts[1], 10) - 1
+        if (mIdx >= 0 && mIdx < 12) {
+          budgetMonth = monthAbbrList[mIdx]
+        }
+      }
+    }
 
     return {
       id: b.id,
@@ -369,9 +422,9 @@ export function computeDashboardFromRealBudgets(budgets: FullBudget[]): ConceDem
       directCost,
       bdi: bdiVal,
       saleValue: saleVal,
-      marginPercent: Math.max(0, Math.round(margin * 10) / 10),
+      marginPercent: margin,
       createdAt: b.createdAt || new Date().toISOString().split('T')[0],
-      month: 'Abr',
+      month: budgetMonth,
     }
   })
 
@@ -419,17 +472,50 @@ export function computeDashboardFromRealBudgets(budgets: FullBudget[]): ConceDem
 
   // Comparativo Orçado x Realizado real
   const comparison = convertedBudgets.slice(0, 5).map((cb) => ({
-    workName: cb.workName.slice(0, 20),
+    workName: cb.workName.length > 20 ? `${cb.workName.slice(0, 20)}...` : cb.workName,
     budgetedThousands: Math.round(cb.budgetedValue / 1000),
     actualThousands: Math.round(cb.actualValue / 1000),
     budgetedFull: cb.budgetedValue,
     actualFull: cb.actualValue,
   }))
 
-  // Evolução mensal real
-  const evolution = [
-    { month: 'Abr', monthFull: 'Abril', count: convertedBudgets.length, totalValue },
-  ]
+  // Evolução mensal real agrupada pelos meses das propostas criadas
+  const monthlyGroups: Record<string, { count: number; totalValue: number; monthFull: string }> = {}
+  convertedBudgets.forEach((cb) => {
+    let mIdx = 3 // default Abril
+    if (cb.createdAt) {
+      const parts = cb.createdAt.split('-')
+      if (parts.length >= 2) {
+        const parsed = parseInt(parts[1], 10) - 1
+        if (parsed >= 0 && parsed < 12) mIdx = parsed
+      }
+    }
+    const abbr = monthAbbrList[mIdx]
+    const full = monthFullList[mIdx]
+    if (!monthlyGroups[abbr]) {
+      monthlyGroups[abbr] = { count: 0, totalValue: 0, monthFull: full }
+    }
+    monthlyGroups[abbr].count += 1
+    monthlyGroups[abbr].totalValue = Number(
+      (monthlyGroups[abbr].totalValue + cb.saleValue).toFixed(2),
+    )
+  })
+
+  const evolution = Object.keys(monthlyGroups).map((abbr) => ({
+    month: abbr,
+    monthFull: monthlyGroups[abbr].monthFull,
+    count: monthlyGroups[abbr].count,
+    totalValue: monthlyGroups[abbr].totalValue,
+  }))
+
+  if (evolution.length === 0) {
+    evolution.push({
+      month: 'Abr',
+      monthFull: 'Abril',
+      count: convertedBudgets.length,
+      totalValue,
+    })
+  }
 
   // Distribuição por status real
   const distribution = [

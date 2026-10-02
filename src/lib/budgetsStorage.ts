@@ -371,6 +371,52 @@ export function getStoredFullBudgets(): FullBudget[] {
             }
           }
 
+          // 1.2 Garantir alíquota DAS padrão de 11% e tributos sincronizados para propostas reais no Simples Nacional
+          // Respeita a regra de ouro do usuário ("Alíquota DAS padrão da CONCE é 11%"): novos e existentes no Simples
+          // devem ter simplesDasRate: 11% e bdiConfig.taxes.totalTaxes/simplesDas: 11% sincronizados se estiverem zerados ou não definidos.
+          if (
+            regime === 'simples_nacional' &&
+            (!updatedBudget.chargesConfig?.simplesDasRate ||
+              updatedBudget.chargesConfig.simplesDasRate === 0 ||
+              !updatedBudget.bdiConfig?.taxes?.simplesDas ||
+              updatedBudget.bdiConfig.taxes.simplesDas === 0)
+          ) {
+            hasFixed = true
+            const currentRate =
+              updatedBudget.chargesConfig?.simplesDasRate &&
+              updatedBudget.chargesConfig.simplesDasRate > 0
+                ? updatedBudget.chargesConfig.simplesDasRate
+                : updatedBudget.bdiConfig?.taxes?.simplesDas &&
+                    updatedBudget.bdiConfig.taxes.simplesDas > 0
+                  ? updatedBudget.bdiConfig.taxes.simplesDas
+                  : 11.0
+
+            updatedBudget = {
+              ...updatedBudget,
+              chargesConfig: {
+                ...updatedBudget.chargesConfig,
+                taxRegime: 'simples_nacional' as const,
+                simplesDasRate: currentRate,
+                customGroupA: 0,
+                customGroupB: 0,
+                customGroupC: 0,
+                customGroupD: 0,
+                isExplicitZero: true,
+              },
+              bdiConfig: {
+                ...updatedBudget.bdiConfig,
+                taxes: {
+                  ...updatedBudget.bdiConfig?.taxes,
+                  simplesDas: currentRate,
+                  totalTaxes: currentRate,
+                  iss: updatedBudget.bdiConfig?.taxes?.iss ?? 0,
+                  pis: updatedBudget.bdiConfig?.taxes?.pis ?? 0,
+                  cofins: updatedBudget.bdiConfig?.taxes?.cofins ?? 0,
+                  inssOrCprb: 0,
+                },
+              },
+            }
+          }
           if (!updatedBudget.title) {
             hasFixed = true
             updatedBudget = {
