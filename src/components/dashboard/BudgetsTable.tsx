@@ -14,6 +14,8 @@ import { formatCurrencyBRL, formatPercent } from '@/lib/formatters'
 
 interface BudgetsTableProps {
   budgets: Budget[]
+  onEdit?: (budgetId: string) => void
+  onDelete?: (budgetId: string) => void
 }
 
 const statusBadgeConfig: Record<
@@ -46,7 +48,7 @@ const statusBadgeConfig: Record<
   },
 }
 
-export const BudgetsTable: React.FC<BudgetsTableProps> = ({ budgets }) => {
+export const BudgetsTable: React.FC<BudgetsTableProps> = ({ budgets, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('todos')
   const [page, setPage] = useState(1)
@@ -134,6 +136,7 @@ export const BudgetsTable: React.FC<BudgetsTableProps> = ({ budgets }) => {
               <th className="py-3 px-3 text-right">Custo Direto</th>
               <th className="py-3 px-3 text-center">Margem</th>
               <th className="py-3 px-3 text-center">Status</th>
+              {(onEdit || onDelete) && <th className="py-3 px-3 text-center">Ações</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-[#171A1F]/5">
@@ -168,12 +171,41 @@ export const BudgetsTable: React.FC<BudgetsTableProps> = ({ budgets }) => {
                         {badge.label}
                       </span>
                     </td>
+                    {(onEdit || onDelete) && (
+                      <td className="py-3 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {onEdit && (
+                            <button
+                              type="button"
+                              onClick={() => onEdit(b.id)}
+                              className="px-2.5 py-1 rounded-md bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white font-bold text-[11px] transition-colors cursor-pointer"
+                              title="Editar este orçamento"
+                            >
+                              Editar
+                            </button>
+                          )}
+                          {onDelete && (
+                            <button
+                              type="button"
+                              onClick={() => onDelete(b.id)}
+                              className="px-2.5 py-1 rounded-md bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-[11px] transition-colors cursor-pointer"
+                              title="Excluir este orçamento"
+                            >
+                              Excluir
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 )
               })
             ) : (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-[#171A1F]/50">
+                <td
+                  colSpan={onEdit || onDelete ? 8 : 7}
+                  className="py-8 text-center text-[#171A1F]/50"
+                >
                   Nenhum orçamento encontrado com os filtros aplicados.
                 </td>
               </tr>

@@ -570,6 +570,16 @@ export function saveSingleBudget(budget: FullBudget): void {
 }
 
 /**
+ * Exclui um orçamento pelo ID e retorna a lista atualizada
+ */
+export function deleteSingleBudget(id: string): FullBudget[] {
+  const current = getStoredFullBudgets()
+  const updated = current.filter((b) => b.id !== id)
+  saveFullBudgets(updated)
+  return updated
+}
+
+/**
  * Obtém a biblioteca de composições (padrão CONCE + importadas pelo usuário)
  */
 export function getStoredCompositions() {

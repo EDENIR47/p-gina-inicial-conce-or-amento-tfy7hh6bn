@@ -49,6 +49,10 @@ import { AuditTrailModal } from '@/components/budget/AuditTrailModal'
 import { AbcCurveScreen } from '@/pages/AbcCurveScreen'
 import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
 import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
+import {
+  QuickEditBudgetModal,
+  DeleteBudgetConfirmModal,
+} from '@/components/budget/ManageBudgetModals'
 
 export const BudgetsScreen: React.FC = () => {
   const location = useLocation()
@@ -96,6 +100,13 @@ export const BudgetsScreen: React.FC = () => {
   const [pdfInitialMode, setPdfInitialMode] = useState<PdfExportMode>('valor_final')
   const [isRevisionsModalOpen, setIsRevisionsModalOpen] = useState(false)
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
+
+  // Modo de exibição na tela de orçamentos: 'cards' ou 'gerenciar'
+  const [viewMode, setViewMode] = useState<'cards' | 'gerenciar'>('cards')
+
+  // Modais de Edição Rápida e Exclusão Segura
+  const [editingBudgetModal, setEditingBudgetModal] = useState<FullBudget | null>(null)
+  const [deletingBudgetModal, setDeletingBudgetModal] = useState<FullBudget | null>(null)
 
   // Feedback e Validações
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -199,14 +210,33 @@ export const BudgetsScreen: React.FC = () => {
     showToast(`Orçamento ${b.code} duplicado com sucesso!`)
   }
 
-  // Excluir orçamento
+  // Excluir orçamento com modal seguro
   const handleDeleteBudget = (id: string, code: string) => {
-    if (confirm(`Tem certeza que deseja excluir o orçamento ${code}?`)) {
-      const updated = budgetsList.filter((b) => b.id !== id)
-      setBudgetsList(updated)
-      saveFullBudgets(updated)
-      showToast(`Orçamento ${code} excluído.`)
+    const found = budgetsList.find((b) => b.id === id)
+    if (found) {
+      setDeletingBudgetModal(found)
     }
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deletingBudgetModal) return
+    const code = deletingBudgetModal.code
+    const updated = budgetsList.filter((b) => b.id !== deletingBudgetModal.id)
+    setBudgetsList(updated)
+    saveFullBudgets(updated)
+    setDeletingBudgetModal(null)
+    showToast(`Orçamento ${code} excluído com sucesso!`)
+  }
+
+  const handleSaveQuickEdit = (updatedBudget: FullBudget) => {
+    saveSingleBudget(updatedBudget)
+    const all = getStoredFullBudgets()
+    setBudgetsList(all)
+    if (activeBudget && activeBudget.id === updatedBudget.id) {
+      setActiveBudget(updatedBudget)
+    }
+    setEditingBudgetModal(null)
+    showToast(`Orçamento ${updatedBudget.code} atualizado!`)
   }
 
   // Validação dos dados do formulário
@@ -897,231 +927,413 @@ export const BudgetsScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* Barra de Filtros da Lista */}
-          <div className="bg-white p-4 rounded-2xl border border-[#171A1F]/10 shadow-sm flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-[#171A1F]/40 absolute left-3.5 top-3" />
-              <input
-                type="text"
-                placeholder="Buscar por código, nome da obra ou cliente..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/20 text-xs sm:text-sm focus:outline-none focus:border-[#294C87]"
-              />
+          {/* Seletor de visualização: Grade de Propostas vs. Aba Gerenciar Orçamentos */}
+          <div className="flex items-center justify-between border-b border-[#171A1F]/15 pb-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  viewMode === 'cards'
+                    ? 'bg-[#294C87] text-white shadow-md'
+                    : 'text-[#171A1F]/70 hover:bg-[#171A1F]/5 hover:text-[#171A1F]'
+                }`}
+              >
+                <FileSpreadsheet className="w-4 h-4 text-[#FF6B1F]" />
+                <span>Relação de Propostas</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('gerenciar')}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  viewMode === 'gerenciar'
+                    ? 'bg-[#FF6B1F] text-white shadow-md'
+                    : 'text-[#171A1F]/70 hover:bg-[#171A1F]/5 hover:text-[#171A1F]'
+                }`}
+              >
+                <Layers className="w-4 h-4 text-white" />
+                <span>Aba Gerenciar</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    viewMode === 'gerenciar' ? 'bg-white text-[#FF6B1F]' : 'bg-[#294C87] text-white'
+                  }`}
+                >
+                  {budgetsList.length}
+                </span>
+              </button>
             </div>
 
-            <div className="w-full sm:w-60">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/20 text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#294C87]"
-              >
-                <option value="todos">Todos os Status</option>
-                <option value="em_andamento">Em Andamento</option>
-                <option value="aprovado">Aprovado</option>
-                <option value="em_analise">Em Análise</option>
-                <option value="vencido">Vencido</option>
-              </select>
-            </div>
+            <span className="text-xs text-[#171A1F]/60 hidden sm:inline">
+              Gerencie, edite ou exclua orçamentos diretamente
+            </span>
           </div>
 
-          {/* Cards dos Orçamentos */}
-          {filteredBudgets.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-[#171A1F]/20 space-y-3">
-              <FileSpreadsheet className="w-12 h-12 text-[#171A1F]/30 mx-auto" />
-              <h4 className="text-base font-bold text-[#171A1F]">Nenhum orçamento encontrado</h4>
-              <p className="text-xs text-[#171A1F]/60 max-w-sm mx-auto">
-                Crie um novo orçamento técnico ou descreva o projeto para o agente de inteligência
-                artificial.
-              </p>
-              <div className="flex items-center justify-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAiModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B1F] text-white text-xs font-bold shadow-md hover:bg-[#FF6B1F]/90"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>✨ Gerar com IA</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCreateNewBudget}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#294C87] text-white text-xs font-bold"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Criar Manualmente</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {filteredBudgets.map((b) => {
-                const summary = calculateFullBudget(b)
-                const statusBadges: Record<string, { label: string; class: string }> = {
-                  em_andamento: {
-                    label: 'Em Andamento',
-                    class: 'bg-[#294C87]/15 text-[#294C87]',
-                  },
-                  aprovado: {
-                    label: 'Aprovado',
-                    class: 'bg-[#3E8E5A]/15 text-[#3E8E5A]',
-                  },
-                  em_analise: {
-                    label: 'Em Análise',
-                    class: 'bg-[#171A1F]/15 text-[#171A1F]',
-                  },
-                  vencido: {
-                    label: 'Vencido',
-                    class: 'bg-[#C4453C]/15 text-[#C4453C]',
-                  },
-                }
+          {/* MODO 1: CARDS DETALHADOS DE ORÇAMENTO */}
+          {viewMode === 'cards' && (
+            <>
+              {/* Barra de Filtros da Lista */}
+              <div className="bg-white p-4 rounded-2xl border border-[#171A1F]/10 shadow-sm flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-[#171A1F]/40 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por código, nome da obra ou cliente..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/20 text-xs sm:text-sm focus:outline-none focus:border-[#294C87]"
+                  />
+                </div>
 
-                const badge = statusBadges[b.status] || statusBadges.em_andamento
-
-                return (
-                  <div
-                    key={b.id}
-                    className="bg-white rounded-[16px] p-5 shadow-[0_4px_20px_rgba(23,26,31,0.05)] border border-[#171A1F]/10 hover:border-[#294C87]/40 transition-all space-y-4"
+                <div className="w-full sm:w-60">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/20 text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#294C87]"
                   >
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                      <div className="space-y-1.5 flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-xs font-extrabold px-2.5 py-0.5 rounded bg-[#294C87]/10 text-[#294C87]">
-                            {b.code}
-                          </span>
-                          <span
-                            className={`text-[11px] font-bold px-2 py-0.5 rounded ${badge.class}`}
-                          >
-                            {badge.label}
-                          </span>
-                          <span className="text-xs text-[#171A1F]/60">
-                            UF da Obra:{' '}
-                            <strong className="text-[#171A1F]">
-                              {b.chargesConfig?.uf || b.work.state || 'RS'}
-                            </strong>
-                          </span>
-                          {b.publicWork.enabled && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F] flex items-center gap-1">
-                              <Landmark className="w-3 h-3" /> Obras Públicas (
-                              {b.publicWork.modality})
-                            </span>
-                          )}
-                        </div>
+                    <option value="todos">Todos os Status</option>
+                    <option value="em_andamento">Em Andamento</option>
+                    <option value="aprovado">Aprovado</option>
+                    <option value="em_analise">Em Análise</option>
+                    <option value="vencido">Vencido</option>
+                  </select>
+                </div>
+              </div>
 
-                        <h3 className="text-base sm:text-lg font-bold text-[#171A1F]">
-                          {b.title || b.work.name}
-                        </h3>
-
-                        {b.title && b.title !== b.work.name && (
-                          <p className="text-xs text-[#294C87] font-semibold">
-                            Obra: {b.work.name}
-                          </p>
-                        )}
-
-                        <p className="text-xs text-[#171A1F]/70">
-                          Cliente:{' '}
-                          <strong className="text-[#171A1F]">
-                            {b.client.name || 'Não informado'}
-                          </strong>{' '}
-                          {b.client.document && `(${b.client.document}) `}• Endereço Obra:{' '}
-                          {b.work.address ? `${b.work.address}, ` : ''}
-                          {b.work.city}/{b.work.state} • Prazo: {formatBudgetDeadline(b.work)}
-                        </p>
-
-                        {b.paymentTerms && (
-                          <p className="text-[11px] text-[#171A1F]/60 line-clamp-1">
-                            <span className="font-semibold text-[#294C87]">
-                              Forma de Pagamento:
-                            </span>{' '}
-                            {b.paymentTerms}
-                          </p>
-                        )}
-
-                        <div className="flex flex-wrap items-center gap-4 text-[11px] text-[#171A1F]/60 pt-1">
-                          <span>{b.stages.length} etapas</span>
-                          <span>•</span>
-                          <span>{summary.servicesCount} serviços</span>
-                          <span>•</span>
-                          <span>{summary.inputsCount} insumos</span>
-                          <span>•</span>
-                          <span>BDI: {summary.bdiRate.toFixed(2)}%</span>
-                        </div>
-                      </div>
-
-                      {/* Valor e Ações */}
-                      <div className="flex items-center md:flex-col items-end justify-between md:justify-start gap-3 border-t md:border-t-0 border-[#171A1F]/10 pt-3 md:pt-0">
-                        <div className="text-left md:text-right">
-                          <span className="text-[10px] text-[#171A1F]/50 uppercase font-bold block">
-                            Valor Total da Obra
-                          </span>
-                          <span className="text-xl sm:text-2xl font-extrabold text-[#FF6B1F] tracking-tight">
-                            {formatCurrencyBRL(summary.finalSalePrice)}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleDuplicateBudget(b)}
-                            className="p-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] transition-colors"
-                            title="Duplicar Orçamento"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              exportBudgetSpreadsheet(b, 'completo')
-                              showToast(`Planilha ${b.code} exportada!`)
-                            }}
-                            className="p-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] transition-colors"
-                            title="Exportar Planilha Excel/CSV"
-                          >
-                            <Download className="w-4 h-4 text-green-600" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveBudget(b)
-                              setPdfInitialMode('valor_final')
-                              setIsPdfModalOpen(true)
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#294C87] text-[#171A1F] hover:text-white text-xs font-bold transition-colors"
-                            title="Exportar Proposta PDF (Valor Final, Simplificado, Etapas ou Completo)"
-                          >
-                            <FileSpreadsheet className="w-3.5 h-3.5 text-[#FF6B1F]" />
-                            <span className="hidden sm:inline">Exportar PDF</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveBudget(b)
-                              setEditorTab('arvore')
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#294C87] hover:bg-[#171A1F] text-white text-xs font-bold transition-colors"
-                            title="Abrir e Editar Núcleo"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 text-[#FF6B1F]" />
-                            <span>Abrir Núcleo</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteBudget(b.id, b.code)}
-                            className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
-                            title="Excluir Orçamento"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+              {/* Cards dos Orçamentos */}
+              {filteredBudgets.length === 0 ? (
+                <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-[#171A1F]/20 space-y-3">
+                  <FileSpreadsheet className="w-12 h-12 text-[#171A1F]/30 mx-auto" />
+                  <h4 className="text-base font-bold text-[#171A1F]">
+                    Nenhum orçamento encontrado
+                  </h4>
+                  <p className="text-xs text-[#171A1F]/60 max-w-sm mx-auto">
+                    Crie um novo orçamento técnico ou descreva o projeto para o agente de
+                    inteligência artificial.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAiModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B1F] text-white text-xs font-bold shadow-md hover:bg-[#FF6B1F]/90"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>✨ Gerar com IA</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateNewBudget}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#294C87] text-white text-xs font-bold"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Criar Manualmente</span>
+                    </button>
                   </div>
-                )
-              })}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {filteredBudgets.map((b) => {
+                    const summary = calculateFullBudget(b)
+                    const statusBadges: Record<string, { label: string; class: string }> = {
+                      em_andamento: {
+                        label: 'Em Andamento',
+                        class: 'bg-[#294C87]/15 text-[#294C87]',
+                      },
+                      aprovado: {
+                        label: 'Aprovado',
+                        class: 'bg-[#3E8E5A]/15 text-[#3E8E5A]',
+                      },
+                      em_analise: {
+                        label: 'Em Análise',
+                        class: 'bg-[#171A1F]/15 text-[#171A1F]',
+                      },
+                      vencido: {
+                        label: 'Vencido',
+                        class: 'bg-[#C4453C]/15 text-[#C4453C]',
+                      },
+                    }
+
+                    const badge = statusBadges[b.status] || statusBadges.em_andamento
+
+                    return (
+                      <div
+                        key={b.id}
+                        className="bg-white rounded-[16px] p-5 shadow-[0_4px_20px_rgba(23,26,31,0.05)] border border-[#171A1F]/10 hover:border-[#294C87]/40 transition-all space-y-4"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-mono text-xs font-extrabold px-2.5 py-0.5 rounded bg-[#294C87]/10 text-[#294C87]">
+                                {b.code}
+                              </span>
+                              <span
+                                className={`text-[11px] font-bold px-2 py-0.5 rounded ${badge.class}`}
+                              >
+                                {badge.label}
+                              </span>
+                              <span className="text-xs text-[#171A1F]/60">
+                                UF da Obra:{' '}
+                                <strong className="text-[#171A1F]">
+                                  {b.chargesConfig?.uf || b.work.state || 'RS'}
+                                </strong>
+                              </span>
+                              {b.publicWork.enabled && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F] flex items-center gap-1">
+                                  <Landmark className="w-3 h-3" /> Obras Públicas (
+                                  {b.publicWork.modality})
+                                </span>
+                              )}
+                            </div>
+
+                            <h3 className="text-base sm:text-lg font-bold text-[#171A1F]">
+                              {b.title || b.work.name}
+                            </h3>
+
+                            {b.title && b.title !== b.work.name && (
+                              <p className="text-xs text-[#294C87] font-semibold">
+                                Obra: {b.work.name}
+                              </p>
+                            )}
+
+                            <p className="text-xs text-[#171A1F]/70">
+                              Cliente:{' '}
+                              <strong className="text-[#171A1F]">
+                                {b.client.name || 'Não informado'}
+                              </strong>{' '}
+                              {b.client.document && `(${b.client.document}) `}• Endereço Obra:{' '}
+                              {b.work.address ? `${b.work.address}, ` : ''}
+                              {b.work.city}/{b.work.state} • Prazo: {formatBudgetDeadline(b.work)}
+                            </p>
+
+                            {b.paymentTerms && (
+                              <p className="text-[11px] text-[#171A1F]/60 line-clamp-1">
+                                <span className="font-semibold text-[#294C87]">
+                                  Forma de Pagamento:
+                                </span>{' '}
+                                {b.paymentTerms}
+                              </p>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-4 text-[11px] text-[#171A1F]/60 pt-1">
+                              <span>{b.stages.length} etapas</span>
+                              <span>•</span>
+                              <span>{summary.servicesCount} serviços</span>
+                              <span>•</span>
+                              <span>{summary.inputsCount} insumos</span>
+                              <span>•</span>
+                              <span>BDI: {summary.bdiRate.toFixed(2)}%</span>
+                            </div>
+                          </div>
+
+                          {/* Valor e Ações */}
+                          <div className="flex items-center md:flex-col items-end justify-between md:justify-start gap-3 border-t md:border-t-0 border-[#171A1F]/10 pt-3 md:pt-0">
+                            <div className="text-left md:text-right">
+                              <span className="text-[10px] text-[#171A1F]/50 uppercase font-bold block">
+                                Valor Total da Obra
+                              </span>
+                              <span className="text-xl sm:text-2xl font-extrabold text-[#FF6B1F] tracking-tight">
+                                {formatCurrencyBRL(summary.finalSalePrice)}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleDuplicateBudget(b)}
+                                className="p-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] transition-colors"
+                                title="Duplicar Orçamento"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  exportBudgetSpreadsheet(b, 'completo')
+                                  showToast(`Planilha ${b.code} exportada!`)
+                                }}
+                                className="p-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] transition-colors"
+                                title="Exportar Planilha Excel/CSV"
+                              >
+                                <Download className="w-4 h-4 text-green-600" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveBudget(b)
+                                  setPdfInitialMode('valor_final')
+                                  setIsPdfModalOpen(true)
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#294C87] text-[#171A1F] hover:text-white text-xs font-bold transition-colors"
+                                title="Exportar Proposta PDF (Valor Final, Simplificado, Etapas ou Completo)"
+                              >
+                                <FileSpreadsheet className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                                <span className="hidden sm:inline">Exportar PDF</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setEditingBudgetModal(b)}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white text-xs font-bold transition-colors cursor-pointer"
+                                title="Editar dados cadastrais, cliente, obra e status"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                <span>Editar</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveBudget(b)
+                                  setEditorTab('arvore')
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#294C87] hover:bg-[#171A1F] text-white text-xs font-bold transition-colors cursor-pointer"
+                                title="Abrir e Editar Núcleo Completo (Árvore de 4 níveis)"
+                              >
+                                <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                                <span>Abrir Núcleo</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setDeletingBudgetModal(b)}
+                                className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
+                                title="Excluir Orçamento"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* MODO 2: ABA GERENCIAR ORÇAMENTOS (TABELA DETALHADA COM EDIÇÃO E EXCLUSÃO) */}
+          {viewMode === 'gerenciar' && (
+            <div className="bg-white rounded-[16px] p-6 shadow-[0_4px_20px_rgba(23,26,31,0.06)] border border-[#171A1F]/10 space-y-4 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#171A1F]/10">
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-[#171A1F]">
+                    Gerenciamento Geral de Orçamentos
+                  </h3>
+                  <p className="text-xs text-[#171A1F]/60">
+                    Altere dados cadastrais, status ou exclua orçamentos que não foram realizados de
+                    verdade.
+                  </p>
+                </div>
+              </div>
+
+              {/* Tabela de Gerenciamento */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-[#171A1F]/10 text-[11px] font-bold uppercase tracking-wider text-[#171A1F]/60 bg-[#171A1F]/[0.02]">
+                      <th className="py-3 px-3">Código</th>
+                      <th className="py-3 px-3">Obra / Endereço</th>
+                      <th className="py-3 px-3">Cliente</th>
+                      <th className="py-3 px-3 text-center">Criação</th>
+                      <th className="py-3 px-3 text-right">Valor Total</th>
+                      <th className="py-3 px-3 text-center">Status</th>
+                      <th className="py-3 px-3 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#171A1F]/5">
+                    {budgetsList.map((b) => {
+                      const summary = calculateFullBudget(b)
+                      const statusBadges: Record<string, { label: string; class: string }> = {
+                        em_andamento: {
+                          label: 'Em Andamento',
+                          class: 'bg-[#294C87]/15 text-[#294C87]',
+                        },
+                        aprovado: {
+                          label: 'Aprovado',
+                          class: 'bg-[#3E8E5A]/15 text-[#3E8E5A]',
+                        },
+                        em_analise: {
+                          label: 'Em Análise',
+                          class: 'bg-[#171A1F]/15 text-[#171A1F]',
+                        },
+                        vencido: {
+                          label: 'Vencido',
+                          class: 'bg-[#C4453C]/15 text-[#C4453C]',
+                        },
+                      }
+                      const badge = statusBadges[b.status] || statusBadges.em_andamento
+
+                      return (
+                        <tr key={b.id} className="hover:bg-[#294C87]/[0.03] transition-colors">
+                          <td className="py-3 px-3 font-mono font-bold text-[#294C87]">{b.code}</td>
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-xs text-[#171A1F]">
+                              {b.title || b.work?.name}
+                            </div>
+                            <div className="text-[11px] text-[#171A1F]/60 truncate max-w-xs">
+                              {b.work?.address || `${b.work?.city}/${b.work?.state}`}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 font-semibold text-[#171A1F]">
+                            {b.client?.name || 'Não informado'}
+                          </td>
+                          <td className="py-3 px-3 text-center text-[#171A1F]/70 text-[11px]">
+                            {b.createdAt ? b.createdAt.split('-').reverse().join('/') : '—'}
+                          </td>
+                          <td className="py-3 px-3 text-right font-bold text-sm text-[#FF6B1F]">
+                            {formatCurrencyBRL(summary.finalSalePrice)}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badge.class}`}
+                            >
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setEditingBudgetModal(b)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                                title="Editar dados deste orçamento"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                <span>Editar</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveBudget(b)
+                                  setEditorTab('arvore')
+                                }}
+                                className="p-1.5 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/15 text-[#171A1F] transition-colors cursor-pointer"
+                                title="Abrir editor completo de serviços e insumos"
+                              >
+                                <Layers className="w-4 h-4 text-[#294C87]" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setDeletingBudgetModal(b)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                                title="Excluir este orçamento definitivamente"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Excluir</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -1138,6 +1350,30 @@ export const BudgetsScreen: React.FC = () => {
             }}
           />
         </div>
+      )}
+
+      {/* Modal de Edição Rápida */}
+      {editingBudgetModal && (
+        <QuickEditBudgetModal
+          budget={editingBudgetModal}
+          isOpen={!!editingBudgetModal}
+          onClose={() => setEditingBudgetModal(null)}
+          onSave={handleSaveQuickEdit}
+          onOpenFullEditor={(b) => {
+            setActiveBudget(b)
+            setEditorTab('arvore')
+          }}
+        />
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {deletingBudgetModal && (
+        <DeleteBudgetConfirmModal
+          budget={deletingBudgetModal}
+          isOpen={!!deletingBudgetModal}
+          onClose={() => setDeletingBudgetModal(null)}
+          onConfirm={handleConfirmDelete}
+        />
       )}
 
       {/* Modal único de PDF de exportação CONCE (acessível no Editor e na Listagem) */}
