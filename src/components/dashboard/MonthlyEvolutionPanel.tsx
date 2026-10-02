@@ -39,6 +39,40 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export const MonthlyEvolutionPanel: React.FC<MonthlyEvolutionPanelProps> = ({ items }) => {
+  const monthsCount = items.length
+  const firstMonth = items[0]
+  const lastMonth = items[items.length - 1]
+
+  // Cálculo de crescimento quando há pelo menos 2 meses
+  let growthPercent: number | null = null
+  if (monthsCount >= 2 && firstMonth && lastMonth) {
+    const prev = firstMonth.count
+    const current = lastMonth.count
+    if (prev > 0) {
+      growthPercent = Math.round(((current - prev) / prev) * 100)
+    } else if (current > 0) {
+      growthPercent = 100
+    } else {
+      growthPercent = 0
+    }
+  }
+
+  // Subtítulo dinâmico
+  const subtitle =
+    monthsCount === 0
+      ? 'Nenhum período com propostas registradas'
+      : monthsCount === 1
+        ? `Série histórica do período com propostas registradas (${firstMonth?.monthFull || firstMonth?.month || 'período atual'})`
+        : `Série histórica dos últimos ${monthsCount} meses (quantidade de propostas geradas)`
+
+  // Badge dinâmico: se 0, não exibe; se 1 mês, exibe o mês real; se >= 2 meses, exibe `Últimos ${monthsCount} meses`
+  const badgeLabel =
+    monthsCount === 1
+      ? firstMonth?.monthFull || firstMonth?.month || 'Período atual'
+      : monthsCount >= 2
+        ? `Últimos ${monthsCount} meses`
+        : null
+
   return (
     <div className="bg-white rounded-[12px] p-6 shadow-[0_4px_16px_rgba(23,26,31,0.06)] flex flex-col justify-between h-full">
       <div>
@@ -53,14 +87,14 @@ export const MonthlyEvolutionPanel: React.FC<MonthlyEvolutionPanelProps> = ({ it
                 Evolução de Orçamentos
               </h3>
             </div>
-            <p className="text-xs text-[#171A1F]/60 mt-1 pl-10">
-              Série histórica dos últimos 6 meses (quantidade de propostas geradas)
-            </p>
+            <p className="text-xs text-[#171A1F]/60 mt-1 pl-10">{subtitle}</p>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-[#294C87]/10 text-[#294C87] text-xs font-semibold">
-            <span>Últimos 6 meses</span>
-          </div>
+          {badgeLabel && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-[#294C87]/10 text-[#294C87] text-xs font-semibold">
+              <span>{badgeLabel}</span>
+            </div>
+          )}
         </div>
 
         {/* Gráfico de Linha / Área com paleta CONCE */}
@@ -126,10 +160,24 @@ export const MonthlyEvolutionPanel: React.FC<MonthlyEvolutionPanelProps> = ({ it
       </div>
 
       {/* Rodapé explicativo */}
-      <div className="mt-4 pt-3 border-t border-[#171A1F]/10 flex items-center justify-between text-[11px] text-[#171A1F]/60">
-        <span>Crescimento de +150% na elaboração de propostas no período.</span>
-        <span className="font-semibold text-[#294C87]">Ritmo de expansão ativo</span>
-      </div>
+      {monthsCount >= 2 && growthPercent !== null ? (
+        <div className="mt-4 pt-3 border-t border-[#171A1F]/10 flex items-center justify-between text-[11px] text-[#171A1F]/60">
+          <span>
+            {growthPercent > 0
+              ? `Crescimento de +${growthPercent}% na elaboração de propostas no período.`
+              : growthPercent === 0
+                ? 'Volume estável de elaboração de propostas no período.'
+                : `Variação de ${growthPercent}% na elaboração de propostas no período.`}
+          </span>
+          {growthPercent > 0 && (
+            <span className="font-semibold text-[#294C87]">Ritmo de expansão ativo</span>
+          )}
+        </div>
+      ) : (
+        <div className="mt-4 pt-3 border-t border-[#171A1F]/10 flex items-center justify-between text-[11px] text-[#171A1F]/60">
+          <span>Acompanhamento consolidado do histórico operacional CONCE.</span>
+        </div>
+      )}
     </div>
   )
 }

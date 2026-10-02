@@ -11,7 +11,9 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { ConceLogo, ConceWatermark } from '@/components/ConceLogo'
-import { setAuthSession, getAuthSession, isOnboardingDone } from '@/lib/mockData'
+import { setAuthSession, getAuthSession, isOnboardingDone, clearDemoData } from '@/lib/mockData'
+import { purgeTestBudgetsFromStorage } from '@/lib/budgetsStorage'
+import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
 
 export const LoginScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -28,6 +30,11 @@ export const LoginScreen: React.FC = () => {
 
   // Se já estiver logado, redireciona adequadamente
   useEffect(() => {
+    // Garante limpeza de resíduos legados de demonstração na tela de login
+    clearDemoData()
+    purgeTestBudgetsFromStorage()
+    purgeTestIntelligenceData()
+
     const existingSession = getAuthSession()
     if (existingSession) {
       if (isOnboardingDone()) {
@@ -75,6 +82,11 @@ export const LoginScreen: React.FC = () => {
     // Simula verificação segura com feedback visual
     setTimeout(() => {
       if (trimmedEmail === validEmail && trimmedPass === validPass) {
+        // Garante limpeza antes de autenticar
+        clearDemoData()
+        purgeTestBudgetsFromStorage()
+        purgeTestIntelligenceData()
+
         // Grava sessão no localStorage
         setAuthSession({
           user: validEmail,

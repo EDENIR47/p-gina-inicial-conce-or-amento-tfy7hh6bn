@@ -1,4 +1,5 @@
 /* Main App Component - Handles routing (using react-router-dom) */
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
@@ -12,39 +13,51 @@ import ProtectedRoute from './components/ProtectedRoute'
 import BudgetsScreen from './pages/BudgetsScreen'
 import CompositionsLibraryPage from './pages/CompositionsLibraryPage'
 import QuotesScreen from './pages/QuotesScreen'
+import { clearDemoData } from '@/lib/mockData'
+import { purgeTestBudgetsFromStorage } from '@/lib/budgetsStorage'
+import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
 
-const App = () => (
-  <BrowserRouter>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner position="top-center" />
-      <Routes>
-        {/* Rota Raiz: Tela de Login */}
-        <Route path="/" element={<Index />} />
+const App = () => {
+  useEffect(() => {
+    // Executa a purga de resíduos fictícios no bootstrap da aplicação
+    clearDemoData()
+    purgeTestBudgetsFromStorage()
+    purgeTestIntelligenceData()
+  }, [])
 
-        {/* Rota de Onboarding (protegida pela sessão) */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/onboarding" element={<OnboardingScreen />} />
-        </Route>
+  return (
+    <BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner position="top-center" />
+        <Routes>
+          {/* Rota Raiz: Tela de Login */}
+          <Route path="/" element={<Index />} />
 
-        {/* Rotas Protegidas sob o Layout Global (Header Fixo + Footer) */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<DashboardScreen />} />
-            {/* Núcleo Funcional Real CONCE: Orçamentos com hierarquia de 4 níveis */}
-            <Route path="/orcamentos" element={<BudgetsScreen />} />
-            {/* Biblioteca Técnica de Composições CONCE com versionamento e importação */}
-            <Route path="/composicoes" element={<CompositionsLibraryPage />} />
-            {/* Módulo Real CONCE de Comparativo de Cotações de Fornecedores */}
-            <Route path="/cotacoes" element={<QuotesScreen />} />
+          {/* Rota de Onboarding (protegida pela sessão) */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/onboarding" element={<OnboardingScreen />} />
           </Route>
-        </Route>
 
-        {/* 404 para rotas desconhecidas */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
-  </BrowserRouter>
-)
+          {/* Rotas Protegidas sob o Layout Global (Header Fixo + Footer) */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<DashboardScreen />} />
+              {/* Núcleo Funcional Real CONCE: Orçamentos com hierarquia de 4 níveis */}
+              <Route path="/orcamentos" element={<BudgetsScreen />} />
+              {/* Biblioteca Técnica de Composições CONCE com versionamento e importação */}
+              <Route path="/composicoes" element={<CompositionsLibraryPage />} />
+              {/* Módulo Real CONCE de Comparativo de Cotações de Fornecedores */}
+              <Route path="/cotacoes" element={<QuotesScreen />} />
+            </Route>
+          </Route>
+
+          {/* 404 para rotas desconhecidas */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </BrowserRouter>
+  )
+}
 
 export default App

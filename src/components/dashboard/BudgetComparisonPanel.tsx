@@ -60,6 +60,28 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export const BudgetComparisonPanel: React.FC<BudgetComparisonPanelProps> = ({ items }) => {
+  // Subtítulo dinâmico baseado na quantidade real de itens
+  const subtitle =
+    items.length === 0
+      ? 'Acompanhamento de obras em execução (valores em milhares de R$)'
+      : items.length === 1
+        ? 'Acompanhamento da obra em execução (valores em milhares de R$)'
+        : `Acompanhamento das ${items.length} obras em execução (valores em milhares de R$)`
+
+  // Cálculo da eficiência consolidada / aderência REAL a partir dos itens
+  let adherenceFormatted: string | null = null
+  if (items.length > 0) {
+    const totalBudgeted = items.reduce((sum, it) => sum + (it.budgetedFull || 0), 0)
+    const totalActual = items.reduce((sum, it) => sum + (it.actualFull || 0), 0)
+
+    if (totalBudgeted > 0) {
+      // Aderência: 100 - variação percentual absoluta (|realizado - orçado| / orçado * 100)
+      const diff = Math.abs(totalActual - totalBudgeted)
+      const adherence = Math.max(0, 100 - (diff / totalBudgeted) * 100)
+      adherenceFormatted = adherence.toFixed(1).replace('.', ',')
+    }
+  }
+
   return (
     <div className="bg-white rounded-[12px] p-6 shadow-[0_4px_16px_rgba(23,26,31,0.06)]">
       {/* Cabeçalho */}
@@ -73,9 +95,7 @@ export const BudgetComparisonPanel: React.FC<BudgetComparisonPanelProps> = ({ it
               Comparativo Orçado x Realizado
             </h3>
           </div>
-          <p className="text-xs text-[#171A1F]/60 mt-1 pl-10">
-            Acompanhamento das 5 obras recentes em execução (valores em milhares de R$)
-          </p>
+          <p className="text-xs text-[#171A1F]/60 mt-1 pl-10">{subtitle}</p>
         </div>
 
         {/* Legenda Manual alinhada com as cores da marca */}
@@ -148,9 +168,15 @@ export const BudgetComparisonPanel: React.FC<BudgetComparisonPanelProps> = ({ it
       {/* Nota de rodapé da análise */}
       <div className="mt-4 pt-3 border-t border-[#171A1F]/10 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#171A1F]/60">
         <span>Controle de desvios orçamentários com tolerância máxima de 5% de contingência.</span>
-        <span className="font-semibold text-[#171A1F]">
-          Eficiência consolidada: 98,2% de aderência ao custo orçado
-        </span>
+        {adherenceFormatted ? (
+          <span className="font-semibold text-[#171A1F]">
+            Eficiência consolidada: {adherenceFormatted}% de aderência ao custo orçado
+          </span>
+        ) : (
+          <span className="font-semibold text-[#171A1F]">
+            Eficiência orçamentária monitorada em tempo real
+          </span>
+        )}
       </div>
     </div>
   )

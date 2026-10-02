@@ -52,7 +52,9 @@ export const StatusDistributionPanel: React.FC<StatusDistributionPanelProps> = (
               </h3>
             </div>
             <p className="text-xs text-[#171A1F]/60 mt-1 pl-10">
-              Proporção dos 42 orçamentos da carteira atual
+              {total === 1
+                ? 'Proporção do orçamento ativo na carteira'
+                : `Proporção dos ${total} orçamentos da carteira atual`}
             </p>
           </div>
         </div>
