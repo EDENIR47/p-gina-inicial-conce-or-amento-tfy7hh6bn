@@ -406,19 +406,51 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </span>
           </div>
 
-          {/* Dica de acabamento para impressão limpa e margens padronizadas */}
-          <div className="px-3.5 py-2 rounded-xl bg-[#294C87]/25 border border-[#294C87]/50 flex items-center gap-2 text-xs text-white/90">
-            <span className="text-[#FF6B1F] font-bold text-sm shrink-0">💡</span>
-            <p className="text-[11px] leading-tight text-white/80">
-              <strong className="text-white">
-                Impressão Oficial CONCE (Respiros de 3 cm topo e 2 cm base em TODAS as páginas):
-              </strong>{' '}
-              as margens de 30mm no topo e 20mm na base são aplicadas automaticamente em cada folha,
-              inclusive após quebras de página. Na janela de impressão (Ctrl+P), selecione{' '}
-              <em>"Margens: Padrão"</em> e certifique-se de <strong>desmarcar</strong> a opção{' '}
-              <em>"Cabeçalhos e rodapés"</em> para que nenhum endereço de site, data ou numeração do
-              navegador seja exibido nas margens.
+          {/* Box de Instrução Obrigatória de Impressão CONCE */}
+          <div className="p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-100 space-y-2.5">
+            <div className="flex items-center gap-2 text-[#FF6B1F]">
+              <span className="text-base sm:text-lg shrink-0">⚠️</span>
+              <h4 className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-white">
+                IMPORTANTE: Configuração de Impressão
+              </h4>
+            </div>
+
+            <p className="text-xs leading-relaxed text-white/90">
+              Para que a proposta saia SEM o endereço do navegador na base da folha, na janela de
+              impressão (Ctrl+P) clique em &apos;Mais configurações&apos; e DESMARQUE a opção
+              &apos;Cabeçalhos e rodapés&apos;. O rodapé oficial da CONCE (logo, slogan e CNPJ) já
+              está embutido no documento.
             </p>
+
+            {/* Passos numerados de impressão */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              <div className="bg-[#171A1F]/80 border border-amber-500/30 rounded-lg p-2 text-center">
+                <span className="block text-[10px] font-bold text-[#FF6B1F] uppercase">
+                  Passo 1
+                </span>
+                <span className="text-xs font-semibold text-white">1) Ctrl+P</span>
+              </div>
+              <div className="bg-[#171A1F]/80 border border-amber-500/30 rounded-lg p-2 text-center">
+                <span className="block text-[10px] font-bold text-[#FF6B1F] uppercase">
+                  Passo 2
+                </span>
+                <span className="text-xs font-semibold text-white">2) Mais configurações</span>
+              </div>
+              <div className="bg-[#171A1F]/80 border border-amber-500/30 rounded-lg p-2 text-center">
+                <span className="block text-[10px] font-bold text-[#FF6B1F] uppercase">
+                  Passo 3
+                </span>
+                <span className="text-[11px] font-bold text-amber-300">
+                  3) Desmarcar &quot;Cabeçalhos e rodapés&quot;
+                </span>
+              </div>
+              <div className="bg-[#171A1F]/80 border border-amber-500/30 rounded-lg p-2 text-center">
+                <span className="block text-[10px] font-bold text-[#FF6B1F] uppercase">
+                  Passo 4
+                </span>
+                <span className="text-xs font-semibold text-white">4) Salvar como PDF</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
