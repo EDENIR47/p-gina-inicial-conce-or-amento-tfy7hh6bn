@@ -3,9 +3,9 @@
  * Persistência e Sementes de Orçamentos Completos em localStorage
  */
 
-import { FullBudget } from '@/types/budgetEngine'
+import { FullBudget, BudgetComposition } from '@/types/budgetEngine'
 import { CONCE_CANONICAL_COMPOSITIONS } from './compositionsData'
-import { DEFAULT_BDI_CONFIG } from './budgetEngine'
+import { DEFAULT_BDI_CONFIG, calculateCompositionUnitCost } from './budgetEngine'
 import { BRAZIL_STATES_CHARGES } from './chargesData'
 
 export const STORAGE_KEYS_BUDGETS = {
@@ -612,4 +612,95 @@ export function getStoredCompositions() {
 export function saveStoredCompositions(compositions: any[]) {
   if (typeof window === 'undefined') return
   localStorage.setItem(STORAGE_KEYS_BUDGETS.COMPOSITIONS_LIBRARY, JSON.stringify(compositions))
+}
+
+/**
+ * Propaga a atualização de uma composição da biblioteca para todos os orçamentos persistidos.
+ * Para cada serviço cuja composição tenha o mesmo code ou id, atualiza a composição embutida
+ * (insumos, coeficientes, versão, etc.) e, caso a fonte não seja 'Usuário' (ou seja 'Composição'),
+ * recalcula automaticamente o unitPrice baseado no novo custo da CPU.
+ */
+export function propagateCompositionUpdateToBudgets(savedComposition: BudgetComposition): {
+  affectedBudgetsCount: number
+  affectedServicesCount: number
+} {
+  if (typeof window === 'undefined' || !savedComposition) {
+    return { affectedBudgetsCount: 0, affectedServicesCount: 0 }
+  }
+
+  const currentBudgets = getStoredFullBudgets()
+  let affectedBudgetsCount = 0
+  let affectedServicesCount = 0
+  const newCpuCost = calculateCompositionUnitCost(savedComposition)
+
+  const updatedBudgets = currentBudgets.map((budget) => {
+    let budgetModified = false
+
+    const newStages = budget.stages.map((stage) => {
+      let stageModified = false
+
+      const newServices = stage.services.map((service) => {
+        const matchesCode =
+          service.composition?.code &&
+          savedComposition.code &&
+          service.composition.code.trim().toUpperCase() ===
+            savedComposition.code.trim().toUpperCase()
+
+        const matchesId =
+          service.composition?.id &&
+          savedComposition.id &&
+          service.composition.id === savedComposition.id
+
+        if (matchesCode || matchesId) {
+          budgetModified = true
+          stageModified = true
+          affectedServicesCount++
+
+          // Clona a composição com novos dados
+          const updatedComp: BudgetComposition = {
+            ...savedComposition,
+            // Mantém id se a composição do serviço já tiver um identificador específico
+            id: service.composition.id || savedComposition.id,
+          }
+
+          // Se a fonte não foi alterada manualmente pelo usuário ("Usuário"),
+          // recalcula o preço unitário do serviço para o novo custo da CPU
+          const isUserManualPrice = service.unitPriceSource === 'Usuário'
+          const updatedUnitPrice = isUserManualPrice ? service.unitPrice : newCpuCost
+          const updatedSource = isUserManualPrice ? service.unitPriceSource : 'Composição'
+
+          return {
+            ...service,
+            composition: updatedComp,
+            unitPrice: updatedUnitPrice,
+            unitPriceSource: updatedSource,
+          }
+        }
+
+        return service
+      })
+
+      if (stageModified) {
+        return { ...stage, services: newServices }
+      }
+      return stage
+    })
+
+    if (budgetModified) {
+      affectedBudgetsCount++
+      return {
+        ...budget,
+        updatedAt: new Date().toISOString(),
+        stages: newStages,
+      }
+    }
+
+    return budget
+  })
+
+  if (affectedBudgetsCount > 0) {
+    saveFullBudgets(updatedBudgets)
+  }
+
+  return { affectedBudgetsCount, affectedServicesCount }
 }

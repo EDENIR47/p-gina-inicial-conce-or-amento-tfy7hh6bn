@@ -21,7 +21,11 @@ import {
   Download,
 } from 'lucide-react'
 import { BudgetComposition } from '@/types/budgetEngine'
-import { getStoredCompositions, saveStoredCompositions } from '@/lib/budgetsStorage'
+import {
+  getStoredCompositions,
+  saveStoredCompositions,
+  propagateCompositionUpdateToBudgets,
+} from '@/lib/budgetsStorage'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
 import { formatCurrencyBRL } from '@/lib/formatters'
@@ -66,6 +70,25 @@ export const CompositionsLibraryPage: React.FC = () => {
       showToast(`Composição ${saved.code} cadastrada com sucesso!`)
     }
     updateCompositionsList(updated)
+
+    // Propaga a atualização para todos os serviços que usam esta composição nos orçamentos
+    const { affectedBudgetsCount, affectedServicesCount } =
+      propagateCompositionUpdateToBudgets(saved)
+
+    if (affectedBudgetsCount > 0) {
+      showToast(
+        `Composição ${saved.code} atualizada! ${affectedServicesCount} item(ns) em ${affectedBudgetsCount} orçamento(s) recalculado(s).`,
+      )
+    }
+
+    // Dispara evento customizado para que telas abertas (ex: BudgetsScreen) sincronizem os orçamentos
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('conce_budget_updated', {
+          detail: { compositionCode: saved.code, affectedBudgetsCount },
+        }),
+      )
+    }
   }
 
   const handleDeleteComposition = (id: string, code: string) => {

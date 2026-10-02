@@ -54,6 +54,7 @@ import { StageEditModal } from './StageEditModal'
 import { ServiceEditModal } from './ServiceEditModal'
 import { InputEditModal } from './InputEditModal'
 import { UnitSelect } from './UnitSelect'
+import { saveSingleBudget } from '@/lib/budgetsStorage'
 
 interface BudgetHierarchyTreeProps {
   budget: FullBudget
@@ -387,18 +388,32 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         } else {
           updatedInputs = [...(comp.inputs || []), savedInput]
         }
+        const updatedComposition: BudgetComposition = {
+          ...comp,
+          inputs: updatedInputs,
+        }
+        const newCpuCost = calculateCompositionUnitCost(updatedComposition)
+        const isUserManual = srv.unitPriceSource === 'Usuário'
+        const newUnitPrice = isUserManual ? srv.unitPrice : newCpuCost
+        const newSource = isUserManual ? srv.unitPriceSource : 'Composição'
+
         return {
           ...srv,
-          composition: {
-            ...comp,
-            inputs: updatedInputs,
-          },
+          composition: updatedComposition,
+          unitPrice: newUnitPrice,
+          unitPriceSource: newSource,
         }
       })
       return { ...st, services: updatedServices }
     })
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   const confirmDeleteInput = (
@@ -446,12 +461,20 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
           deletedInputCost =
             (Number(targetInput.coefficient) || 0) * (Number(targetInput.unitCost) || 0)
         }
+        const updatedComposition: BudgetComposition = {
+          ...srv.composition,
+          inputs: (srv.composition.inputs || []).filter((inp) => inp.id !== inputId),
+        }
+        const newCpuCost = calculateCompositionUnitCost(updatedComposition)
+        const isUserManual = srv.unitPriceSource === 'Usuário'
+        const newUnitPrice = isUserManual ? srv.unitPrice : newCpuCost
+        const newSource = isUserManual ? srv.unitPriceSource : 'Composição'
+
         return {
           ...srv,
-          composition: {
-            ...srv.composition,
-            inputs: (srv.composition.inputs || []).filter((inp) => inp.id !== inputId),
-          },
+          composition: updatedComposition,
+          unitPrice: newUnitPrice,
+          unitPriceSource: newSource,
         }
       })
       return { ...st, services: updatedServices }
@@ -473,7 +496,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       },
     })
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   // Ação de exclusão / limpeza de todos os insumos da composição (Nível 3)
@@ -510,12 +539,20 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         compCode = srv.composition.code
         prevCompCost = calculateCompositionUnitCost(srv.composition)
         removedCount = srv.composition.inputs?.length || 0
+        const updatedComposition: BudgetComposition = {
+          ...srv.composition,
+          inputs: [],
+        }
+        const newCpuCost = calculateCompositionUnitCost(updatedComposition)
+        const isUserManual = srv.unitPriceSource === 'Usuário'
+        const newUnitPrice = isUserManual ? srv.unitPrice : newCpuCost
+        const newSource = isUserManual ? srv.unitPriceSource : 'Composição'
+
         return {
           ...srv,
-          composition: {
-            ...srv.composition,
-            inputs: [],
-          },
+          composition: updatedComposition,
+          unitPrice: newUnitPrice,
+          unitPriceSource: newSource,
         }
       })
       return { ...st, services: updatedServices }
@@ -532,7 +569,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       metadata: { stageId, serviceId, compCode, removedCount },
     })
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   // Despacho central do diálogo de exclusão confirmada
@@ -650,9 +693,20 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
             sourceStatus: 'valido' as const,
           }
         })
+        const updatedComposition: BudgetComposition = {
+          ...srv.composition,
+          inputs: updatedInputs,
+        }
+        const newCpuCost = calculateCompositionUnitCost(updatedComposition)
+        const isUserManual = srv.unitPriceSource === 'Usuário'
+        const newUnitPrice = isUserManual ? srv.unitPrice : newCpuCost
+        const newSource = isUserManual ? srv.unitPriceSource : 'Composição'
+
         return {
           ...srv,
-          composition: { ...srv.composition, inputs: updatedInputs },
+          composition: updatedComposition,
+          unitPrice: newUnitPrice,
+          unitPriceSource: newSource,
         }
       })
       return { ...st, services: updatedServices }
@@ -678,7 +732,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       })
     }
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   // Edição rápida de quantidade do serviço inline com auditoria

@@ -62,6 +62,24 @@ export const BudgetsScreen: React.FC = () => {
     purgeTestIntelligenceData()
   }, [])
 
+  // Listener para atualização automática caso uma composição da biblioteca seja editada
+  useEffect(() => {
+    const handleBudgetsUpdated = () => {
+      const stored = getStoredFullBudgets()
+      setBudgetsList(stored)
+      setActiveBudget((prev) => {
+        if (!prev) return prev
+        const updated = stored.find((b) => b.id === prev.id)
+        return updated || prev
+      })
+    }
+
+    window.addEventListener('conce_budget_updated', handleBudgetsUpdated)
+    return () => {
+      window.removeEventListener('conce_budget_updated', handleBudgetsUpdated)
+    }
+  }, [])
+
   // Lista de todos os orçamentos persistidos
   const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
 
