@@ -4,12 +4,24 @@
  */
 
 import React, { useState } from 'react'
-import { X, Check, BookOpen, Plus, Trash2, History, AlertCircle, GitCommit } from 'lucide-react'
+import {
+  X,
+  Check,
+  BookOpen,
+  Plus,
+  Trash2,
+  History,
+  AlertCircle,
+  GitCommit,
+  Database,
+} from 'lucide-react'
 import { BudgetComposition, BudgetInput } from '@/types/budgetEngine'
+import { SinapiCatalogItem } from '@/types/sinapi'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
 import { UnitSelect } from './UnitSelect'
+import { SinapiInputPickerModal } from './SinapiInputPickerModal'
 
 interface CompositionEditModalProps {
   isOpen: boolean
@@ -43,6 +55,7 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
   const [changeNote, setChangeNote] = useState('')
   const [inputs, setInputs] = useState<BudgetInput[]>(initialComposition?.inputs || [])
   const [error, setError] = useState('')
+  const [isSinapiPickerOpen, setIsSinapiPickerOpen] = useState(false)
 
   if (!isOpen) return null
 
@@ -56,6 +69,25 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
       category: 'material',
       coefficient: 1,
       unitCost: 10,
+      source: 'Usuário',
+      sourceStatus: 'valido',
+    }
+    setInputs([...inputs, newInput])
+  }
+
+  // Adiciona insumo diretamente do Catálogo SINAPI
+  const handleAddSinapiInput = (sinapiItem: SinapiCatalogItem, coefficient: number) => {
+    const newInput: BudgetInput = {
+      id: `inp-sinapi-${Date.now()}`,
+      code: sinapiItem.code,
+      description: sinapiItem.description,
+      unit: sinapiItem.unit,
+      category: sinapiItem.category,
+      coefficient: coefficient > 0 ? coefficient : 1.0,
+      unitCost: sinapiItem.referencePrice,
+      source: 'SINAPI',
+      sourceStatus: 'valido',
+      notes: `Referência SINAPI ${sinapiItem.referenceMonth || '04/2025'} (${sinapiItem.priceOrigin === 'importada_usuario' ? 'Importada' : 'Embutida'})`,
     }
     setInputs([...inputs, newInput])
   }
@@ -296,18 +328,29 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
 
           {/* Insumos da Composição */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-[#171A1F] flex items-center gap-1.5">
                 Insumos da Composição ({inputs.length})
               </span>
-              <button
-                type="button"
-                onClick={handleAddInput}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#294C87] text-white text-xs font-semibold hover:bg-[#171A1F] transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5 text-[#FF6B1F]" />
-                <span>Adicionar Insumo</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSinapiPickerOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF6B1F] text-white text-xs font-bold hover:bg-[#FF6B1F]/90 transition-all shadow-sm cursor-pointer"
+                >
+                  <Database className="w-3.5 h-3.5" />
+                  <span>Selecionar do Catálogo SINAPI</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAddInput}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#294C87] text-white text-xs font-semibold hover:bg-[#171A1F] transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                  <span>Novo Manual</span>
+                </button>
+              </div>
             </div>
 
             <div className="border border-[#171A1F]/15 rounded-xl overflow-hidden">
@@ -457,6 +500,13 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Modal seletor de insumos do Catálogo SINAPI */}
+      <SinapiInputPickerModal
+        isOpen={isSinapiPickerOpen}
+        onClose={() => setIsSinapiPickerOpen(false)}
+        onSelect={handleAddSinapiInput}
+      />
     </div>
   )
 }
