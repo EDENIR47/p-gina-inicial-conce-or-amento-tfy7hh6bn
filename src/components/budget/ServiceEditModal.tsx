@@ -71,12 +71,32 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
       : '40',
   )
   const [notes, setNotes] = useState(initialService?.notes || '')
-  const [unitPrice, setUnitPrice] = useState<string>(
-    initialService?.unitPrice !== undefined ? String(initialService.unitPrice) : '',
-  )
-  const [unitPriceSource, setUnitPriceSource] = useState<string>(
-    initialService?.unitPriceSource || 'Usuário',
-  )
+  // Se for serviço novo ou existente, verificar se a composição possui insumos
+  const defaultCompInputs = defaultComp.inputs || []
+  const hasCompInputs = defaultCompInputs.length > 0
+  const initialCompCost = hasCompInputs ? calculateCompositionUnitCost(defaultComp) : 0
+
+  const [unitPrice, setUnitPrice] = useState<string>(() => {
+    if (initialService?.unitPrice !== undefined) {
+      return String(initialService.unitPrice)
+    }
+    // Para novo serviço com insumos de composição, preenche com o custo unitário da composição
+    if (hasCompInputs) {
+      return String(initialCompCost)
+    }
+    return ''
+  })
+
+  const [unitPriceSource, setUnitPriceSource] = useState<string>(() => {
+    if (initialService?.unitPriceSource) {
+      return initialService.unitPriceSource
+    }
+    // Se possui insumos na composição vinculada, a fonte primária é Composição
+    if (hasCompInputs) {
+      return defaultComp.source || 'Composição'
+    }
+    return 'Usuário'
+  })
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [error, setError] = useState('')
 
@@ -151,6 +171,27 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
     const parsedUnitPrice =
       unitPrice.trim() !== '' ? Math.max(0, parseFloat(unitPrice) || 0) : undefined
 
+    const hasFinalInputs = (finalComposition.inputs || []).length > 0
+    const finalCpuCost = calculateCompositionUnitCost(finalComposition)
+
+    // Se possui insumos na composição e unitPriceSource não foi explicitamente alterado para Usuário:
+    // garantir que adote 'Composição' e o custo da composição
+    let effectiveUnitPrice = parsedUnitPrice
+    let effectiveUnitPriceSource =
+      parsedUnitPrice !== undefined ? unitPriceSource || 'Usuário' : undefined
+
+    if (hasFinalInputs) {
+      if (unitPriceSource !== 'Usuário') {
+        effectiveUnitPriceSource = finalComposition.source || 'Composição'
+        effectiveUnitPrice = finalCpuCost
+      }
+    } else {
+      // Sem insumos, é preço direto ('Usuário')
+      if (effectiveUnitPrice !== undefined && !effectiveUnitPriceSource) {
+        effectiveUnitPriceSource = 'Usuário'
+      }
+    }
+
     const parsedLaborShare =
       laborSharePercent.trim() !== ''
         ? Math.max(0, Math.min(100, parseFloat(laborSharePercent) || 40))
@@ -165,8 +206,8 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
         unit: unit.trim() || 'un',
         quantity: Number(quantity) || 0,
         composition: finalComposition,
-        unitPrice: parsedUnitPrice,
-        unitPriceSource: parsedUnitPrice !== undefined ? unitPriceSource || 'Usuário' : undefined,
+        unitPrice: effectiveUnitPrice,
+        unitPriceSource: effectiveUnitPriceSource,
         customBdiPercent: customBdi,
         laborSharePercent: parsedLaborShare,
         notes: notes.trim(),

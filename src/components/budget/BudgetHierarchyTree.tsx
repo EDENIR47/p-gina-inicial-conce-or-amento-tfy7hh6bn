@@ -24,6 +24,7 @@ import {
   Hammer,
   Clock,
   Sparkles,
+  RotateCcw,
 } from 'lucide-react'
 import {
   BudgetComposition,
@@ -820,7 +821,63 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       })
     }
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
+  }
+
+  // Resetar Preço Unitário para usar o Custo Unitário da Composição (CPU)
+  const handleResetToCompositionCost = (stageId: string, serviceId: string) => {
+    let serviceDesc = ''
+    let prevPrice = 0
+    let newCpuCost = 0
+
+    const newStages = budget.stages.map((st) => {
+      if (st.id !== stageId) return st
+      const updatedServices = st.services.map((srv) => {
+        if (srv.id !== serviceId) return srv
+        serviceDesc = srv.description
+        prevPrice =
+          srv.unitPrice !== undefined && srv.unitPrice !== null
+            ? Number(srv.unitPrice)
+            : calculateCompositionUnitCost(srv.composition)
+        newCpuCost = calculateCompositionUnitCost(srv.composition)
+        return {
+          ...srv,
+          unitPrice: newCpuCost,
+          unitPriceSource: srv.composition?.source || 'Composição',
+        }
+      })
+      return { ...st, services: updatedServices }
+    })
+
+    logAuditEvent({
+      budgetId: budget.id,
+      action: 'edicao_preco_servico',
+      title: `Preço Unitário Restaurado para Custo da Composição: ${serviceDesc}`,
+      details: `Preço manual (${formatCurrencyBRL(prevPrice)}) descartado. Novo preço definido pelo custo da composição: ${formatCurrencyBRL(newCpuCost)} (Fonte: Composição).`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397 (Usuário)',
+      oldValue: prevPrice,
+      newValue: newCpuCost,
+      metadata: {
+        stageId,
+        serviceId,
+        source: 'Composição',
+        signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      },
+    })
+
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   return (
@@ -1093,14 +1150,21 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                         Sem composição (preço direto)
                                       </span>
                                     )}
-                                    {isManualPrice && (
+                                    {isManualPrice && service.unitPriceSource === 'Usuário' ? (
+                                      <span
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs"
+                                        title={`Preço unitário travado manualmente pelo usuário. Base MO: ${service.laborSharePercent ?? 40}%`}
+                                      >
+                                        Preço Manual (Usuário)
+                                      </span>
+                                    ) : isManualPrice ? (
                                       <span
                                         className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200"
-                                        title={`Preço unitário manual. Base MO: ${service.laborSharePercent ?? 40}%`}
+                                        title={`Preço unitário: ${service.unitPriceSource || 'Composição'}. Base MO: ${service.laborSharePercent ?? 40}%`}
                                       >
-                                        Preço manual (MO: {service.laborSharePercent ?? 40}%)
+                                        Preço ({service.unitPriceSource || 'Composição'})
                                       </span>
-                                    )}
+                                    ) : null}
                                   </div>
                                 </div>
                               </div>
@@ -1151,15 +1215,31 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                       </span>
                                       {service.unitPriceSource && (
                                         <span
-                                          className={`text-[9px] px-1 py-0.2 rounded font-bold ${
+                                          className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
                                             service.unitPriceSource === 'Usuário'
-                                              ? 'bg-amber-100 text-amber-800'
-                                              : 'bg-blue-100 text-blue-800'
+                                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                              : 'bg-blue-100 text-blue-800 border border-blue-200'
                                           }`}
                                           title={`Fonte: ${service.unitPriceSource}`}
                                         >
-                                          {service.unitPriceSource}
+                                          {service.unitPriceSource === 'Usuário'
+                                            ? 'Preço Manual (Usuário)'
+                                            : service.unitPriceSource}
                                         </span>
+                                      )}
+                                      {service.unitPriceSource === 'Usuário' && (
+                                        <button
+                                          type="button"
+                                          disabled={disabled}
+                                          onClick={() =>
+                                            handleResetToCompositionCost(stage.id, service.id)
+                                          }
+                                          className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[#294C87] hover:text-[#FF6B1F] bg-blue-50 hover:bg-orange-50 px-1.5 py-0.5 rounded border border-[#294C87]/20 transition-colors cursor-pointer"
+                                          title={`Descartar valor manual (${formatCurrencyBRL(service.unitPrice ?? 0)}) e recalcular custo unitário pela composição (${formatCurrencyBRL(calculateCompositionUnitCost(comp))})`}
+                                        >
+                                          <RotateCcw className="w-2.5 h-2.5" />
+                                          <span>↺ Usar Custo da Composição</span>
+                                        </button>
                                       )}
                                     </div>
                                     <div className="relative flex items-center">
