@@ -7,7 +7,11 @@ import { InputCategory } from './budgetEngine'
 
 export type SinapiItemType = 'insumo' | 'composicao'
 
-export type SinapiPriceOrigin = 'referencia_embutida' | 'importada_usuario' | 'api_orcamentador'
+export type SinapiPriceOrigin =
+  | 'referencia_embutida'
+  | 'importada_usuario'
+  | 'api_orcamentador'
+  | 'api_autosinapi'
 
 export interface SinapiCatalogItem {
   id: string
@@ -42,7 +46,7 @@ export interface SinapiImportMetadata {
   updatedCount: number
   createdCount: number
   fileName?: string
-  sourceType?: 'manual_import' | 'api_orcamentador'
+  sourceType?: 'manual_import' | 'api_orcamentador' | 'api_autosinapi'
   syncedPages?: number
   lastSyncDurationMs?: number
 }

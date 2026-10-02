@@ -12,6 +12,9 @@ export const STORAGE_KEYS_SINAPI = {
   IMPORT_METADATA: 'conce_sinapi_import_metadata',
   API_KEY: 'conce_orcamentador_api_key',
   LAST_SYNC_CONFIG: 'conce_orcamentador_sync_config',
+  AUTOSINAPI_BASE_URL: 'conce_autosinapi_base_url',
+  AUTOSINAPI_API_KEY: 'conce_autosinapi_api_key',
+  AUTOSINAPI_SYNC_CONFIG: 'conce_autosinapi_sync_config',
 } as const
 
 /**
@@ -108,8 +111,8 @@ export function mergeImportedSinapiItems(
     referenceMonth: string
     referenceState: string
     fileName?: string
-    priceOrigin?: 'importada_usuario' | 'api_orcamentador'
-    sourceType?: 'manual_import' | 'api_orcamentador'
+    priceOrigin?: 'importada_usuario' | 'api_orcamentador' | 'api_autosinapi'
+    sourceType?: 'manual_import' | 'api_orcamentador' | 'api_autosinapi'
     syncedPages?: number
     lastSyncDurationMs?: number
   },
@@ -164,7 +167,11 @@ export function mergeImportedSinapiItems(
     fileName: metadata.fileName,
     sourceType:
       metadata.sourceType ||
-      (chosenOrigin === 'api_orcamentador' ? 'api_orcamentador' : 'manual_import'),
+      (chosenOrigin === 'api_autosinapi'
+        ? 'api_autosinapi'
+        : chosenOrigin === 'api_orcamentador'
+          ? 'api_orcamentador'
+          : 'manual_import'),
     syncedPages: metadata.syncedPages,
     lastSyncDurationMs: metadata.lastSyncDurationMs,
   }
@@ -195,6 +202,46 @@ export function saveStoredOrcamentadorApiKey(key: string): void {
     localStorage.removeItem(STORAGE_KEYS_SINAPI.API_KEY)
   } else {
     localStorage.setItem(STORAGE_KEYS_SINAPI.API_KEY, key.trim())
+  }
+}
+
+/**
+ * Persistência para URL base e chave da autoSINAPI API (github.com/LAMP-LUCAS/autoSINAPI_API)
+ */
+export function getStoredAutosinapiBaseUrl(): string {
+  if (typeof window === 'undefined') return 'http://localhost:8000'
+  return (
+    localStorage.getItem(STORAGE_KEYS_SINAPI.AUTOSINAPI_BASE_URL) ||
+    (import.meta as any).env?.VITE_AUTOSINAPI_BASE_URL ||
+    'http://localhost:8000'
+  ).trim()
+}
+
+export function saveStoredAutosinapiBaseUrl(url: string): void {
+  if (typeof window === 'undefined') return
+  const clean = url.trim().replace(/\/+$/, '')
+  if (!clean) {
+    localStorage.removeItem(STORAGE_KEYS_SINAPI.AUTOSINAPI_BASE_URL)
+  } else {
+    localStorage.setItem(STORAGE_KEYS_SINAPI.AUTOSINAPI_BASE_URL, clean)
+  }
+}
+
+export function getStoredAutosinapiApiKey(): string {
+  if (typeof window === 'undefined') return ''
+  return (
+    localStorage.getItem(STORAGE_KEYS_SINAPI.AUTOSINAPI_API_KEY) ||
+    (import.meta as any).env?.VITE_AUTOSINAPI_API_KEY ||
+    ''
+  ).trim()
+}
+
+export function saveStoredAutosinapiApiKey(key: string): void {
+  if (typeof window === 'undefined') return
+  if (!key.trim()) {
+    localStorage.removeItem(STORAGE_KEYS_SINAPI.AUTOSINAPI_API_KEY)
+  } else {
+    localStorage.setItem(STORAGE_KEYS_SINAPI.AUTOSINAPI_API_KEY, key.trim())
   }
 }
 

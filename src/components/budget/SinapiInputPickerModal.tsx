@@ -219,9 +219,13 @@ export const SinapiInputPickerModal: React.FC<SinapiInputPickerModalProps> = ({
                         Unid.: <strong className="text-[#171A1F]">{item.unit}</strong>
                       </span>
                       <span className="text-[10px] px-1.5 py-0.2 rounded bg-gray-100 text-[#171A1F]/70">
-                        {item.priceOrigin === 'importada_usuario'
-                          ? `Importado (${item.referenceState || 'UF'})`
-                          : 'Referência Embutida'}
+                        {item.priceOrigin === 'api_autosinapi'
+                          ? `autoSINAPI (${item.referenceState || 'UF'})`
+                          : item.priceOrigin === 'api_orcamentador'
+                            ? `Orçamentador (${item.referenceState || 'UF'})`
+                            : item.priceOrigin === 'importada_usuario'
+                              ? `Importado (${item.referenceState || 'UF'})`
+                              : 'Referência Embutida'}
                       </span>
                     </div>
 
