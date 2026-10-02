@@ -344,6 +344,55 @@ export function calculateStageDirectCost(
 /**
  * Executa o cálculo integral de um orçamento em tempo real
  */
+/**
+ * Retorna a taxa percentual de encargos sociais efetiva do orçamento (ex.: 0 para Simples, 68.35 para SP desonerado, etc.)
+ */
+export function getBudgetSocialChargesRate(budget: FullBudget): number {
+  const taxRegime =
+    budget.chargesConfig?.taxRegime ||
+    (budget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
+
+  if (taxRegime === 'simples_nacional') {
+    return 0
+  }
+
+  const isRelievedForCharges = taxRegime === 'com_desoneracao'
+  const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
+
+  const defaultTotalForConfig = Number(
+    (stateCharges.groupA + stateCharges.groupB + stateCharges.groupC + stateCharges.groupD).toFixed(
+      2,
+    ),
+  )
+
+  if (budget.chargesConfig?.customGroupA !== undefined) {
+    const customSum =
+      (budget.chargesConfig.customGroupA || 0) +
+      (budget.chargesConfig.customGroupB || 0) +
+      (budget.chargesConfig.customGroupC || 0) +
+      (budget.chargesConfig.customGroupD || 0)
+
+    if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
+      return defaultTotalForConfig
+    }
+    return Number(customSum.toFixed(2))
+  }
+
+  if (!budget.chargesConfig?.isExplicitZero) {
+    return defaultTotalForConfig
+  }
+
+  return 0
+}
+
+/**
+ * Retorna o multiplicador de encargos sobre a mão de obra (ex.: 1.0 no Simples Nacional, 1 + chargesRate / 100 nos regimes CLT/CPRB)
+ */
+export function getBudgetLaborMultiplier(budget: FullBudget): number {
+  const rate = getBudgetSocialChargesRate(budget)
+  return 1 + rate / 100
+}
+
 export function calculateFullBudget(budget: FullBudget): CalculationSummary {
   // Determina o regime tributário efetivo
   const taxRegime =
@@ -357,45 +406,7 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
   // O ÚNICO percentual tributário incidente é o DAS no BDI (inserido manualmente).
   // Nos demais regimes ("sem_desoneracao" e "com_desoneracao"), aplica a tabela de encargos SINAPI da UF.
   const isSimples = taxRegime === 'simples_nacional'
-  const isRelievedForCharges = taxRegime === 'com_desoneracao'
-  const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
-
-  let chargesRate: number
-
-  if (isSimples) {
-    // No Simples Nacional, encargos trabalhistas = 0.00%
-    chargesRate = 0
-  } else {
-    const defaultTotalForConfig = Number(
-      (
-        stateCharges.groupA +
-        stateCharges.groupB +
-        stateCharges.groupC +
-        stateCharges.groupD
-      ).toFixed(2),
-    )
-
-    if (budget.chargesConfig?.customGroupA !== undefined) {
-      const customSum =
-        (budget.chargesConfig.customGroupA || 0) +
-        (budget.chargesConfig.customGroupB || 0) +
-        (budget.chargesConfig.customGroupC || 0) +
-        (budget.chargesConfig.customGroupD || 0)
-
-      if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
-        chargesRate = defaultTotalForConfig
-      } else {
-        chargesRate = Number(customSum.toFixed(2))
-      }
-    } else {
-      chargesRate = defaultTotalForConfig
-    }
-
-    // Fallback extra para regimes convencionais: se chargesRate for 0 sem flag explícita, restaura default da UF
-    if (chargesRate === 0 && !budget.chargesConfig?.isExplicitZero) {
-      chargesRate = defaultTotalForConfig
-    }
-  }
+  const chargesRate = getBudgetSocialChargesRate(budget)
 
   // 2. Determina o BDI pela fórmula TCU
   // No Simples Nacional, os tributos sobre faturamento são unificados no DAS (alíquota efetiva informada pelo usuário).
@@ -465,8 +476,10 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
 
   // Subtotais por etapa (com e sem BDI)
   // Cada serviço pode usar BDI geral ou BDI diferenciado
-  let totalWithBdi = 0
-
+  // Regra de centavos / integridade da CONCE:
+  // Arredonda cada etapa para 2 casas decimais e define o total geral da obra como a soma
+  // exata das etapas já arredondadas, garantindo que total - soma(etapas) = 0,00 rigorosamente.
+  // Também garante que totalDirectCost = soma dos custos diretos das etapas já arredondados.
   const stagesSubtotals = budget.stages.map((stage) => {
     let stageDirect = 0
     let stageWithBdi = 0
@@ -476,19 +489,17 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
       const laborMult = 1 + chargesRate / 100
       const sUnitCost = getServiceEffectiveUnitCost(service, laborMult)
 
-      const sDirect = sUnitCost * sQty
+      const sDirect = Number((sUnitCost * sQty).toFixed(2))
       const serviceBdi =
         service.customBdiPercent !== undefined && service.customBdiPercent !== null
           ? Number(service.customBdiPercent)
           : generalBdiRate
 
-      const sWithBdi = sDirect * (1 + serviceBdi / 100)
+      const sWithBdi = Number((sDirect * (1 + serviceBdi / 100)).toFixed(2))
 
       stageDirect += sDirect
       stageWithBdi += sWithBdi
     })
-
-    totalWithBdi += stageWithBdi
 
     return {
       stageId: stage.id,
@@ -500,14 +511,24 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
     }
   })
 
+  // Total da obra definido exatamente como a soma das etapas já arredondadas
+  const totalWithBdi = Number(stagesSubtotals.reduce((acc, st) => acc + st.withBdi, 0).toFixed(2))
+
+  const sumStagesDirect = Number(
+    stagesSubtotals.reduce((acc, st) => acc + st.directCost, 0).toFixed(2),
+  )
+
   // Atualiza percentuais das etapas
   stagesSubtotals.forEach((st) => {
     st.percentageOfTotal =
       totalWithBdi > 0 ? Number(((st.withBdi / totalWithBdi) * 100).toFixed(1)) : 0
   })
 
-  const bdiAmount = totalWithBdi - totalDirectCost
-  const totalTaxesAmount = (totalWithBdi * taxesTotal) / 100
+  // Custo direto total alinhado com a soma das etapas para coerência de centavos
+  const finalTotalDirectCost =
+    sumStagesDirect > 0 ? sumStagesDirect : Number(totalDirectCost.toFixed(2))
+  const bdiAmount = Number(Math.max(0, totalWithBdi - finalTotalDirectCost).toFixed(2))
+  const totalTaxesAmount = Number(((totalWithBdi * taxesTotal) / 100).toFixed(2))
 
   return {
     taxRegime,
@@ -519,12 +540,12 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
     subcontractDirectCost: Number(subcontractDirectCost.toFixed(2)),
     socialChargesRate: chargesRate,
     socialChargesAmount: Number(socialChargesAmount.toFixed(2)),
-    totalDirectCost: Number(totalDirectCost.toFixed(2)),
+    totalDirectCost: finalTotalDirectCost,
     bdiRate: generalBdiRate,
-    bdiAmount: Number(Math.max(0, bdiAmount).toFixed(2)),
+    bdiAmount,
     totalTaxesRate: taxesTotal,
-    totalTaxesAmount: Number(totalTaxesAmount.toFixed(2)),
-    finalSalePrice: Number(totalWithBdi.toFixed(2)),
+    totalTaxesAmount,
+    finalSalePrice: totalWithBdi,
     stagesSubtotals,
     servicesCount,
     inputsCount,

@@ -5,7 +5,7 @@
 
 import { FullBudget, BudgetComposition } from '@/types/budgetEngine'
 import { CONCE_CANONICAL_COMPOSITIONS } from './compositionsData'
-import { DEFAULT_BDI_CONFIG, calculateCompositionUnitCost } from './budgetEngine'
+import { DEFAULT_BDI_CONFIG, calculateCompositionUnitCost, calculateTcuBdi } from './budgetEngine'
 import { BRAZIL_STATES_CHARGES } from './chargesData'
 
 export const STORAGE_KEYS_BUDGETS = {
@@ -391,6 +391,15 @@ export function getStoredFullBudgets(): FullBudget[] {
                   ? updatedBudget.bdiConfig.taxes.simplesDas
                   : 11.0
 
+            const tcuRecalc = calculateTcuBdi({
+              administrationCentral: updatedBudget.bdiConfig?.administrationCentral ?? 4.0,
+              risk: updatedBudget.bdiConfig?.risk ?? 1.27,
+              insuranceAndGuarantee: updatedBudget.bdiConfig?.insuranceAndGuarantee ?? 0.8,
+              financialExpenses: updatedBudget.bdiConfig?.financialExpenses ?? 1.23,
+              profit: updatedBudget.bdiConfig?.profit ?? 7.4,
+              taxesTotal: currentRate,
+            })
+
             updatedBudget = {
               ...updatedBudget,
               chargesConfig: {
@@ -405,6 +414,7 @@ export function getStoredFullBudgets(): FullBudget[] {
               },
               bdiConfig: {
                 ...updatedBudget.bdiConfig,
+                calculatedBdi: tcuRecalc.bdiPercent,
                 taxes: {
                   ...updatedBudget.bdiConfig?.taxes,
                   simplesDas: currentRate,
@@ -471,6 +481,14 @@ export function getStoredFullBudgets(): FullBudget[] {
             if (hasNonZeroGroups || !updatedBudget.chargesConfig?.isExplicitZero || needsDasFix) {
               hasFixed = true
               const effectiveDas = needsDasFix ? 11.0 : currentDas
+              const tcuRecalc = calculateTcuBdi({
+                administrationCentral: updatedBudget.bdiConfig?.administrationCentral ?? 4.0,
+                risk: updatedBudget.bdiConfig?.risk ?? 1.27,
+                insuranceAndGuarantee: updatedBudget.bdiConfig?.insuranceAndGuarantee ?? 0.8,
+                financialExpenses: updatedBudget.bdiConfig?.financialExpenses ?? 1.23,
+                profit: updatedBudget.bdiConfig?.profit ?? 7.4,
+                taxesTotal: effectiveDas,
+              })
               return {
                 ...updatedBudget,
                 chargesConfig: {
@@ -485,6 +503,7 @@ export function getStoredFullBudgets(): FullBudget[] {
                 },
                 bdiConfig: {
                   ...updatedBudget.bdiConfig,
+                  calculatedBdi: tcuRecalc.bdiPercent,
                   taxes: {
                     ...updatedBudget.bdiConfig?.taxes,
                     simplesDas: effectiveDas,

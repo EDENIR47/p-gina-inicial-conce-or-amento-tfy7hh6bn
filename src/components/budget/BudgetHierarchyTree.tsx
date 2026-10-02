@@ -37,6 +37,7 @@ import {
   calculateCompositionUnitCost,
   calculateServiceDirectCost,
   calculateStageDirectCost,
+  getBudgetLaborMultiplier,
   getServiceEffectiveUnitCost,
 } from '@/lib/budgetEngine'
 import { formatCurrencyBRL, getSourceBadgeInfo } from '@/lib/formatters'
@@ -130,6 +131,9 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     itemName: '',
   })
 
+  const laborMultiplier = getBudgetLaborMultiplier(budget)
+  const generalBdiRate = budget.bdiConfig?.calculatedBdi ?? 22.84
+
   // Alterna expansão de Etapa
   const toggleStage = (stageId: string) => {
     setExpandedStages((prev) => ({ ...prev, [stageId]: !prev[stageId] }))
@@ -175,7 +179,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
   const executeDeleteStage = (stageId: string) => {
     const stage = budget.stages.find((s) => s.id === stageId)
     const stageName = stage?.name || stageId
-    const stageCost = stage ? calculateStageDirectCost(stage) : 0
+    const stageCost = stage ? calculateStageDirectCost(stage, laborMultiplier) : 0
     const servicesCount = stage?.services?.length || 0
 
     const newStages = budget.stages.filter((s) => s.id !== stageId)
@@ -212,8 +216,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     const stage = budget.stages.find((s) => s.id === stageId)
     const exists = stage?.services.some((srv) => srv.id === savedService.id)
     const prevService = stage?.services.find((srv) => srv.id === savedService.id)
-    const prevCost = prevService ? calculateServiceDirectCost(prevService) : 0
-    const newCost = calculateServiceDirectCost(savedService)
+    const prevCost = prevService ? calculateServiceDirectCost(prevService, laborMultiplier) : 0
+    const newCost = calculateServiceDirectCost(savedService, laborMultiplier)
 
     const newStages = budget.stages.map((st) => {
       if (st.id !== stageId) return st
@@ -310,7 +314,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       title: 'Excluir Serviço?',
       itemCode: service.code,
       itemName: service.description,
-      itemCost: calculateServiceDirectCost(service),
+      itemCost: calculateServiceDirectCost(service, laborMultiplier),
       isLastItem: isLastInStage,
       emptyWarning: isLastInStage
         ? `Aviso: esta etapa (${stage?.name || 'Etapa'}) ficará sem nenhum serviço cadastrado.`
@@ -330,7 +334,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       if (srv) {
         serviceDesc = srv.description
         serviceCode = srv.code
-        prevCost = calculateServiceDirectCost(srv)
+        prevCost = calculateServiceDirectCost(srv, laborMultiplier)
       }
       return {
         ...st,
@@ -393,7 +397,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
           ...comp,
           inputs: updatedInputs,
         }
-        const newCpuCost = calculateCompositionUnitCost(updatedComposition)
+        const newCpuCost = calculateCompositionUnitCost(updatedComposition, laborMultiplier)
         const isUserManual = srv.unitPriceSource === 'Usuário'
         const newUnitPrice = isUserManual ? srv.unitPrice : newCpuCost
         const newSource = isUserManual ? srv.unitPriceSource : 'Composição'
@@ -466,7 +470,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
           ...srv.composition,
           inputs: (srv.composition.inputs || []).filter((inp) => inp.id !== inputId),
         }
-        const newCpuCost = calculateCompositionUnitCost(updatedComposition)
+        const newCpuCost = calculateCompositionUnitCost(updatedComposition, laborMultiplier)
         const isUserManual = srv.unitPriceSource === 'Usuário'
         const newUnitPrice = isUserManual ? srv.unitPrice : newCpuCost
         const newSource = isUserManual ? srv.unitPriceSource : 'Composição'
@@ -509,7 +513,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
   // Ação de exclusão / limpeza de todos os insumos da composição (Nível 3)
   const confirmClearCompositionInputs = (stageId: string, service: BudgetService) => {
     const inputsCount = service.composition.inputs?.length || 0
-    const compCost = calculateCompositionUnitCost(service.composition)
+    const compCost = calculateCompositionUnitCost(service.composition, laborMultiplier)
 
     setDeleteDialog({
       isOpen: true,
@@ -538,13 +542,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         if (srv.id !== serviceId) return srv
         serviceDesc = srv.description
         compCode = srv.composition.code
-        prevCompCost = calculateCompositionUnitCost(srv.composition)
+        prevCompCost = calculateCompositionUnitCost(srv.composition, laborMultiplier)
         removedCount = srv.composition.inputs?.length || 0
         const updatedComposition: BudgetComposition = {
           ...srv.composition,
           inputs: [],
         }
-        const newCpuCost = calculateCompositionUnitCost(updatedComposition)
+        const newCpuCost = calculateCompositionUnitCost(updatedComposition, laborMultiplier)
         const isUserManual = srv.unitPriceSource === 'Usuário'
         const newUnitPrice = isUserManual ? srv.unitPrice : newCpuCost
         const newSource = isUserManual ? srv.unitPriceSource : 'Composição'
@@ -698,7 +702,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
           ...srv.composition,
           inputs: updatedInputs,
         }
-        const newCpuCost = calculateCompositionUnitCost(updatedComposition)
+        const newCpuCost = calculateCompositionUnitCost(updatedComposition, laborMultiplier)
         const isUserManual = srv.unitPriceSource === 'Usuário'
         const newUnitPrice = isUserManual ? srv.unitPrice : newCpuCost
         const newSource = isUserManual ? srv.unitPriceSource : 'Composição'
@@ -793,7 +797,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         prevPrice =
           srv.unitPrice !== undefined && srv.unitPrice !== null
             ? Number(srv.unitPrice)
-            : calculateCompositionUnitCost(srv.composition)
+            : calculateCompositionUnitCost(srv.composition, laborMultiplier)
         return {
           ...srv,
           unitPrice: clampedPrice,
@@ -844,8 +848,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         prevPrice =
           srv.unitPrice !== undefined && srv.unitPrice !== null
             ? Number(srv.unitPrice)
-            : calculateCompositionUnitCost(srv.composition)
-        newCpuCost = calculateCompositionUnitCost(srv.composition)
+            : calculateCompositionUnitCost(srv.composition, laborMultiplier)
+        newCpuCost = calculateCompositionUnitCost(srv.composition, laborMultiplier)
         return {
           ...srv,
           unitPrice: newCpuCost,
@@ -950,8 +954,24 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         <div className="space-y-4">
           {budget.stages.map((stage) => {
             const isStageOpen = !!expandedStages[stage.id]
-            const stageDirectCost = calculateStageDirectCost(stage)
+            const stageDirectCost = calculateStageDirectCost(stage, laborMultiplier)
             const servicesCount = stage.services?.length || 0
+
+            // Cálculo do subtotal da etapa com BDI para exibição lado a lado rotulada
+            const stageWithBdi = Number(
+              stage.services
+                .reduce((acc, srv) => {
+                  const sQty = Number(srv.quantity) || 0
+                  const sUnit = getServiceEffectiveUnitCost(srv, laborMultiplier)
+                  const sDirect = Number((sUnit * sQty).toFixed(2))
+                  const sBdi =
+                    srv.customBdiPercent !== undefined && srv.customBdiPercent !== null
+                      ? Number(srv.customBdiPercent)
+                      : generalBdiRate
+                  return acc + Number((sDirect * (1 + sBdi / 100)).toFixed(2))
+                }, 0)
+                .toFixed(2),
+            )
 
             return (
               <div
@@ -988,16 +1008,26 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                     </div>
                   </div>
 
-                  {/* Subtotal da Etapa e Ações */}
+                  {/* Subtotal da Etapa e Ações com rótulos explícitos de Custo Direto e Venda c/ BDI */}
                   <div className="flex items-center justify-between sm:justify-end gap-3 pl-8 sm:pl-0 border-t sm:border-t-0 border-white/10 pt-2 sm:pt-0">
-                    <div className="text-left sm:text-right">
-                      <span className="text-[10px] text-white/60 uppercase tracking-wider block">
-                        Subtotal Etapa {stage.code} ({servicesCount}{' '}
-                        {servicesCount === 1 ? 'item' : 'itens'})
-                      </span>
-                      <span className="text-base sm:text-lg font-extrabold text-[#FF6B1F]">
-                        {formatCurrencyBRL(stageDirectCost)}
-                      </span>
+                    <div className="text-left sm:text-right flex items-center gap-3">
+                      <div>
+                        <span className="text-[9px] text-white/60 uppercase tracking-wider block font-semibold">
+                          Custo Direto ({servicesCount} {servicesCount === 1 ? 'item' : 'itens'})
+                        </span>
+                        <span className="text-sm sm:text-base font-bold text-white">
+                          {formatCurrencyBRL(stageDirectCost)}
+                        </span>
+                      </div>
+
+                      <div className="border-l border-white/20 pl-3">
+                        <span className="text-[9px] text-[#FF6B1F] uppercase tracking-wider block font-bold">
+                          Venda c/ BDI
+                        </span>
+                        <span className="text-base sm:text-lg font-extrabold text-[#FF6B1F]">
+                          {formatCurrencyBRL(stageWithBdi)}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -1081,8 +1111,19 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                       stage.services.map((service) => {
                         const isServiceOpen = !!expandedServices[service.id]
                         const comp = service.composition
-                        const unitCost = getServiceEffectiveUnitCost(service)
-                        const serviceTotal = calculateServiceDirectCost(service)
+                        const unitCost = getServiceEffectiveUnitCost(service, laborMultiplier)
+                        const serviceDirectTotal = calculateServiceDirectCost(
+                          service,
+                          laborMultiplier,
+                        )
+                        const serviceBdiRate =
+                          service.customBdiPercent !== undefined &&
+                          service.customBdiPercent !== null
+                            ? Number(service.customBdiPercent)
+                            : generalBdiRate
+                        const serviceWithBdiTotal = Number(
+                          (serviceDirectTotal * (1 + serviceBdiRate / 100)).toFixed(2),
+                        )
                         const hasCustomBdi =
                           service.customBdiPercent !== undefined &&
                           service.customBdiPercent !== null
@@ -1211,7 +1252,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                   <div className="flex flex-col items-end">
                                     <div className="flex items-center gap-1">
                                       <span className="text-[10px] text-[#171A1F]/60 block font-semibold">
-                                        R$/{service.unit}
+                                        Custo Direto Unit. (R$/{service.unit})
                                       </span>
                                       {service.unitPriceSource && (
                                         <span
@@ -1235,7 +1276,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                             handleResetToCompositionCost(stage.id, service.id)
                                           }
                                           className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[#294C87] hover:text-[#FF6B1F] bg-blue-50 hover:bg-orange-50 px-1.5 py-0.5 rounded border border-[#294C87]/20 transition-colors cursor-pointer"
-                                          title={`Descartar valor manual (${formatCurrencyBRL(service.unitPrice ?? 0)}) e recalcular custo unitário pela composição (${formatCurrencyBRL(calculateCompositionUnitCost(comp))})`}
+                                          title={`Descartar valor manual (${formatCurrencyBRL(service.unitPrice ?? 0)}) e recalcular custo unitário pela composição (${formatCurrencyBRL(calculateCompositionUnitCost(comp, laborMultiplier))})`}
                                         >
                                           <RotateCcw className="w-2.5 h-2.5" />
                                           <span>↺ Usar Custo da Composição</span>
@@ -1264,7 +1305,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                             parseFloat(e.target.value) || 0,
                                           )
                                         }
-                                        title="Preço unitário do serviço editável inline (R$). Altera fonte para 'Usuário'."
+                                        title="Preço/custo direto unitário editável inline (R$). Altera fonte para 'Usuário'."
                                         className={`w-28 pl-6 pr-1.5 py-1 text-right rounded font-mono text-xs font-bold focus:outline-none transition-all ${
                                           unitCost === 0 &&
                                           (!service.unitPrice || service.unitPrice === 0)
@@ -1279,13 +1320,21 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
 
                                   <span className="text-xs text-[#171A1F]/40 font-mono">=</span>
 
-                                  <div className="text-right min-w-[100px]">
-                                    <span className="text-[10px] text-[#171A1F]/50 block">
-                                      Subtotal
-                                    </span>
-                                    <span className="text-xs sm:text-sm font-extrabold text-[#FF6B1F]">
-                                      {formatCurrencyBRL(serviceTotal)}
-                                    </span>
+                                  <div className="text-right min-w-[140px]">
+                                    <div className="text-[10px] text-[#171A1F]/60 flex items-center justify-end gap-1 font-semibold">
+                                      <span>Custo Direto:</span>
+                                      <span className="font-bold text-[#171A1F]">
+                                        {formatCurrencyBRL(serviceDirectTotal)}
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] flex items-center justify-end gap-1">
+                                      <span className="text-[10px] text-[#FF6B1F] font-bold uppercase">
+                                        Venda c/ BDI:
+                                      </span>
+                                      <span className="font-extrabold text-[#FF6B1F] text-xs sm:text-sm">
+                                        {formatCurrencyBRL(serviceWithBdiTotal)}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
 
@@ -1632,10 +1681,12 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                             colSpan={7}
                                             className="py-2 px-3 text-right text-[#171A1F]/70"
                                           >
-                                            Custo Unitário da Composição ({comp.unit}):
+                                            Custo Direto Unitário da Composição ({comp.unit}):
                                           </td>
                                           <td className="py-2 px-3 text-right text-[#FF6B1F] font-extrabold">
-                                            {formatCurrencyBRL(calculateCompositionUnitCost(comp))}
+                                            {formatCurrencyBRL(
+                                              calculateCompositionUnitCost(comp, laborMultiplier),
+                                            )}
                                           </td>
                                           <td></td>
                                         </tr>

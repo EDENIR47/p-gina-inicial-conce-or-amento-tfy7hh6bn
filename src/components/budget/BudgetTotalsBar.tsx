@@ -53,9 +53,11 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
   onOpenAuditModal,
 }) => {
   // Conferência entre somatório das etapas e total geral
-  const sumOfStages = summary.stagesSubtotals.reduce((acc, st) => acc + st.withBdi, 0)
-  const difference = Math.abs(sumOfStages - summary.finalSalePrice)
-  const isSumConsistent = difference < 0.05 // tolerância de arredondamento de centavos
+  const sumOfStages = Number(
+    summary.stagesSubtotals.reduce((acc, st) => acc + st.withBdi, 0).toFixed(2),
+  )
+  const difference = Math.abs(Number((sumOfStages - summary.finalSalePrice).toFixed(2)))
+  const isSumConsistent = difference === 0 || difference < 0.01 // total da obra coincide com a soma das etapas arredondadas
 
   const errorCount = Object.keys(validationErrors).length
 
@@ -224,7 +226,11 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
         {/* Tributos */}
         <div className="p-3 rounded-xl bg-white/5 border border-white/10">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-white/60 uppercase font-semibold">Tributos (T)</span>
+            <span className="text-[10px] text-white/60 uppercase font-semibold">
+              {budget.chargesConfig?.taxRegime === 'simples_nacional'
+                ? 'Tributos DAS (T)'
+                : 'Tributos (T)'}
+            </span>
             <span className="text-[10px] font-bold text-white/80">
               {summary.totalTaxesRate.toFixed(2)}%
             </span>
@@ -232,18 +238,22 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
           <span className="text-sm sm:text-base font-bold text-white block mt-0.5">
             {formatCurrencyBRL(summary.totalTaxesAmount)}
           </span>
-          <span className="text-[10px] text-white/40">ISS, PIS, COFINS</span>
+          <span className="text-[10px] text-white/40">
+            {budget.chargesConfig?.taxRegime === 'simples_nacional'
+              ? 'DAS (Tributo Único)'
+              : 'ISS, PIS, COFINS'}
+          </span>
         </div>
 
         {/* VALOR FINAL DE VENDA DA OBRA (PUMPKIN ORANGE) */}
         <div className="p-3 rounded-xl bg-gradient-to-br from-[#FF6B1F]/20 to-[#FF6B1F]/10 border-2 border-[#FF6B1F] flex flex-col justify-center">
           <span className="text-[10px] text-[#FF6B1F] uppercase font-extrabold block">
-            VALOR TOTAL DA OBRA
+            VALOR TOTAL DA OBRA (VENDA C/ BDI)
           </span>
           <span className="text-base sm:text-lg lg:text-xl font-extrabold text-[#FF6B1F] tracking-tight block">
             {formatCurrencyBRL(summary.finalSalePrice)}
           </span>
-          <span className="text-[10px] text-white/60">Preço de Venda Final</span>
+          <span className="text-[10px] text-white/60">Venda c/ BDI</span>
         </div>
       </div>
 
@@ -252,7 +262,7 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
         <div className="flex items-center justify-between text-xs text-white/70">
           <span className="font-semibold flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
-            Distribuição Físico-Financeira por Etapa da Obra:
+            Distribuição Físico-Financeira por Etapa da Obra (Venda c/ BDI):
           </span>
           <span className="font-mono text-[11px] text-white/50">
             {summary.stagesSubtotals.length} etapas cadastradas
@@ -268,8 +278,12 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
               <div className="truncate flex-1">
                 <span className="font-mono font-bold text-[#FF6B1F] mr-1">{st.code}</span>
                 <span className="text-white/80 truncate font-medium">{st.name}</span>
+                <div className="text-[10px] text-white/50">
+                  Custo Direto: {formatCurrencyBRL(st.directCost)}
+                </div>
               </div>
               <div className="text-right whitespace-nowrap">
+                <div className="text-[10px] text-white/60 font-medium">Venda c/ BDI</div>
                 <span className="font-bold text-white block">{formatCurrencyBRL(st.withBdi)}</span>
                 <span className="text-[10px] text-[#FF6B1F] font-semibold">
                   {st.percentageOfTotal}% do total

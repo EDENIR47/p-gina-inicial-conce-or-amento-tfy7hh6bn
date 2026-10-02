@@ -36,7 +36,7 @@ import {
   purgeTestBudgetsFromStorage,
 } from '@/lib/budgetsStorage'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
-import { calculateFullBudget } from '@/lib/budgetEngine'
+import { calculateFullBudget, calculateTcuBdi } from '@/lib/budgetEngine'
 import { formatCurrencyBRL, formatBudgetDeadline } from '@/lib/formatters'
 import { BudgetHeaderForm } from '@/components/budget/BudgetHeaderForm'
 import { BudgetHierarchyTree } from '@/components/budget/BudgetHierarchyTree'
@@ -732,7 +732,24 @@ export const BudgetsScreen: React.FC = () => {
                       ? dasRate
                       : (activeBudget.chargesConfig?.simplesDasRate ?? 0)
 
-                  handleUpdateActiveBudget({
+                  const newTaxesTotal =
+                    newRegime === 'simples_nacional'
+                      ? activeDas
+                      : (activeBudget.bdiConfig.taxes.iss || 0) +
+                        (activeBudget.bdiConfig.taxes.pis || 0) +
+                        (activeBudget.bdiConfig.taxes.cofins || 0) +
+                        (newRegime === 'com_desoneracao' ? 4.5 : 0.0)
+
+                  const recalculatedBdi = calculateTcuBdi({
+                    administrationCentral: activeBudget.bdiConfig.administrationCentral,
+                    risk: activeBudget.bdiConfig.risk,
+                    insuranceAndGuarantee: activeBudget.bdiConfig.insuranceAndGuarantee,
+                    financialExpenses: activeBudget.bdiConfig.financialExpenses,
+                    profit: activeBudget.bdiConfig.profit,
+                    taxesTotal: newTaxesTotal,
+                  })
+
+                  const updatedWithRegime: FullBudget = {
                     ...activeBudget,
                     chargesConfig: {
                       ...activeBudget.chargesConfig,
@@ -762,16 +779,15 @@ export const BudgetsScreen: React.FC = () => {
                         ...activeBudget.bdiConfig.taxes,
                         inssOrCprb: newRegime === 'com_desoneracao' ? 4.5 : 0.0,
                         simplesDas: newRegime === 'simples_nacional' ? activeDas : undefined,
-                        totalTaxes:
-                          newRegime === 'simples_nacional'
-                            ? activeDas
-                            : (activeBudget.bdiConfig.taxes.iss || 0) +
-                              (activeBudget.bdiConfig.taxes.pis || 0) +
-                              (activeBudget.bdiConfig.taxes.cofins || 0) +
-                              (newRegime === 'com_desoneracao' ? 4.5 : 0.0),
+                        totalTaxes: newTaxesTotal,
                       },
+                      calculatedBdi: recalculatedBdi.bdiPercent,
                     },
-                  })
+                  }
+
+                  handleUpdateActiveBudget(updatedWithRegime)
+                  saveSingleBudget(updatedWithRegime)
+                  setBudgetsList(getStoredFullBudgets())
                   if (oldRegime !== newRegime) {
                     const regimeLabels: Record<string, string> = {
                       simples_nacional: 'Simples Nacional',
@@ -841,28 +857,55 @@ export const BudgetsScreen: React.FC = () => {
                 simplesDasRate={activeBudget.chargesConfig?.simplesDasRate}
                 onSimplesDasChange={(rate) => {
                   const oldRate = activeBudget.chargesConfig?.simplesDasRate ?? 0
-                  handleUpdateActiveBudget({
+                  const cleanRate = Math.max(0, Number(rate) || 0)
+                  const tcuCalc = calculateTcuBdi({
+                    administrationCentral: activeBudget.bdiConfig.administrationCentral,
+                    risk: activeBudget.bdiConfig.risk,
+                    insuranceAndGuarantee: activeBudget.bdiConfig.insuranceAndGuarantee,
+                    financialExpenses: activeBudget.bdiConfig.financialExpenses,
+                    profit: activeBudget.bdiConfig.profit,
+                    taxesTotal: cleanRate,
+                  })
+
+                  const updatedBudget: FullBudget = {
                     ...activeBudget,
                     chargesConfig: {
                       ...activeBudget.chargesConfig,
-                      simplesDasRate: rate,
+                      simplesDasRate: cleanRate,
                     },
-                  })
-                  if (oldRate !== rate) {
+                    bdiConfig: {
+                      ...activeBudget.bdiConfig,
+                      taxes: {
+                        ...activeBudget.bdiConfig.taxes,
+                        simplesDas: cleanRate,
+                        totalTaxes: cleanRate,
+                      },
+                      calculatedBdi: tcuCalc.bdiPercent,
+                    },
+                  }
+
+                  handleUpdateActiveBudget(updatedBudget)
+                  saveSingleBudget(updatedBudget)
+                  setBudgetsList(getStoredFullBudgets())
+
+                  if (oldRate !== cleanRate) {
                     logAuditEvent({
                       budgetId: activeBudget.id,
                       action: 'edicao_bdi',
                       title: 'Alíquota DAS Atualizada no Simples Nacional',
-                      details: `Alíquota efetiva do DAS alterada de ${oldRate.toFixed(2)}% para ${rate.toFixed(2)}%.`,
+                      details: `Alíquota efetiva do DAS alterada de ${oldRate.toFixed(2)}% para ${cleanRate.toFixed(2)}%. BDI recalculado TCU: ${tcuCalc.bdiPercent.toFixed(2)}%.`,
                     })
                   }
                 }}
-                onChange={(newBdi) =>
-                  handleUpdateActiveBudget({
+                onChange={(newBdi) => {
+                  const updatedBudget: FullBudget = {
                     ...activeBudget,
                     bdiConfig: newBdi,
-                  })
-                }
+                  }
+                  handleUpdateActiveBudget(updatedBudget)
+                  saveSingleBudget(updatedBudget)
+                  setBudgetsList(getStoredFullBudgets())
+                }}
               />
             </div>
           )}

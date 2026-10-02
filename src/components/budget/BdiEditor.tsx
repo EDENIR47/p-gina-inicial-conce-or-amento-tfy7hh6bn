@@ -136,9 +136,6 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({
 
   const handleSimplesDasChange = (value: number) => {
     const val = Math.max(0, value)
-    if (onSimplesDasChange) {
-      onSimplesDasChange(val)
-    }
     const updatedTaxes = {
       ...bdiConfig.taxes,
       simplesDas: val,
@@ -157,7 +154,12 @@ export const BdiEditor: React.FC<BdiEditorProps> = ({
       taxesTotal: val,
     })
     updated.calculatedBdi = res.bdiPercent
-    onChange(updated)
+
+    if (onSimplesDasChange) {
+      onSimplesDasChange(val)
+    } else {
+      onChange(updated)
+    }
   }
 
   const handleRestoreDefaults = () => {
