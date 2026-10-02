@@ -10,6 +10,8 @@ import { SINAPI_REFERENCE_DATASET } from '@/data/sinapiReferenceCatalog'
 export const STORAGE_KEYS_SINAPI = {
   CATALOG_CUSTOM: 'conce_sinapi_custom_items',
   IMPORT_METADATA: 'conce_sinapi_import_metadata',
+  API_KEY: 'conce_orcamentador_api_key',
+  LAST_SYNC_CONFIG: 'conce_orcamentador_sync_config',
 } as const
 
 /**
@@ -102,7 +104,15 @@ export function getConsolidatedSinapiCatalog(): SinapiCatalogItem[] {
  */
 export function mergeImportedSinapiItems(
   newItems: SinapiCatalogItem[],
-  metadata: { referenceMonth: string; referenceState: string; fileName?: string },
+  metadata: {
+    referenceMonth: string
+    referenceState: string
+    fileName?: string
+    priceOrigin?: 'importada_usuario' | 'api_orcamentador'
+    sourceType?: 'manual_import' | 'api_orcamentador'
+    syncedPages?: number
+    lastSyncDurationMs?: number
+  },
 ): { updatedCount: number; createdCount: number; totalCount: number } {
   const existing = getCustomSinapiItems()
   const existingMap = new Map<string, SinapiCatalogItem>()
@@ -114,6 +124,7 @@ export function mergeImportedSinapiItems(
 
   let updatedCount = 0
   let createdCount = 0
+  const chosenOrigin = metadata.priceOrigin || 'importada_usuario'
 
   for (const item of newItems) {
     const key = (item.code || '').trim().toUpperCase()
@@ -121,18 +132,19 @@ export function mergeImportedSinapiItems(
 
     if (existingMap.has(key)) {
       updatedCount++
+      const prev = existingMap.get(key)!
       existingMap.set(key, {
-        ...existingMap.get(key)!,
+        ...prev,
         ...item,
-        priceOrigin: 'importada_usuario',
-        referenceMonth: metadata.referenceMonth || existingMap.get(key)!.referenceMonth,
-        referenceState: metadata.referenceState || existingMap.get(key)!.referenceState,
+        priceOrigin: chosenOrigin,
+        referenceMonth: metadata.referenceMonth || prev.referenceMonth,
+        referenceState: metadata.referenceState || prev.referenceState,
       })
     } else {
       createdCount++
       existingMap.set(key, {
         ...item,
-        priceOrigin: 'importada_usuario',
+        priceOrigin: chosenOrigin,
         referenceMonth: metadata.referenceMonth,
         referenceState: metadata.referenceState,
       })
@@ -150,6 +162,11 @@ export function mergeImportedSinapiItems(
     updatedCount,
     createdCount,
     fileName: metadata.fileName,
+    sourceType:
+      metadata.sourceType ||
+      (chosenOrigin === 'api_orcamentador' ? 'api_orcamentador' : 'manual_import'),
+    syncedPages: metadata.syncedPages,
+    lastSyncDurationMs: metadata.lastSyncDurationMs,
   }
   saveSinapiImportMetadata(meta)
 
@@ -157,6 +174,27 @@ export function mergeImportedSinapiItems(
     updatedCount,
     createdCount,
     totalCount: mergedList.length,
+  }
+}
+
+/**
+ * Armazena a API Key do Orçamentador no localStorage
+ */
+export function getStoredOrcamentadorApiKey(): string {
+  if (typeof window === 'undefined') return ''
+  return (
+    localStorage.getItem(STORAGE_KEYS_SINAPI.API_KEY) ||
+    (import.meta as any).env?.VITE_ORCAMENTADOR_API_KEY ||
+    ''
+  ).trim()
+}
+
+export function saveStoredOrcamentadorApiKey(key: string): void {
+  if (typeof window === 'undefined') return
+  if (!key.trim()) {
+    localStorage.removeItem(STORAGE_KEYS_SINAPI.API_KEY)
+  } else {
+    localStorage.setItem(STORAGE_KEYS_SINAPI.API_KEY, key.trim())
   }
 }
 

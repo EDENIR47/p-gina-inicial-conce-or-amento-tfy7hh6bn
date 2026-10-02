@@ -36,6 +36,8 @@ import { CompositionEditModal } from '@/components/budget/CompositionEditModal'
 import { ImportCompositionsModal } from '@/components/budget/ImportCompositionsModal'
 import { ImportSinapiTableModal } from '@/components/budget/ImportSinapiTableModal'
 import { SinapiCatalogBrowser } from '@/components/budget/SinapiCatalogBrowser'
+import { SyncSinapiApiModal } from '@/components/budget/SyncSinapiApiModal'
+import { Globe } from 'lucide-react'
 
 export const CompositionsLibraryPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'conce' | 'sinapi'>('conce')
@@ -57,6 +59,7 @@ export const CompositionsLibraryPage: React.FC = () => {
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isSinapiImportModalOpen, setIsSinapiImportModalOpen] = useState(false)
+  const [isSyncSinapiApiModalOpen, setIsSyncSinapiApiModalOpen] = useState(false)
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -146,6 +149,18 @@ export const CompositionsLibraryPage: React.FC = () => {
     setSinapiCatalog(updatedCatalog)
     showToast(
       `Tabela SINAPI importada: ${result.createdCount} novos, ${result.updatedCount} atualizados (${result.totalCount} no banco).`,
+    )
+  }
+
+  const handleSinapiApiSyncSuccess = (result: {
+    updatedCount: number
+    createdCount: number
+    totalCount: number
+  }) => {
+    const updatedCatalog = getConsolidatedSinapiCatalog()
+    setSinapiCatalog(updatedCatalog)
+    showToast(
+      `Sincronização Oficial (API Orçamentador): ${result.createdCount} novos, ${result.updatedCount} atualizados (${result.totalCount} no banco).`,
     )
   }
 
@@ -264,14 +279,27 @@ export const CompositionsLibraryPage: React.FC = () => {
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={() => setIsSinapiImportModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer hover:-translate-y-0.5"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>Importar Tabela SINAPI (UF/Mês)</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSyncSinapiApiModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer hover:-translate-y-0.5"
+                title="Sincronizar acervo completo via API Orçamentador"
+              >
+                <Globe className="w-4 h-4" />
+                <span>Sincronizar Oficial (API)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsSinapiImportModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#294C87]/30 bg-[#294C87]/10 hover:bg-[#294C87]/20 text-[#294C87] text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-sm"
+                title="Importação manual de arquivo CSV ou JSON"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Importar CSV/JSON</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -314,6 +342,7 @@ export const CompositionsLibraryPage: React.FC = () => {
           catalog={sinapiCatalog}
           onSelectToNewComposition={handleConvertSinapiToComposition}
           onOpenImportModal={() => setIsSinapiImportModalOpen(true)}
+          onOpenSyncApiModal={() => setIsSyncSinapiApiModalOpen(true)}
         />
       ) : (
         <>
@@ -530,6 +559,12 @@ export const CompositionsLibraryPage: React.FC = () => {
         isOpen={isSinapiImportModalOpen}
         onClose={() => setIsSinapiImportModalOpen(false)}
         onImportSuccess={handleSinapiTableImportSuccess}
+      />
+
+      <SyncSinapiApiModal
+        isOpen={isSyncSinapiApiModalOpen}
+        onClose={() => setIsSyncSinapiApiModalOpen(false)}
+        onSyncSuccess={handleSinapiApiSyncSuccess}
       />
     </div>
   )

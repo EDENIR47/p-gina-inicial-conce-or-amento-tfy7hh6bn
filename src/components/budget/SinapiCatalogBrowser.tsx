@@ -21,6 +21,8 @@ import {
   Tag,
   ArrowUpDown,
   BookOpen,
+  Globe,
+  RefreshCw,
 } from 'lucide-react'
 import { SinapiCatalogItem } from '@/types/sinapi'
 import { formatCurrencyBRL } from '@/lib/formatters'
@@ -31,6 +33,7 @@ interface SinapiCatalogBrowserProps {
   catalog: SinapiCatalogItem[]
   onSelectToNewComposition?: (item: SinapiCatalogItem) => void
   onOpenImportModal: () => void
+  onOpenSyncApiModal?: () => void
 }
 
 const ITEMS_PER_PAGE = 15
@@ -39,13 +42,14 @@ export const SinapiCatalogBrowser: React.FC<SinapiCatalogBrowserProps> = ({
   catalog,
   onSelectToNewComposition,
   onOpenImportModal,
+  onOpenSyncApiModal,
 }) => {
   const [search, setSearch] = useState('')
   const [selectedType, setSelectedType] = useState<'todos' | 'insumo' | 'composicao'>('todos')
   const [selectedCategory, setSelectedCategory] = useState<string>('todas')
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('Todas')
   const [selectedOrigin, setSelectedOrigin] = useState<
-    'todos' | 'referencia_embutida' | 'importada_usuario'
+    'todos' | 'referencia_embutida' | 'importada_usuario' | 'api_orcamentador'
   >('todos')
   const [currentPage, setCurrentPage] = useState(1)
   const [sortBy, setSortBy] = useState<'code' | 'description' | 'price'>('description')
@@ -148,9 +152,14 @@ export const SinapiCatalogBrowser: React.FC<SinapiCatalogBrowserProps> = ({
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           {metadata ? (
             <div className="p-2.5 rounded-xl bg-white/10 border border-white/20 text-xs">
-              <span className="block font-bold text-[#FF6B1F]">Tabela Ativa do Usuário</span>
+              <span className="block font-bold text-[#FF6B1F]">
+                {metadata.sourceType === 'api_orcamentador'
+                  ? 'Tabela Oficial (API Orçamentador)'
+                  : 'Tabela Importada pelo Usuário'}
+              </span>
               <span className="text-[11px] text-white/80">
-                {metadata.referenceState} • Mês {metadata.referenceMonth}
+                {metadata.referenceState} • Mês {metadata.referenceMonth} ({metadata.itemsCount}{' '}
+                itens)
               </span>
             </div>
           ) : (
@@ -160,13 +169,26 @@ export const SinapiCatalogBrowser: React.FC<SinapiCatalogBrowserProps> = ({
             </div>
           )}
 
+          {onOpenSyncApiModal && (
+            <button
+              type="button"
+              onClick={onOpenSyncApiModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs font-bold transition-all shadow-md cursor-pointer whitespace-nowrap hover:-translate-y-0.5"
+              title="Sincronizar acervo completo via API Orçamentador"
+            >
+              <Globe className="w-4 h-4" />
+              <span>Sincronizar Oficial (API)</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onOpenImportModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs font-bold transition-all shadow-md cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer whitespace-nowrap"
+            title="Importação manual alternativa via CSV ou JSON"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Importar Tabela UF/Mês</span>
+            <span>Importar CSV/JSON</span>
           </button>
         </div>
       </div>
@@ -222,8 +244,9 @@ export const SinapiCatalogBrowser: React.FC<SinapiCatalogBrowserProps> = ({
               className="w-full px-3 py-2 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/20 text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#294C87] cursor-pointer"
             >
               <option value="todos">Todas as Origens</option>
-              <option value="referencia_embutida">Ref. Embutida (Padrão)</option>
+              <option value="api_orcamentador">API Orçamentador (Oficial)</option>
               <option value="importada_usuario">Importada pelo Usuário</option>
+              <option value="referencia_embutida">Ref. Embutida (Padrão)</option>
             </select>
           </div>
         </div>
@@ -358,7 +381,16 @@ export const SinapiCatalogBrowser: React.FC<SinapiCatalogBrowserProps> = ({
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
-                        {isCustom ? (
+                        {item.priceOrigin === 'api_orcamentador' ? (
+                          <div className="space-y-0.5">
+                            <span className="px-2 py-0.5 rounded bg-blue-50 text-[#294C87] border border-[#294C87]/20 text-[10px] font-extrabold block w-fit">
+                              API Orçamentador
+                            </span>
+                            <span className="text-[10px] text-[#171A1F]/60">
+                              {item.referenceState || 'UF'} • {item.referenceMonth || 'Atual'}
+                            </span>
+                          </div>
+                        ) : isCustom ? (
                           <div className="space-y-0.5">
                             <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold block w-fit">
                               Tabela Usuário
