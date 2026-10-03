@@ -3,7 +3,7 @@
  * Persistência e Sementes de Orçamentos Completos em localStorage
  */
 
-import { FullBudget, BudgetComposition } from '@/types/budgetEngine'
+import { FullBudget, BudgetComposition, BudgetInput } from '@/types/budgetEngine'
 import { CONCE_CANONICAL_COMPOSITIONS } from './compositionsData'
 import { DEFAULT_BDI_CONFIG, calculateCompositionUnitCost, calculateTcuBdi } from './budgetEngine'
 import { BRAZIL_STATES_CHARGES } from './chargesData'
@@ -12,7 +12,17 @@ export const STORAGE_KEYS_BUDGETS = {
   FULL_BUDGETS: 'conce_full_budgets',
   COMPOSITIONS_LIBRARY: 'conce_compositions_library',
   ACTIVE_BUDGET_ID: 'conce_active_budget_id',
+  REMOVED_COMPOSITION_INPUTS: 'conce_removed_composition_inputs',
 } as const
+
+export interface RemovedCompositionInputItem {
+  id: string // id do registro do histórico
+  compositionKey: string // código ou id da composição
+  input: BudgetInput // dados completos do insumo no momento da exclusão
+  removedAt: string // ISO string da data/hora
+  removedBy?: string
+  originalIndex?: number // índice em que estava na lista de insumos
+}
 
 /**
  * Remove qualquer orçamento de teste/demonstração que tenha sido gravado anteriormente em localStorage,
@@ -741,4 +751,109 @@ export function propagateCompositionUpdateToBudgets(savedComposition: BudgetComp
   }
 
   return { affectedBudgetsCount, affectedServicesCount }
+}
+
+/**
+ * Normaliza a chave da composição para armazenamento no histórico de itens removidos.
+ * Prioriza o código (ex: "SINAPI-94964", "CONCE-ALV-001"), com fallback para o id.
+ */
+export function getCompositionStorageKey(
+  comp: Partial<BudgetComposition> | string | undefined | null,
+): string {
+  if (!comp) return 'global'
+  if (typeof comp === 'string') return comp.trim().toUpperCase()
+  if (comp.code && comp.code.trim()) return comp.code.trim().toUpperCase()
+  if (comp.id && comp.id.trim()) return comp.id.trim()
+  return 'global'
+}
+
+/**
+ * Obtém todos os insumos removidos gravados em localStorage, opcionalmente filtrados por composição.
+ */
+export function getRemovedCompositionInputs(
+  compositionKey?: string,
+): RemovedCompositionInputItem[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS_BUDGETS.REMOVED_COMPOSITION_INPUTS)
+    if (!raw) return []
+    const parsed: RemovedCompositionInputItem[] = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    if (!compositionKey) return parsed
+
+    const targetKey = getCompositionStorageKey(compositionKey)
+    return parsed.filter((item) => {
+      const itemKey = getCompositionStorageKey(item.compositionKey)
+      return itemKey === targetKey
+    })
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Salva a lista completa de insumos removidos em localStorage.
+ */
+export function saveAllRemovedCompositionInputs(items: RemovedCompositionInputItem[]): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(
+      STORAGE_KEYS_BUDGETS.REMOVED_COMPOSITION_INPUTS,
+      JSON.stringify(items.slice(0, 100)), // Limita aos 100 mais recentes
+    )
+  } catch {
+    /* ignore storage quota */
+  }
+}
+
+/**
+ * Registra a exclusão de um insumo de uma composição no histórico persistente de localStorage.
+ */
+export function recordRemovedCompositionInput(
+  compositionKey: string,
+  input: BudgetInput,
+  originalIndex?: number,
+  removedBy: string = 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+): RemovedCompositionInputItem {
+  const normKey = getCompositionStorageKey(compositionKey)
+  const all = getRemovedCompositionInputs()
+
+  // Evita duplicata idêntica sequencial
+  const record: RemovedCompositionInputItem = {
+    id: `rm-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    compositionKey: normKey,
+    input: { ...input },
+    removedAt: new Date().toISOString(),
+    removedBy,
+    originalIndex,
+  }
+
+  const updated = [record, ...all]
+  saveAllRemovedCompositionInputs(updated)
+  return record
+}
+
+/**
+ * Remove um registro específico do histórico de excluídos (usado após restauração ou descarte permanente).
+ */
+export function purgeRemovedCompositionInputRecord(recordId: string): void {
+  const all = getRemovedCompositionInputs()
+  const filtered = all.filter((r) => r.id !== recordId)
+  saveAllRemovedCompositionInputs(filtered)
+}
+
+/**
+ * Limpa todo o histórico de insumos removidos de uma composição (ou geral se compositionKey não informada).
+ */
+export function clearRemovedCompositionInputs(compositionKey?: string): void {
+  if (!compositionKey) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS_BUDGETS.REMOVED_COMPOSITION_INPUTS)
+    }
+    return
+  }
+  const normKey = getCompositionStorageKey(compositionKey)
+  const all = getRemovedCompositionInputs()
+  const filtered = all.filter((r) => getCompositionStorageKey(r.compositionKey) !== normKey)
+  saveAllRemovedCompositionInputs(filtered)
 }

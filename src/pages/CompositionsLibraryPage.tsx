@@ -27,6 +27,8 @@ import {
   getStoredCompositions,
   saveStoredCompositions,
   propagateCompositionUpdateToBudgets,
+  getRemovedCompositionInputs,
+  purgeRemovedCompositionInputRecord,
 } from '@/lib/budgetsStorage'
 import { getConsolidatedSinapiCatalog, getSinapiImportMetadata } from '@/lib/sinapiStorage'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
@@ -56,6 +58,11 @@ export const CompositionsLibraryPage: React.FC = () => {
     isOpen: boolean
     composition: BudgetComposition | null
   }>({ isOpen: false, composition: null })
+
+  // Total de itens removidos no histórico persistente
+  const totalRemovedCount = useMemo(() => {
+    return getRemovedCompositionInputs().length
+  }, [compositions, editModalState.isOpen])
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isSinapiImportModalOpen, setIsSinapiImportModalOpen] = useState(false)
@@ -417,6 +424,7 @@ export const CompositionsLibraryPage: React.FC = () => {
               {filtered.map((comp) => {
                 const unitCost = calculateCompositionUnitCost(comp)
                 const latestHistory = comp.versionsHistory?.[0]
+                const compRemovedItems = getRemovedCompositionInputs(comp.code || comp.id)
 
                 return (
                   <div
@@ -438,6 +446,17 @@ export const CompositionsLibraryPage: React.FC = () => {
                           <span className="text-xs text-[#171A1F]/70 font-semibold">
                             Unidade: <strong className="text-[#171A1F]">{comp.unit}</strong>
                           </span>
+                          {compRemovedItems.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setEditModalState({ isOpen: true, composition: comp })}
+                              className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              title={`${compRemovedItems.length} insumo(s) excluído(s) desta CPU. Clique para abrir e restaurar.`}
+                            >
+                              <span>{compRemovedItems.length} excluído(s)</span>
+                              <span className="underline">Restaurar</span>
+                            </button>
+                          )}
                         </div>
 
                         <h3 className="text-sm sm:text-base font-bold text-[#171A1F] leading-snug">

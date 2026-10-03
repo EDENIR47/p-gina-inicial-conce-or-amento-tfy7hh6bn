@@ -3,7 +3,7 @@
  * Modal para Criar ou Editar Composição com Versionamento (v1.0, v1.1, v2.0 com Data e Autor)
  */
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   X,
   Check,
@@ -14,12 +14,23 @@ import {
   AlertCircle,
   GitCommit,
   Database,
+  RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
 } from 'lucide-react'
 import { BudgetComposition, BudgetInput } from '@/types/budgetEngine'
 import { SinapiCatalogItem } from '@/types/sinapi'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
+import {
+  getRemovedCompositionInputs,
+  recordRemovedCompositionInput,
+  purgeRemovedCompositionInputRecord,
+  clearRemovedCompositionInputs,
+  RemovedCompositionInputItem,
+} from '@/lib/budgetsStorage'
 import { UnitSelect } from './UnitSelect'
 import { SinapiInputPickerModal } from './SinapiInputPickerModal'
 
@@ -55,7 +66,34 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
   const [changeNote, setChangeNote] = useState('')
   const [inputs, setInputs] = useState<BudgetInput[]>(initialComposition?.inputs || [])
   const [error, setError] = useState('')
+  const [successToast, setSuccessToast] = useState<string | null>(null)
   const [isSinapiPickerOpen, setIsSinapiPickerOpen] = useState(false)
+
+  // Histórico de insumos removidos persistido em localStorage
+  const [removedHistory, setRemovedHistory] = useState<RemovedCompositionInputItem[]>([])
+  const [isTrashOpen, setIsTrashOpen] = useState(false)
+  const [lastRemovedItem, setLastRemovedItem] = useState<{
+    recordId: string
+    input: BudgetInput
+    originalIndex?: number
+  } | null>(null)
+
+  // Carrega histórico de itens removidos ao abrir a modal ou trocar a composição
+  useEffect(() => {
+    if (isOpen) {
+      const compKey = initialComposition?.code || initialComposition?.id || code
+      const loaded = getRemovedCompositionInputs(compKey)
+      setRemovedHistory(loaded)
+      setLastRemovedItem(null)
+      setError('')
+      setSuccessToast(null)
+    }
+  }, [isOpen, initialComposition?.code, initialComposition?.id])
+
+  const showNotification = (msg: string) => {
+    setSuccessToast(msg)
+    setTimeout(() => setSuccessToast(null), 4000)
+  }
 
   if (!isOpen) return null
 
@@ -97,10 +135,105 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
   }
 
   const handleDeleteInput = (id: string) => {
-    const target = inputs.find((inp) => inp.id === id)
-    const name = target?.description || 'este insumo'
-    if (window.confirm(`Excluir insumo "${name}"? Esta ação removerá o item da CPU.`)) {
+    const index = inputs.findIndex((inp) => inp.id === id)
+    if (index === -1) return
+    const target = inputs[index]
+    const name = target?.description || target?.code || 'este insumo'
+
+    if (
+      window.confirm(
+        `Excluir insumo "${name}"? Você poderá restaurá-lo a qualquer momento no histórico de itens removidos.`,
+      )
+    ) {
+      const compKey = initialComposition?.code || initialComposition?.id || code || 'CONCE-CPU'
+      // Grava no histórico persistente de localStorage
+      const record = recordRemovedCompositionInput(
+        compKey,
+        target,
+        index,
+        author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      )
+
+      // Atualiza estado local
       setInputs(inputs.filter((inp) => inp.id !== id))
+      setRemovedHistory((prev) => [record, ...prev])
+      setLastRemovedItem({
+        recordId: record.id,
+        input: { ...target },
+        originalIndex: index,
+      })
+
+      showNotification(`Insumo "${target.code}" removido. Clique em "Desfazer" para restaurar.`)
+    }
+  }
+
+  // Restaura um insumo (seja via botão desfazer rápido ou via lista de itens removidos)
+  const handleRestoreInput = (
+    inputToRestore: BudgetInput,
+    recordId?: string,
+    targetIndex?: number,
+  ) => {
+    // 1. Verifica se já existe insumo com o mesmo código SINAPI ou descrição idêntica na composição
+    const alreadyExists = inputs.some(
+      (existing) =>
+        (existing.code &&
+          inputToRestore.code &&
+          existing.code.trim().toUpperCase() === inputToRestore.code.trim().toUpperCase()) ||
+        existing.id === inputToRestore.id,
+    )
+
+    if (alreadyExists) {
+      setError(
+        `O insumo "${inputToRestore.code || inputToRestore.description}" já está presente na composição. Não foi duplicado.`,
+      )
+      setTimeout(() => setError(''), 5000)
+      return
+    }
+
+    // 2. Garante ID único caso seja necessário e integridade total dos campos originais
+    const restored: BudgetInput = {
+      ...inputToRestore,
+      id: inputToRestore.id || `inp-restored-${Date.now()}`,
+    }
+
+    // 3. Insere na posição original ou ao final
+    let newInputs: BudgetInput[]
+    if (targetIndex !== undefined && targetIndex >= 0 && targetIndex <= inputs.length) {
+      newInputs = [...inputs.slice(0, targetIndex), restored, ...inputs.slice(targetIndex)]
+    } else {
+      newInputs = [...inputs, restored]
+    }
+
+    setInputs(newInputs)
+
+    // 4. Remove do histórico em localStorage se houver recordId
+    if (recordId) {
+      purgeRemovedCompositionInputRecord(recordId)
+      setRemovedHistory((prev) => prev.filter((r) => r.id !== recordId))
+    }
+
+    // Se o último excluído for o restaurado, reseta
+    if (lastRemovedItem && lastRemovedItem.input.code === inputToRestore.code) {
+      setLastRemovedItem(null)
+    }
+
+    showNotification(
+      `Insumo "${restored.code || restored.description}" restaurado com sucesso! Custo unitário recalculado.`,
+    )
+  }
+
+  // Limpa o histórico de itens removidos desta composição
+  const handleClearHistory = () => {
+    if (
+      window.confirm(
+        'Deseja limpar definitivamente o histórico de itens removidos desta composição?',
+      )
+    ) {
+      const compKey = initialComposition?.code || initialComposition?.id || code
+      clearRemovedCompositionInputs(compKey)
+      setRemovedHistory([])
+      setLastRemovedItem(null)
+      showNotification('Histórico de itens removidos limpo com sucesso.')
     }
   }
 
@@ -168,10 +301,73 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
+          {/* Alertas e Notificações Rápidas */}
           {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{error}</span>
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-center justify-between gap-2 animate-fade-in">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setError('')}
+                className="text-red-600 hover:text-red-800 font-bold text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {successToast && (
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-300 text-xs text-emerald-800 flex items-center justify-between gap-2 animate-fade-in">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span className="font-semibold">{successToast}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSuccessToast(null)}
+                className="text-emerald-700 hover:text-emerald-900 font-bold text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Banner de Desfazer Exclusão Rápida (quando acabou de excluir) */}
+          {lastRemovedItem && (
+            <div className="p-3 rounded-xl bg-[#294C87]/10 border border-[#294C87]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 animate-fade-in">
+              <div className="flex items-center gap-2 text-xs text-[#171A1F]">
+                <RotateCcw className="w-4 h-4 text-[#FF6B1F] flex-shrink-0" />
+                <span>
+                  Insumo <strong>{lastRemovedItem.input.code}</strong> (
+                  {lastRemovedItem.input.description}) foi excluído da composição.
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleRestoreInput(
+                      lastRemovedItem.input,
+                      lastRemovedItem.recordId,
+                      lastRemovedItem.originalIndex,
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#294C87] hover:bg-[#171A1F] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                  <span>Restaurar Insumo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLastRemovedItem(null)}
+                  className="px-2 py-1 text-xs text-[#171A1F]/50 hover:text-[#171A1F]"
+                  title="Fechar aviso"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           )}
 
@@ -329,10 +525,35 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
           {/* Insumos da Composição */}
           <div className="space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#171A1F] flex items-center gap-1.5">
-                Insumos da Composição ({inputs.length})
-              </span>
               <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#171A1F] flex items-center gap-1.5">
+                  Insumos da Composição ({inputs.length})
+                </span>
+                {removedHistory.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                    {removedHistory.length} removido(s)
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {removedHistory.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsTrashOpen(!isTrashOpen)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#294C87]/30 bg-amber-50 hover:bg-amber-100 text-[#294C87] text-xs font-bold transition-all shadow-sm cursor-pointer"
+                    title="Exibir ou ocultar insumos excluídos da composição para restaurar"
+                  >
+                    <History className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                    <span>Itens Removidos ({removedHistory.length})</span>
+                    {isTrashOpen ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setIsSinapiPickerOpen(true)}
@@ -352,6 +573,102 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Seção Expansível: Histórico de Itens Removidos / Lixeira da Composição */}
+            {isTrashOpen && removedHistory.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-3 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 text-[#FF6B1F]" />
+                    <span className="text-xs font-bold text-[#171A1F] uppercase tracking-wider">
+                      Itens Removidos desta Composição (Lixeira Persistente)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearHistory}
+                    className="text-[11px] font-semibold text-red-600 hover:text-red-800 underline cursor-pointer"
+                  >
+                    Limpar histórico
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-[#171A1F]/70">
+                  Os itens abaixo foram removidos da CPU. Clique em <strong>"Restaurar"</strong>{' '}
+                  para reinserir o insumo com os mesmos coeficientes e preços.
+                </p>
+
+                <div className="divide-y divide-amber-200/60 border border-amber-200/80 rounded-lg bg-white overflow-hidden text-xs">
+                  {removedHistory.map((rec) => {
+                    const inp = rec.input
+                    const sub = (inp.coefficient || 0) * (inp.unitCost || 0)
+                    const formattedDate = new Date(rec.removedAt).toLocaleString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+
+                    return (
+                      <div
+                        key={rec.id}
+                        className="p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-amber-50/40 transition-colors"
+                      >
+                        <div className="space-y-0.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-bold text-[#294C87] text-xs">
+                              {inp.code}
+                            </span>
+                            <span className="px-1.5 py-0.2 rounded bg-[#171A1F]/5 text-[10px] font-semibold uppercase text-[#171A1F]/70">
+                              {inp.category}
+                            </span>
+                            <span className="text-[11px] text-[#171A1F]/50">
+                              Excluído em {formattedDate}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#171A1F] font-medium truncate">
+                            {inp.description}
+                          </p>
+                          <div className="text-[11px] text-[#171A1F]/70">
+                            Coef:{' '}
+                            <strong>
+                              {inp.coefficient} {inp.unit}
+                            </strong>{' '}
+                            × {formatCurrencyBRL(inp.unitCost)} ={' '}
+                            <strong className="text-[#FF6B1F]">{formatCurrencyBRL(sub)}</strong>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreInput(inp, rec.id, rec.originalIndex)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#294C87] hover:bg-[#171A1F] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                            title="Restaurar este insumo na composição"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                            <span>Restaurar</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              purgeRemovedCompositionInputRecord(rec.id)
+                              setRemovedHistory((prev) => prev.filter((r) => r.id !== rec.id))
+                              showNotification(`Item ${inp.code} descartado permanentemente.`)
+                            }}
+                            className="p-1.5 rounded hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors"
+                            title="Descartar permanentemente este item do histórico"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="border border-[#171A1F]/15 rounded-xl overflow-hidden">
               <table className="w-full text-xs text-left">
