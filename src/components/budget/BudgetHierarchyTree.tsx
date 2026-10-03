@@ -1143,79 +1143,131 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                             className="bg-white rounded-xl border border-[#171A1F]/15 overflow-hidden shadow-sm"
                           >
                             {/* NÍVEL 2: CABEÇALHO DO SERVIÇO */}
-                            <div className="p-3 sm:p-3.5 bg-white border-b border-[#171A1F]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                              <div className="flex items-start sm:items-center gap-2 flex-1 min-w-0">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleService(service.id)}
-                                  className="p-1 rounded hover:bg-[#171A1F]/5 text-[#171A1F]/70 transition-colors mt-0.5 sm:mt-0"
-                                  title={
-                                    isServiceOpen
-                                      ? 'Ocultar detalhes da composição'
-                                      : 'Ver CPU e insumos'
-                                  }
-                                >
-                                  {isServiceOpen ? (
-                                    <ChevronDown className="w-4 h-4 text-[#294C87]" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 text-[#171A1F]/50" />
-                                  )}
-                                </button>
+                            <div className="p-3 sm:p-4 bg-white border-b border-[#171A1F]/10 space-y-3">
+                              {/* Linha Superior: Expansor + Código + Descrição (largura total com quebra natural) + Ações */}
+                              <div className="flex items-start justify-between gap-2.5">
+                                <div className="flex items-start gap-2 flex-1 min-w-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleService(service.id)}
+                                    className="p-1 rounded hover:bg-[#171A1F]/5 text-[#171A1F]/70 transition-colors shrink-0 mt-0.5"
+                                    title={
+                                      isServiceOpen
+                                        ? 'Ocultar detalhes da composição'
+                                        : 'Ver CPU e insumos'
+                                    }
+                                  >
+                                    {isServiceOpen ? (
+                                      <ChevronDown className="w-4 h-4 text-[#294C87]" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4 text-[#171A1F]/50" />
+                                    )}
+                                  </button>
 
-                                <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#171A1F]/5 text-[#171A1F] border border-[#171A1F]/10">
-                                  {service.code}
-                                </span>
+                                  <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#171A1F]/5 text-[#171A1F] border border-[#171A1F]/10 shrink-0 mt-0.5">
+                                    {service.code}
+                                  </span>
 
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    <h5 className="text-xs sm:text-sm font-bold text-[#171A1F]">
+                                  <div className="min-w-0 flex-1">
+                                    <h5 className="text-xs sm:text-sm font-bold text-[#171A1F] leading-snug break-words">
                                       {service.description}
                                     </h5>
-                                    {isUnitMismatch && (
-                                      <span
-                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300"
-                                        title={`Serviço em ${service.unit}, mas CPU em ${comp.unit}`}
-                                      >
-                                        <AlertTriangle className="w-3 h-3" />
-                                        Unidade ≠ CPU
-                                      </span>
+
+                                    {/* Badges de status/origem do serviço alinhados em fluxo flex-wrap */}
+                                    {(isUnitMismatch ||
+                                      hasCustomBdi ||
+                                      hasNoInputs ||
+                                      isManualPrice) && (
+                                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                        {isUnitMismatch && (
+                                          <span
+                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300"
+                                            title={`Serviço em ${service.unit}, mas CPU em ${comp.unit}`}
+                                          >
+                                            <AlertTriangle className="w-3 h-3" />
+                                            Unidade ≠ CPU
+                                          </span>
+                                        )}
+                                        {hasCustomBdi && (
+                                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F] border border-[#FF6B1F]/30">
+                                            BDI: {service.customBdiPercent}%
+                                          </span>
+                                        )}
+                                        {hasNoInputs && (
+                                          <span
+                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300"
+                                            title="Serviço sem insumos na CPU — preço unitário digitado diretamente pelo orçamentista"
+                                          >
+                                            Sem composição (preço direto)
+                                          </span>
+                                        )}
+                                        {isManualPrice && service.unitPriceSource === 'Usuário' ? (
+                                          <span
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs"
+                                            title={`Preço unitário travado manualmente pelo usuário. Base MO: ${service.laborSharePercent ?? 40}%`}
+                                          >
+                                            Preço Manual (Usuário)
+                                          </span>
+                                        ) : isManualPrice ? (
+                                          <span
+                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200"
+                                            title={`Preço unitário: ${service.unitPriceSource || 'Composição'}. Base MO: ${service.laborSharePercent ?? 40}%`}
+                                          >
+                                            Preço ({service.unitPriceSource || 'Composição'})
+                                          </span>
+                                        ) : null}
+                                      </div>
                                     )}
-                                    {hasCustomBdi && (
-                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F]">
-                                        BDI: {service.customBdiPercent}%
-                                      </span>
-                                    )}
-                                    {hasNoInputs && (
-                                      <span
-                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300"
-                                        title="Serviço sem insumos na CPU — preço unitário digitado diretamente pelo orçamentista"
-                                      >
-                                        Sem composição (preço direto)
-                                      </span>
-                                    )}
-                                    {isManualPrice && service.unitPriceSource === 'Usuário' ? (
-                                      <span
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs"
-                                        title={`Preço unitário travado manualmente pelo usuário. Base MO: ${service.laborSharePercent ?? 40}%`}
-                                      >
-                                        Preço Manual (Usuário)
-                                      </span>
-                                    ) : isManualPrice ? (
-                                      <span
-                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200"
-                                        title={`Preço unitário: ${service.unitPriceSource || 'Composição'}. Base MO: ${service.laborSharePercent ?? 40}%`}
-                                      >
-                                        Preço ({service.unitPriceSource || 'Composição'})
-                                      </span>
-                                    ) : null}
                                   </div>
+                                </div>
+
+                                {/* Ações do Serviço (Duplicar, Editar, Excluir) */}
+                                <div className="flex items-center gap-1 shrink-0 ml-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDuplicateService(stage.id, service)}
+                                    disabled={disabled}
+                                    className="p-1.5 rounded-md text-[#171A1F]/60 hover:text-[#171A1F] hover:bg-[#171A1F]/5 transition-colors cursor-pointer"
+                                    title="Duplicar Serviço"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setServiceModalState({
+                                        isOpen: true,
+                                        stageId: stage.id,
+                                        stageCode: stage.code,
+                                        service,
+                                      })
+                                    }
+                                    disabled={disabled}
+                                    className="p-1.5 rounded-md text-[#171A1F]/60 hover:text-[#294C87] hover:bg-[#171A1F]/5 transition-colors cursor-pointer"
+                                    title="Editar Serviço"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => confirmDeleteService(stage.id, service)}
+                                    disabled={disabled}
+                                    className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                                    title="Excluir Serviço (com confirmação)"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
                               </div>
 
-                              {/* Quantidade Inline, Custo Unitário e Total do Serviço */}
-                              <div className="flex items-center justify-between sm:justify-end gap-3 pl-7 sm:pl-0">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex items-center gap-1.5">
+                              {/* Linha Inferior: Quantidade & Unidade × Preço Direto Unitário = Totais Monetários */}
+                              <div className="pt-2 border-t border-[#171A1F]/5 flex flex-col md:flex-row md:items-center justify-between gap-3 pl-7">
+                                {/* Bloco de Cálculo: (Quantidade + Unidade) × (Custo Unitário + Botão Reset) */}
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                  {/* Quantidade e Seletor de Unidade */}
+                                  <div className="flex items-center gap-1.5 bg-[#171A1F]/[0.02] p-1 rounded-lg border border-[#171A1F]/10">
                                     <input
                                       type="number"
                                       step="0.01"
@@ -1229,10 +1281,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                           parseFloat(e.target.value) || 0,
                                         )
                                       }
-                                      className="w-20 px-2 py-1 text-right rounded border border-[#171A1F]/20 text-xs font-bold text-[#171A1F] focus:outline-none focus:border-[#294C87]"
+                                      className="w-20 px-2 py-1 text-right rounded border border-[#171A1F]/20 text-xs font-bold text-[#171A1F] bg-white focus:outline-none focus:border-[#294C87]"
                                       title="Quantidade do serviço"
                                     />
-                                    <div className="w-20">
+                                    <div className="w-24 min-w-[90px]">
                                       <UnitSelect
                                         value={service.unit}
                                         onChange={(newUnit) =>
@@ -1249,44 +1301,14 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                     </div>
                                   </div>
 
-                                  <span className="text-xs text-[#171A1F]/40 font-mono">×</span>
+                                  <span className="text-xs text-[#171A1F]/40 font-mono font-bold">
+                                    ×
+                                  </span>
 
-                                  <div className="flex flex-col items-end">
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-[10px] text-[#171A1F]/60 block font-semibold">
-                                        Custo Direto Unit. (R$/{service.unit})
-                                      </span>
-                                      {service.unitPriceSource && (
-                                        <span
-                                          className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
-                                            service.unitPriceSource === 'Usuário'
-                                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                              : 'bg-blue-100 text-blue-800 border border-blue-200'
-                                          }`}
-                                          title={`Fonte: ${service.unitPriceSource}`}
-                                        >
-                                          {service.unitPriceSource === 'Usuário'
-                                            ? 'Preço Manual (Usuário)'
-                                            : service.unitPriceSource}
-                                        </span>
-                                      )}
-                                      {service.unitPriceSource === 'Usuário' && (
-                                        <button
-                                          type="button"
-                                          disabled={disabled}
-                                          onClick={() =>
-                                            handleResetToCompositionCost(stage.id, service.id)
-                                          }
-                                          className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[#294C87] hover:text-[#FF6B1F] bg-blue-50 hover:bg-orange-50 px-1.5 py-0.5 rounded border border-[#294C87]/20 transition-colors cursor-pointer"
-                                          title={`Descartar valor manual (${formatCurrencyBRL(service.unitPrice ?? 0)}) e recalcular custo unitário pela composição (${formatCurrencyBRL(calculateCompositionUnitCost(comp, laborMultiplier))})`}
-                                        >
-                                          <RotateCcw className="w-2.5 h-2.5" />
-                                          <span>↺ Usar Custo da Composição</span>
-                                        </button>
-                                      )}
-                                    </div>
+                                  {/* Custo Direto Unitário Editável Inline com botão de reset limpo */}
+                                  <div className="flex items-center gap-2">
                                     <div className="relative flex items-center">
-                                      <span className="absolute left-1.5 text-[10px] font-bold text-[#171A1F]/50 pointer-events-none">
+                                      <span className="absolute left-2 text-[10px] font-bold text-[#171A1F]/50 pointer-events-none">
                                         R$
                                       </span>
                                       <input
@@ -1307,8 +1329,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                             parseFloat(e.target.value) || 0,
                                           )
                                         }
-                                        title="Preço/custo direto unitário editável inline (R$). Altera fonte para 'Usuário'."
-                                        className={`w-28 pl-6 pr-1.5 py-1 text-right rounded font-mono text-xs font-bold focus:outline-none transition-all ${
+                                        title={`Custo direto unitário em R$/${service.unit}. Digite para aplicar preço manual.`}
+                                        className={`w-28 pl-7 pr-2 py-1 text-right rounded font-mono text-xs font-bold focus:outline-none transition-all ${
                                           unitCost === 0 &&
                                           (!service.unitPrice || service.unitPrice === 0)
                                             ? 'border-2 border-[#FF6B1F] text-[#FF6B1F] bg-amber-50/50 ring-1 ring-[#FF6B1F]/30 focus:border-[#FF6B1F]'
@@ -1318,65 +1340,53 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                         }`}
                                       />
                                     </div>
+                                    <span className="text-[11px] text-[#171A1F]/60 font-semibold whitespace-nowrap">
+                                      /{service.unit}
+                                    </span>
+
+                                    {/* Botão de Restauração para o Custo da Composição quando em modo manual */}
+                                    {service.unitPriceSource === 'Usuário' && (
+                                      <button
+                                        type="button"
+                                        disabled={disabled}
+                                        onClick={() =>
+                                          handleResetToCompositionCost(stage.id, service.id)
+                                        }
+                                        className="inline-flex items-center gap-1 text-[10px] font-bold text-[#294C87] hover:text-[#FF6B1F] bg-blue-50 hover:bg-orange-50 px-2 py-1 rounded border border-[#294C87]/20 transition-colors cursor-pointer shrink-0"
+                                        title={`Descartar valor manual (${formatCurrencyBRL(service.unitPrice ?? 0)}) e recalcular custo unitário pela composição (${formatCurrencyBRL(calculateCompositionUnitCost(comp, laborMultiplier))})`}
+                                      >
+                                        <RotateCcw className="w-3 h-3 text-[#294C87]" />
+                                        <span>↺ Usar CPU</span>
+                                      </button>
+                                    )}
                                   </div>
+                                </div>
 
-                                  <span className="text-xs text-[#171A1F]/40 font-mono">=</span>
+                                {/* Bloco de Totais Monetários à Direita (Custo Direto e VENDA c/ BDI) */}
+                                <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#171A1F]/5">
+                                  <span className="text-xs text-[#171A1F]/40 font-mono hidden md:inline">
+                                    =
+                                  </span>
 
-                                  <div className="text-right min-w-[140px]">
-                                    <div className="text-[10px] text-[#171A1F]/60 flex items-center justify-end gap-1 font-semibold">
-                                      <span>Custo Direto:</span>
-                                      <span className="font-bold text-[#171A1F]">
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-left md:text-right">
+                                      <span className="text-[10px] text-[#171A1F]/60 block font-semibold uppercase tracking-wider">
+                                        Custo Direto:
+                                      </span>
+                                      <span className="font-bold text-xs sm:text-sm text-[#171A1F]">
                                         {formatCurrencyBRL(serviceDirectTotal)}
                                       </span>
                                     </div>
-                                    <div className="text-[11px] flex items-center justify-end gap-1">
-                                      <span className="text-[10px] text-[#FF6B1F] font-bold uppercase">
+
+                                    <div className="border-l border-[#171A1F]/15 pl-3 text-right">
+                                      <span className="text-[10px] text-[#FF6B1F] block font-bold uppercase tracking-wider">
                                         Venda c/ BDI:
                                       </span>
-                                      <span className="font-extrabold text-[#FF6B1F] text-xs sm:text-sm">
+                                      <span className="font-extrabold text-[#FF6B1F] text-xs sm:text-base">
                                         {formatCurrencyBRL(serviceWithBdiTotal)}
                                       </span>
                                     </div>
                                   </div>
-                                </div>
-
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDuplicateService(stage.id, service)}
-                                    disabled={disabled}
-                                    className="p-1 rounded text-[#171A1F]/60 hover:text-[#171A1F] hover:bg-[#171A1F]/5 transition-colors"
-                                    title="Duplicar Serviço"
-                                  >
-                                    <Copy className="w-3.5 h-3.5" />
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setServiceModalState({
-                                        isOpen: true,
-                                        stageId: stage.id,
-                                        stageCode: stage.code,
-                                        service,
-                                      })
-                                    }
-                                    disabled={disabled}
-                                    className="p-1 rounded text-[#171A1F]/60 hover:text-[#294C87] hover:bg-[#171A1F]/5 transition-colors"
-                                    title="Editar Serviço"
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => confirmDeleteService(stage.id, service)}
-                                    disabled={disabled}
-                                    className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
-                                    title="Excluir Serviço (com confirmação)"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
                                 </div>
                               </div>
                             </div>
