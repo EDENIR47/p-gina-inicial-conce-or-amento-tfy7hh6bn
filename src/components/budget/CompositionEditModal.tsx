@@ -78,6 +78,37 @@ export const CompositionEditModal: React.FC<CompositionEditModalProps> = ({
     originalIndex?: number
   } | null>(null)
 
+  // Sincroniza e popula os dados da composição ao abrir a modal ou alterar initialComposition
+  useEffect(() => {
+    if (isOpen) {
+      if (initialComposition) {
+        setCode(initialComposition.code || 'CONCE-CPU-')
+        setDescription(initialComposition.description || '')
+        setSpecialty(initialComposition.specialty || 'Estruturas & Fundações')
+        setUnit(initialComposition.unit || 'm²')
+        setSource(initialComposition.source || 'CONCE')
+        setVersion(initialComposition.version || 'v1.0')
+        setAuthor(
+          initialComposition.versionsHistory?.[0]?.author ||
+            'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+        )
+        setInputs(initialComposition.inputs ? [...initialComposition.inputs] : [])
+      } else {
+        setCode('CONCE-CPU-')
+        setDescription('')
+        setSpecialty('Estruturas & Fundações')
+        setUnit('m²')
+        setSource('CONCE')
+        setVersion('v1.0')
+        setAuthor('Eng. Edenir Souza da Rosa - CREA/RS-252397')
+        setInputs([])
+      }
+      setChangeNote('')
+      setError('')
+      setSuccessToast(null)
+    }
+  }, [isOpen, initialComposition])
+
   // Carrega histórico de itens removidos ao abrir a modal ou trocar a composição
   useEffect(() => {
     if (isOpen) {

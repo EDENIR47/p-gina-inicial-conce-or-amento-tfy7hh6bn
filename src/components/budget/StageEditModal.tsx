@@ -3,7 +3,7 @@
  * Modal para Criar ou Editar Etapa da Obra (Nível 1 da Árvore)
  */
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Check, Layers, AlertCircle } from 'lucide-react'
 import { BudgetStage } from '@/types/budgetEngine'
 
@@ -26,6 +26,22 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
   const [code, setCode] = useState(initialStage?.code || String(nextOrder).padStart(2, '0'))
   const [notes, setNotes] = useState(initialStage?.notes || '')
   const [error, setError] = useState('')
+
+  // Sincroniza e popula os dados da etapa ao abrir a modal ou alterar initialStage
+  useEffect(() => {
+    if (isOpen) {
+      if (initialStage) {
+        setName(initialStage.name || '')
+        setCode(initialStage.code || String(initialStage.order || nextOrder).padStart(2, '0'))
+        setNotes(initialStage.notes || '')
+      } else {
+        setName('')
+        setCode(String(nextOrder).padStart(2, '0'))
+        setNotes('')
+      }
+      setError('')
+    }
+  }, [isOpen, initialStage, nextOrder])
 
   if (!isOpen) return null
 

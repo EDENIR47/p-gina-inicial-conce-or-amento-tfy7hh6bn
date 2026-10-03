@@ -3,7 +3,7 @@
  * Modal para Adicionar ou Editar Insumo diretamente na Composição
  */
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Check, Package, AlertCircle } from 'lucide-react'
 import { BudgetInput, InputCategory } from '@/types/budgetEngine'
 import { UnitSelect } from './UnitSelect'
@@ -29,6 +29,30 @@ export const InputEditModal: React.FC<InputEditModalProps> = ({
   const [unitCost, setUnitCost] = useState<number>(initialInput?.unitCost || 0)
   const [source, setSource] = useState<string>(initialInput?.source || 'Usuário')
   const [error, setError] = useState('')
+
+  // Sincroniza e popula os dados do insumo ao abrir a modal ou alterar initialInput
+  useEffect(() => {
+    if (isOpen) {
+      if (initialInput) {
+        setCode(initialInput.code || 'SINAPI-')
+        setDescription(initialInput.description || '')
+        setUnit(initialInput.unit || 'un')
+        setCategory(initialInput.category || 'material')
+        setCoefficient(initialInput.coefficient !== undefined ? initialInput.coefficient : 1.0)
+        setUnitCost(initialInput.unitCost !== undefined ? initialInput.unitCost : 0)
+        setSource(initialInput.source || 'Usuário')
+      } else {
+        setCode('SINAPI-')
+        setDescription('')
+        setUnit('un')
+        setCategory('material')
+        setCoefficient(1.0)
+        setUnitCost(0)
+        setSource('Usuário')
+      }
+      setError('')
+    }
+  }, [isOpen, initialInput])
 
   if (!isOpen) return null
 

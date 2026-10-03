@@ -3,7 +3,7 @@
  * Modal para Criar ou Editar Serviço de uma Etapa
  */
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Check, FileSpreadsheet, AlertCircle, BookOpen } from 'lucide-react'
 import { BudgetComposition, BudgetService, BudgetStage } from '@/types/budgetEngine'
 import { CompositionPickerModal } from './CompositionPickerModal'
@@ -99,6 +99,93 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
   })
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [error, setError] = useState('')
+
+  // Sincroniza e popula os dados do serviço ao abrir a modal ou alterar initialService
+  useEffect(() => {
+    if (isOpen) {
+      const targetStageId = currentStageId || (stages.length > 0 ? stages[0].id : '')
+      setSelectedStageId(targetStageId)
+
+      const currActiveStage = stages.find((s) => s.id === targetStageId)
+      const currStageCode = currActiveStage ? currActiveStage.code : defaultStageCode
+      const currNextOrder = currActiveStage ? currActiveStage.services.length + 1 : nextOrder
+
+      if (initialService) {
+        setCode(
+          initialService.code ||
+            `${currStageCode}.${String(initialService.order || currNextOrder).padStart(2, '0')}`,
+        )
+        setDescription(initialService.description || '')
+        setUnit(initialService.unit || 'un')
+        setQuantity(initialService.quantity !== undefined ? initialService.quantity : 1)
+
+        const comp = initialService.composition || {
+          id: `comp-custom-${Date.now()}`,
+          code: `CPU-${initialService.code || currStageCode}`,
+          description: initialService.description || '',
+          specialty: 'Geral',
+          unit: initialService.unit || 'un',
+          inputs: [],
+          version: 'v1.0',
+          source: 'CONCE',
+        }
+        setComposition(comp)
+
+        setCustomBdiPercent(
+          initialService.customBdiPercent !== undefined
+            ? String(initialService.customBdiPercent)
+            : '',
+        )
+        setLaborSharePercent(
+          initialService.laborSharePercent !== undefined
+            ? String(initialService.laborSharePercent)
+            : '40',
+        )
+        setNotes(initialService.notes || '')
+
+        const compInputs = comp.inputs || []
+        const compCost = compInputs.length > 0 ? calculateCompositionUnitCost(comp) : 0
+
+        if (initialService.unitPrice !== undefined) {
+          setUnitPrice(String(initialService.unitPrice))
+        } else if (compInputs.length > 0) {
+          setUnitPrice(String(compCost))
+        } else {
+          setUnitPrice('')
+        }
+
+        if (initialService.unitPriceSource) {
+          setUnitPriceSource(initialService.unitPriceSource)
+        } else if (compInputs.length > 0) {
+          setUnitPriceSource(comp.source || 'Composição')
+        } else {
+          setUnitPriceSource('Usuário')
+        }
+      } else {
+        const freshComp: BudgetComposition = {
+          id: `comp-custom-${Date.now()}`,
+          code: `CPU-${currStageCode}.${String(currNextOrder).padStart(2, '0')}`,
+          description: '',
+          specialty: 'Geral',
+          unit: 'un',
+          inputs: [],
+          version: 'v1.0',
+          source: 'CONCE',
+        }
+        setCode(`${currStageCode}.${String(currNextOrder).padStart(2, '0')}`)
+        setDescription('')
+        setUnit('un')
+        setQuantity(1)
+        setComposition(freshComp)
+        setCustomBdiPercent('')
+        setLaborSharePercent('40')
+        setNotes('')
+        setUnitPrice('')
+        setUnitPriceSource('Usuário')
+      }
+      setError('')
+    }
+  }, [isOpen, initialService, currentStageId])
 
   if (!isOpen) return null
 
