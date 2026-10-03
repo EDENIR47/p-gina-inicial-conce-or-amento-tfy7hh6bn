@@ -9,7 +9,7 @@
  * - Seleção de Provedor com abas intuitivas
  * - Na autoSINAPI: URL base da instância configurável (ex: http://localhost:8000 ou túnel ngrok) + header X-API-KEY
  * - Teste de conectividade com resposta em tempo real
- * - Formato de data SINAPI: AAAA.MM para autoSINAPI (ex: 2024.07) ou AAAA-MM-01 para Orçamentador
+ * - Formato de data SINAPI: AAAA.MM para autoSINAPI (ex: mês corrente) ou AAAA-MM-01 para Orçamentador
  * - Paginação incremental, barra de progresso, cancelamento seguro
  * - Merge por código SINAPI preservando composições e orçamentos do usuário
  */
@@ -44,7 +44,10 @@ import {
   saveStoredAutosinapiApiKey,
   mergeImportedSinapiItems,
   getSinapiImportMetadata,
+  getApiSyncedItemsCount,
+  clearOfficialApiSyncedItems,
 } from '@/lib/sinapiStorage'
+import { Trash2 } from 'lucide-react'
 import {
   fetchFullSinapiFromOrcamentador,
   testOrcamentadorApiKey,
@@ -67,12 +70,14 @@ interface SyncSinapiApiModalProps {
     createdCount: number
     totalCount: number
   }) => void
+  onCatalogCleaned?: () => void
 }
 
 export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
   isOpen,
   onClose,
   onSyncSuccess,
+  onCatalogCleaned,
 }) => {
   // Provedor selecionado
   const [provider, setProvider] = useState<SinapiApiProvider>('orcamentador')
@@ -86,12 +91,32 @@ export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
   const [autosinapiKey, setAutosinapiKey] = useState('')
   const [showAutosinapiKeyInput, setShowAutosinapiKeyInput] = useState(false)
 
-  // Parâmetros comuns
-  const [referenceState, setReferenceState] = useState('SP')
-  const [referenceDate, setReferenceDate] = useState('2024.07') // Padrão autoSINAPI ou 2025-04-01 Orçamentador
+  // Helpers para cálculo do mês corrente nos formatos de cada API
+  const getCurrentMonthDates = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    return {
+      autosinapi: `${year}.${month}`,
+      orcamentador: `${year}-${month}-01`,
+      display: `${month}/${year}`,
+    }
+  }
+
+  const currentMonthDates = getCurrentMonthDates()
+
+  // Parâmetros comuns — Padrão RS (CONCE Engenharia) e mês corrente dinâmico
+  const [referenceState, setReferenceState] = useState('RS')
+  const [referenceDate, setReferenceDate] = useState(() => getCurrentMonthDates().orcamentador)
   const [regime, setRegime] = useState<'NAO_DESONERADO' | 'DESONERADO' | 'TODOS'>('NAO_DESONERADO')
   const [batchScope, setBatchScope] = useState<'all' | 'insumos' | 'composicoes'>('all')
   const [maxPages, setMaxPages] = useState<number>(30) // 30 páginas = até 3.000 itens por ciclo
+
+  // Estados de confirmação antes de sincronizar
+  const [showConfirmStep, setShowConfirmStep] = useState(false)
+
+  // Estados de limpeza rápida de itens oficiais
+  const [cleaningNotice, setCleaningNotice] = useState<string | null>(null)
 
   // Estados de teste de conexão
   const [isTesting, setIsTesting] = useState(false)
@@ -118,7 +143,7 @@ export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
 
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Carrega configurações salvas ao abrir o modal
+  // Carrega configurações salvas ao abrir o modal e reseta para valores seguros
   useEffect(() => {
     if (isOpen) {
       const storedOrcKey = getStoredOrcamentadorApiKey()
@@ -132,6 +157,12 @@ export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
       setAutosinapiKey(storedAutoKey)
       setShowAutosinapiKeyInput(!storedAutoKey)
 
+      // Garante padrão dinâmico atualizado ao reabrir
+      const dates = getCurrentMonthDates()
+      setReferenceDate(provider === 'autosinapi' ? dates.autosinapi : dates.orcamentador)
+
+      setShowConfirmStep(false)
+      setCleaningNotice(null)
       setTestResult(null)
       setSyncError(null)
       setSyncSuccessResult(null)
@@ -139,18 +170,20 @@ export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
     }
   }, [isOpen])
 
-  // Ajusta formato padrão de data de acordo com o provedor se o usuário trocar
+  // Ajusta formato padrão de data de acordo com o provedor dinamicamente com base no mês corrente
   const handleSelectProvider = (newProvider: SinapiApiProvider) => {
     setProvider(newProvider)
     setTestResult(null)
     setSyncError(null)
+    setShowConfirmStep(false)
+    const dates = getCurrentMonthDates()
     if (newProvider === 'autosinapi') {
       if (!referenceDate || referenceDate.includes('-')) {
-        setReferenceDate('2024.07')
+        setReferenceDate(dates.autosinapi)
       }
     } else {
       if (!referenceDate || referenceDate.includes('.')) {
-        setReferenceDate('2025-04-01')
+        setReferenceDate(dates.orcamentador)
       }
     }
   }
@@ -209,9 +242,10 @@ export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
     }
   }
 
-  // Executar sincronização
-  const handleStartSync = async () => {
+  // Executar sincronização efetiva
+  const executeSync = async () => {
     setIsSyncing(true)
+    setShowConfirmStep(false)
     setSyncError(null)
     setSyncSuccessResult(null)
     abortControllerRef.current = new AbortController()
@@ -331,6 +365,12 @@ export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
     } finally {
       setIsSyncing(false)
     }
+  }
+
+  // Pede confirmação antes de disparar sincronização
+  const handleRequestSync = () => {
+    setSyncError(null)
+    setShowConfirmStep(true)
   }
 
   const handleCancelSync = () => {
@@ -685,19 +725,22 @@ export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
               <input
                 type="text"
                 value={referenceDate}
-                onChange={(e) => setReferenceDate(e.target.value)}
+                onChange={(e) => {
+                  setReferenceDate(e.target.value)
+                  setShowConfirmStep(false)
+                }}
                 disabled={isSyncing}
                 placeholder={
                   provider === 'autosinapi'
-                    ? 'AAAA.MM (ex: 2024.07)'
-                    : 'AAAA-MM-01 (ex: 2025-04-01)'
+                    ? `AAAA.MM (ex: ${currentMonthDates.autosinapi})`
+                    : `AAAA-MM-01 (ex: ${currentMonthDates.orcamentador})`
                 }
                 className="w-full px-3 py-2 rounded-xl border border-[#171A1F]/20 text-xs font-semibold bg-white focus:outline-none focus:border-[#294C87]"
               />
               <span className="text-[10px] text-[#171A1F]/50 block mt-0.5">
                 {provider === 'autosinapi'
-                  ? 'Formato da autoSINAPI: AAAA.MM (ex: 2024.07).'
-                  : 'Padrão Caixa: formato AAAA-MM-01 (dia 01 do mês).'}
+                  ? `Formato da autoSINAPI: AAAA.MM (mês corrente: ${currentMonthDates.autosinapi}).`
+                  : `Padrão Caixa: formato AAAA-MM-01 (mês corrente: ${currentMonthDates.orcamentador}).`}
               </span>
             </div>
 
@@ -855,6 +898,162 @@ export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* Bloco de Confirmação Pré-Sincronização (Identidade CONCE: Poppins, Mirage/Cobalt/Orange) */}
+          {showConfirmStep && !isSyncing && (
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-[#171A1F] via-[#1E2E4A] to-[#294C87] text-white border-2 border-[#FF6B1F] shadow-xl space-y-3 animate-fade-in">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-[#FF6B1F] text-white">
+                    <ShieldCheck className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-sm text-white">
+                      Confirmação de Parâmetros SINAPI
+                    </h4>
+                    <p className="text-[11px] text-white/80">
+                      Revise os dados abaixo antes de disparar a consulta à API oficial:
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmStep(false)}
+                  className="text-white/60 hover:text-white p-1 text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="p-2 rounded-xl bg-white/10 border border-white/15">
+                  <span className="block text-[10px] font-bold text-[#FF6B1F] uppercase">
+                    Estado (UF)
+                  </span>
+                  <span className="text-sm font-extrabold text-white">
+                    {referenceState}
+                    {referenceState === 'RS' && (
+                      <span className="ml-1 text-[10px] text-emerald-400 font-normal">
+                        (CONCE/RS)
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white/10 border border-white/15">
+                  <span className="block text-[10px] font-bold text-[#FF6B1F] uppercase">
+                    Referência
+                  </span>
+                  <span className="text-sm font-extrabold text-white font-mono">
+                    {referenceDate}
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white/10 border border-white/15">
+                  <span className="block text-[10px] font-bold text-[#FF6B1F] uppercase">
+                    Regime
+                  </span>
+                  <span className="text-xs font-bold text-white truncate block">
+                    {regime === 'NAO_DESONERADO'
+                      ? 'Não Desonerado'
+                      : regime === 'DESONERADO'
+                        ? 'Desonerado'
+                        : 'Preços Base'}
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white/10 border border-white/15">
+                  <span className="block text-[10px] font-bold text-[#FF6B1F] uppercase">
+                    Provedor
+                  </span>
+                  <span className="text-xs font-bold text-white truncate block">
+                    {provider === 'autosinapi' ? 'autoSINAPI' : 'Orçamentador'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-white/15">
+                <span className="text-[11px] text-white/75">
+                  {maxPages * 100} itens estimados ({maxPages} páginas)
+                </span>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmStep(false)}
+                    className="px-3 py-1.5 rounded-lg border border-white/30 text-white text-xs font-semibold hover:bg-white/10"
+                  >
+                    Ajustar Parâmetros
+                  </button>
+                  <button
+                    type="button"
+                    onClick={executeSync}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs font-extrabold shadow-md hover:-translate-y-0.5 transition-all"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Confirmar e Sincronizar</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Notificação de limpeza */}
+          {cleaningNotice && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{cleaningNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCleaningNotice(null)}
+                className="text-emerald-700 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Botão de Limpeza no Modal caso existam itens de API já gravados */}
+          {(() => {
+            const apiCounts = getApiSyncedItemsCount()
+            if (apiCounts.totalApiCount === 0) return null
+            return (
+              <div className="p-3 rounded-xl bg-red-50/70 border border-red-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <span className="font-bold text-red-900 block">
+                    Itens sincronizados anteriormente via API no catálogo:
+                  </span>
+                  <span className="text-[11px] text-red-700">
+                    {apiCounts.totalApiCount} itens gravados ({apiCounts.orcamentadorCount}{' '}
+                    Orçamentador, {apiCounts.autosinapiCount} autoSINAPI). Se gravados com chave
+                    inválida ou referência indesejada, você pode removê-los.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const confirmed = window.confirm(
+                      `Deseja remover ${apiCounts.totalApiCount} itens gravados por sincronizações de API?\n\n` +
+                        `• ${apiCounts.orcamentadorCount} itens da API Orçamentador\n` +
+                        `• ${apiCounts.autosinapiCount} itens da autoSINAPI\n\n` +
+                        `Seus orçamentos, BDI TCU e composições próprias da CONCE serão integralmente preservados.`,
+                    )
+                    if (!confirmed) return
+                    const res = clearOfficialApiSyncedItems()
+                    setCleaningNotice(
+                      `Limpeza efetuada: ${res.removedCount} itens sincronizados por API foram removidos.`,
+                    )
+                    if (onCatalogCleaned) onCatalogCleaned()
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] whitespace-nowrap shadow-xs cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Limpar sincronização oficial</span>
+                </button>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Rodapé de Ações */}
@@ -890,18 +1089,29 @@ export const SyncSinapiApiModal: React.FC<SyncSinapiApiModalProps> = ({
                   {syncSuccessResult ? 'Concluir' : 'Fechar'}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleStartSync}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs font-bold transition-all shadow-md cursor-pointer hover:-translate-y-0.5"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>
-                    {provider === 'autosinapi'
-                      ? 'Sincronizar via autoSINAPI'
-                      : 'Sincronizar via Orçamentador'}
-                  </span>
-                </button>
+                {!showConfirmStep ? (
+                  <button
+                    type="button"
+                    onClick={handleRequestSync}
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs font-bold transition-all shadow-md cursor-pointer hover:-translate-y-0.5"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>
+                      {provider === 'autosinapi'
+                        ? 'Sincronizar via autoSINAPI'
+                        : 'Sincronizar via Orçamentador'}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={executeSync}
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#294C87] hover:bg-[#171A1F] text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-[#FF6B1F]" />
+                    <span>Confirmar Início</span>
+                  </button>
+                )}
               </>
             )}
           </div>

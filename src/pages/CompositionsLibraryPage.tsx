@@ -343,6 +343,11 @@ export const CompositionsLibraryPage: React.FC = () => {
           onSelectToNewComposition={handleConvertSinapiToComposition}
           onOpenImportModal={() => setIsSinapiImportModalOpen(true)}
           onOpenSyncApiModal={() => setIsSyncSinapiApiModalOpen(true)}
+          onCatalogCleaned={() => {
+            const updated = getConsolidatedSinapiCatalog()
+            setSinapiCatalog(updated)
+            showToast('Itens de sincronização oficial removidos. Catálogo restaurado.')
+          }}
         />
       ) : (
         <>
@@ -565,6 +570,11 @@ export const CompositionsLibraryPage: React.FC = () => {
         isOpen={isSyncSinapiApiModalOpen}
         onClose={() => setIsSyncSinapiApiModalOpen(false)}
         onSyncSuccess={handleSinapiApiSyncSuccess}
+        onCatalogCleaned={() => {
+          const updated = getConsolidatedSinapiCatalog()
+          setSinapiCatalog(updated)
+          showToast('Itens de sincronização oficial removidos. Catálogo restaurado.')
+        }}
       />
     </div>
   )

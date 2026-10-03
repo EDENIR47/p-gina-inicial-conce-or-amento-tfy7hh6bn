@@ -246,6 +246,66 @@ export function saveStoredAutosinapiApiKey(key: string): void {
 }
 
 /**
+ * Retorna a contagem de itens sincronizados por APIs oficiais ('api_orcamentador' ou 'api_autosinapi')
+ */
+export function getApiSyncedItemsCount(): {
+  orcamentadorCount: number
+  autosinapiCount: number
+  totalApiCount: number
+} {
+  const customItems = getCustomSinapiItems()
+  let orcamentadorCount = 0
+  let autosinapiCount = 0
+
+  for (const item of customItems) {
+    if (item.priceOrigin === 'api_orcamentador') {
+      orcamentadorCount++
+    } else if (item.priceOrigin === 'api_autosinapi') {
+      autosinapiCount++
+    }
+  }
+
+  return {
+    orcamentadorCount,
+    autosinapiCount,
+    totalApiCount: orcamentadorCount + autosinapiCount,
+  }
+}
+
+/**
+ * Remove APENAS os itens cuja origem seja 'api_orcamentador' ou 'api_autosinapi'.
+ * Preserva integralmente:
+ * - Itens importados manualmente pelo usuário (importada_usuario)
+ * - Itens de referência embutida (SINAPI_REFERENCE_DATASET)
+ * - Composições e orçamentos CONCE
+ */
+export function clearOfficialApiSyncedItems(): {
+  removedCount: number
+  remainingCustomCount: number
+} {
+  if (typeof window === 'undefined') return { removedCount: 0, remainingCustomCount: 0 }
+
+  const current = getCustomSinapiItems()
+  const filtered = current.filter(
+    (item) => item.priceOrigin !== 'api_orcamentador' && item.priceOrigin !== 'api_autosinapi',
+  )
+  const removedCount = current.length - filtered.length
+
+  saveCustomSinapiItems(filtered)
+
+  // Se os metadados de importação pertenciam a uma API, limpa ou atualiza
+  const meta = getSinapiImportMetadata()
+  if (meta && (meta.sourceType === 'api_orcamentador' || meta.sourceType === 'api_autosinapi')) {
+    localStorage.removeItem(STORAGE_KEYS_SINAPI.IMPORT_METADATA)
+  }
+
+  return {
+    removedCount,
+    remainingCustomCount: filtered.length,
+  }
+}
+
+/**
  * Remove itens customizados e restaura o catálogo para os valores de referência embutidos
  */
 export function resetSinapiCatalogToDefaults(): void {

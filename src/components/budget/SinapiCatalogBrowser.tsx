@@ -23,17 +23,24 @@ import {
   BookOpen,
   Globe,
   RefreshCw,
+  Trash2,
+  AlertOctagon,
 } from 'lucide-react'
 import { SinapiCatalogItem } from '@/types/sinapi'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
-import { getSinapiImportMetadata } from '@/lib/sinapiStorage'
+import {
+  getSinapiImportMetadata,
+  getApiSyncedItemsCount,
+  clearOfficialApiSyncedItems,
+} from '@/lib/sinapiStorage'
 
 interface SinapiCatalogBrowserProps {
   catalog: SinapiCatalogItem[]
   onSelectToNewComposition?: (item: SinapiCatalogItem) => void
   onOpenImportModal: () => void
   onOpenSyncApiModal?: () => void
+  onCatalogCleaned?: () => void
 }
 
 const ITEMS_PER_PAGE = 15
@@ -43,8 +50,11 @@ export const SinapiCatalogBrowser: React.FC<SinapiCatalogBrowserProps> = ({
   onSelectToNewComposition,
   onOpenImportModal,
   onOpenSyncApiModal,
+  onCatalogCleaned,
 }) => {
   const [search, setSearch] = useState('')
+  const [isCleaning, setIsCleaning] = useState(false)
+  const [cleaningSuccessMsg, setCleaningSuccessMsg] = useState<string | null>(null)
   const [selectedType, setSelectedType] = useState<'todos' | 'insumo' | 'composicao'>('todos')
   const [selectedCategory, setSelectedCategory] = useState<string>('todas')
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('Todas')
@@ -176,12 +186,43 @@ export const SinapiCatalogBrowser: React.FC<SinapiCatalogBrowserProps> = ({
               type="button"
               onClick={onOpenSyncApiModal}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs font-bold transition-all shadow-md cursor-pointer whitespace-nowrap hover:-translate-y-0.5"
-              title="Sincronizar acervo completo via API Orçamentador"
+              title="Sincronizar acervo oficial via API"
             >
               <Globe className="w-4 h-4" />
               <span>Sincronizar Oficial (API)</span>
             </button>
           )}
+
+          {/* Ação Limpar Sincronização Oficial */}
+          {(() => {
+            const apiCounts = getApiSyncedItemsCount()
+            if (apiCounts.totalApiCount === 0) return null
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    `Deseja remover ${apiCounts.totalApiCount} itens sincronizados via API oficial?\n\n` +
+                      `• ${apiCounts.orcamentadorCount} itens da API Orçamentador\n` +
+                      `• ${apiCounts.autosinapiCount} itens da autoSINAPI\n\n` +
+                      `Seus orçamentos, BDI TCU, composições próprias CONCE e importações manuais serão 100% preservados. O catálogo voltará à referência padrão.`,
+                  )
+                  if (!confirmed) return
+                  const res = clearOfficialApiSyncedItems()
+                  setCleaningSuccessMsg(
+                    `Limpeza concluída: ${res.removedCount} itens sincronizados por API foram removidos do catálogo. Seus orçamentos e composições CONCE continuam intactos.`,
+                  )
+                  if (onCatalogCleaned) onCatalogCleaned()
+                  setTimeout(() => setCleaningSuccessMsg(null), 6000)
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-white text-xs font-bold border border-red-400/40 transition-all cursor-pointer whitespace-nowrap"
+                title="Remover itens gravados por sincronizações de API sem afetar seus orçamentos"
+              >
+                <Trash2 className="w-4 h-4 text-red-200" />
+                <span>Limpar sincronização oficial ({apiCounts.totalApiCount})</span>
+              </button>
+            )
+          })()}
 
           <button
             type="button"
@@ -194,6 +235,22 @@ export const SinapiCatalogBrowser: React.FC<SinapiCatalogBrowserProps> = ({
           </button>
         </div>
       </div>
+
+      {cleaningSuccessMsg && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span>{cleaningSuccessMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCleaningSuccessMsg(null)}
+            className="text-emerald-700 hover:text-emerald-900 font-bold"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Barra de Filtros e Busca */}
       <div className="bg-white p-4 rounded-2xl border border-[#171A1F]/10 shadow-sm space-y-3">
