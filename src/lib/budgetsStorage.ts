@@ -663,10 +663,48 @@ export function saveStoredCompositions(compositions: any[]) {
 }
 
 /**
+ * Heurística para identificar códigos genéricos / auto-gerados / ambíguos de composição.
+ * Códigos genéricos (ex: "CPU-01.01", "CPU-custom-...", "CPU-", "CONCE-CPU", "CPU-temp")
+ * NÃO devem ser usados para propagação cega da biblioteca para orçamentos, pois
+ * podem coincidir entre serviços totalmente diferentes (ex: demolição vs porcelanato).
+ * Para propagação segura por código, o código deve ser um identificador canônico específico
+ * (ex: SINAPI-87529, SICRO-2S0110000, CONCE-ALV-001, CONCE-IMP-002).
+ */
+export function isGenericCompositionCode(code?: string | null): boolean {
+  if (!code) return true
+  const trimmed = code.trim().toUpperCase()
+  if (!trimmed || trimmed === 'GLOBAL' || trimmed === 'TEMP') return true
+
+  // Padrões genéricos conhecidos
+  if (
+    trimmed === 'CPU-' ||
+    trimmed === 'CONCE-CPU' ||
+    trimmed === 'CONCE-CPU-' ||
+    trimmed === 'CONCE-001' ||
+    trimmed.startsWith('CPU-CUSTOM') ||
+    trimmed.startsWith('COMP-CUSTOM') ||
+    trimmed.startsWith('CUSTOM-') ||
+    trimmed.startsWith('TEMP-') ||
+    trimmed.startsWith('RM-')
+  ) {
+    return true
+  }
+
+  // Padrão de código auto-gerado por etapa/serviço: "CPU-01.01", "CPU-1.1", "CPU-02", etc.
+  if (/^CPU-\d+([.-]\d+)*$/i.test(trimmed)) {
+    return true
+  }
+
+  return false
+}
+
+/**
  * Propaga a atualização de uma composição da biblioteca para todos os orçamentos persistidos.
- * Para cada serviço cuja composição tenha o mesmo code ou id, atualiza a composição embutida
- * (insumos, coeficientes, versão, etc.) e, caso a fonte não seja 'Usuário' (ou seja 'Composição'),
- * recalcula automaticamente o unitPrice baseado no novo custo da CPU.
+ * Endurecido: casamento SOMENTE por ID explícito e não-vazio, ou por CODE quando o CODE
+ * for um código técnico específico e canônico (não genérico). Se o vínculo for ambíguo,
+ * a composição da biblioteca NUNCA substituirá os insumos do serviço de orçamento.
+ * Para cada serviço casado, atualiza a composição embutida e, caso a fonte não seja
+ * 'Usuário' (ou seja 'Composição'), recalcula o unitPrice baseado no novo custo da CPU.
  */
 export function propagateCompositionUpdateToBudgets(savedComposition: BudgetComposition): {
   affectedBudgetsCount: number
@@ -681,6 +719,10 @@ export function propagateCompositionUpdateToBudgets(savedComposition: BudgetComp
   let affectedServicesCount = 0
   const newCpuCost = calculateCompositionUnitCost(savedComposition)
 
+  const savedCompId = savedComposition.id?.trim()
+  const savedCompCode = savedComposition.code?.trim()
+  const isSavedCodeGeneric = isGenericCompositionCode(savedCompCode)
+
   const updatedBudgets = currentBudgets.map((budget) => {
     let budgetModified = false
 
@@ -688,27 +730,41 @@ export function propagateCompositionUpdateToBudgets(savedComposition: BudgetComp
       let stageModified = false
 
       const newServices = stage.services.map((service) => {
-        const matchesCode =
-          service.composition?.code &&
-          savedComposition.code &&
-          service.composition.code.trim().toUpperCase() ===
-            savedComposition.code.trim().toUpperCase()
+        const servComp = service.composition
+        if (!servComp) return service
 
-        const matchesId =
-          service.composition?.id &&
-          savedComposition.id &&
-          service.composition.id === savedComposition.id
+        const servCompId = servComp.id?.trim()
+        const servCompCode = servComp.code?.trim()
 
-        if (matchesCode || matchesId) {
+        // 1. Casamento estrito por ID: válido quando ambos têm id não-vazio e não-genérico
+        const matchesId = Boolean(
+          servCompId &&
+          savedCompId &&
+          servCompId === savedCompId &&
+          servCompId !== 'temp' &&
+          !servCompId.startsWith('comp-custom-'),
+        )
+
+        // 2. Casamento por CODE: permitido APENAS quando nem o código da biblioteca nem o código
+        // do serviço forem genéricos (ex: SINAPI-87529, CONCE-ALV-001)
+        const isServCodeGeneric = isGenericCompositionCode(servCompCode)
+        const matchesCode = Boolean(
+          !isSavedCodeGeneric &&
+          !isServCodeGeneric &&
+          servCompCode &&
+          savedCompCode &&
+          servCompCode.toUpperCase() === savedCompCode.toUpperCase(),
+        )
+
+        if (matchesId || matchesCode) {
           budgetModified = true
           stageModified = true
           affectedServicesCount++
 
-          // Clona a composição com novos dados
+          // Clona a composição com novos dados mantendo integridade
           const updatedComp: BudgetComposition = {
             ...savedComposition,
-            // Mantém id se a composição do serviço já tiver um identificador específico
-            id: service.composition.id || savedComposition.id,
+            id: servComp.id || savedComposition.id,
           }
 
           // Se a fonte não foi alterada manualmente pelo usuário ("Usuário"),
@@ -756,19 +812,40 @@ export function propagateCompositionUpdateToBudgets(savedComposition: BudgetComp
 /**
  * Normaliza a chave da composição para armazenamento no histórico de itens removidos.
  * Prioriza o código (ex: "SINAPI-94964", "CONCE-ALV-001"), com fallback para o id.
+ * Retorna string vazia caso não haja identificador confiável (sem fallback para 'global').
  */
 export function getCompositionStorageKey(
   comp: Partial<BudgetComposition> | string | undefined | null,
 ): string {
-  if (!comp) return 'global'
-  if (typeof comp === 'string') return comp.trim().toUpperCase()
-  if (comp.code && comp.code.trim()) return comp.code.trim().toUpperCase()
-  if (comp.id && comp.id.trim()) return comp.id.trim()
-  return 'global'
+  if (!comp) return ''
+  if (typeof comp === 'string') {
+    const trimmed = comp.trim()
+    return trimmed.toLowerCase() === 'global' ? '' : trimmed.toUpperCase()
+  }
+  if (comp.code && comp.code.trim()) {
+    const trimmedCode = comp.code.trim()
+    if (trimmedCode.toLowerCase() !== 'global') {
+      return trimmedCode.toUpperCase()
+    }
+  }
+  if (comp.id && comp.id.trim()) {
+    const trimmedId = comp.id.trim()
+    if (trimmedId.toLowerCase() !== 'global') {
+      return trimmedId
+    }
+  }
+  return ''
 }
 
 /**
- * Obtém todos os insumos removidos gravados em localStorage, opcionalmente filtrados por composição.
+ * Obtém insumos removidos gravados em localStorage.
+ * Endurecido para eliminar cross-contaminação:
+ * - Se compositionKey for informada, busca estritamente pela chave normalizada.
+ *   Se a chave de busca for vazia ou inválida, retorna array vazio para JAMAIS vazar
+ *   itens de outras composições.
+ * - Registros legados antigos com chave 'global' ou vazia são ignorados quando
+ *   se busca por uma composição específica.
+ * - Se compositionKey NÃO for informada, retorna a lista completa (para auditoria ou inspeção geral).
  */
 export function getRemovedCompositionInputs(
   compositionKey?: string,
@@ -779,12 +856,17 @@ export function getRemovedCompositionInputs(
     if (!raw) return []
     const parsed: RemovedCompositionInputItem[] = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    if (!compositionKey) return parsed
+    if (compositionKey === undefined) return parsed
 
     const targetKey = getCompositionStorageKey(compositionKey)
+    if (!targetKey) {
+      // Sem chave confiável de composição: não retorna nada para evitar cross-contaminação
+      return []
+    }
+
     return parsed.filter((item) => {
       const itemKey = getCompositionStorageKey(item.compositionKey)
-      return itemKey === targetKey
+      return Boolean(itemKey && itemKey === targetKey)
     })
   } catch {
     return []
@@ -808,6 +890,8 @@ export function saveAllRemovedCompositionInputs(items: RemovedCompositionInputIt
 
 /**
  * Registra a exclusão de um insumo de uma composição no histórico persistente de localStorage.
+ * Garante que a composição pai seja devidamente identificada (chave confiável). Se a chave
+ * for vazia, gera uma chave estável contextual para não vazar e permitir restauração segura.
  */
 export function recordRemovedCompositionInput(
   compositionKey: string,
@@ -815,7 +899,11 @@ export function recordRemovedCompositionInput(
   originalIndex?: number,
   removedBy: string = 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
 ): RemovedCompositionInputItem {
-  const normKey = getCompositionStorageKey(compositionKey)
+  let normKey = getCompositionStorageKey(compositionKey)
+  if (!normKey) {
+    // Se a composição não tiver código/id explícito, usa uma chave contextual única
+    normKey = `COMP-${Date.now()}`
+  }
   const all = getRemovedCompositionInputs()
 
   // Evita duplicata idêntica sequencial
@@ -843,7 +931,8 @@ export function purgeRemovedCompositionInputRecord(recordId: string): void {
 }
 
 /**
- * Limpa todo o histórico de insumos removidos de uma composição (ou geral se compositionKey não informada).
+ * Limpa o histórico de insumos removidos de uma composição (ou geral se compositionKey não informada).
+ * Endurecido para não remover itens de outras composições quando a chave for inválida.
  */
 export function clearRemovedCompositionInputs(compositionKey?: string): void {
   if (!compositionKey) {
@@ -853,6 +942,8 @@ export function clearRemovedCompositionInputs(compositionKey?: string): void {
     return
   }
   const normKey = getCompositionStorageKey(compositionKey)
+  if (!normKey) return
+
   const all = getRemovedCompositionInputs()
   const filtered = all.filter((r) => getCompositionStorageKey(r.compositionKey) !== normKey)
   saveAllRemovedCompositionInputs(filtered)

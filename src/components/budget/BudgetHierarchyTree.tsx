@@ -57,7 +57,14 @@ import { StageEditModal } from './StageEditModal'
 import { ServiceEditModal } from './ServiceEditModal'
 import { InputEditModal } from './InputEditModal'
 import { UnitSelect } from './UnitSelect'
-import { saveSingleBudget } from '@/lib/budgetsStorage'
+import {
+  saveSingleBudget,
+  recordRemovedCompositionInput,
+  getRemovedCompositionInputs,
+  purgeRemovedCompositionInputRecord,
+  RemovedCompositionInputItem,
+} from '@/lib/budgetsStorage'
+import { useToast } from '@/hooks/use-toast'
 
 interface BudgetHierarchyTreeProps {
   budget: FullBudget
@@ -110,6 +117,9 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     input: BudgetInput | null
   }>({ isOpen: false, stageId: null, serviceId: null, input: null })
 
+  // Hook de Toast para notificações amigáveis com botão de Desfazer
+  const { toast } = useToast()
+
   // Modal de Confirmação de Exclusão Amigável (Etapa, Serviço, Composição/Insumos da CPU, Insumo)
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean
@@ -131,6 +141,15 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     title: '',
     itemName: '',
   })
+
+  // Modal de Lixeira / Itens Removidos da CPU do Serviço
+  const [trashModalState, setTrashModalState] = useState<{
+    isOpen: boolean
+    stageId: string
+    serviceId: string
+    serviceDescription: string
+    compositionKey: string
+  } | null>(null)
 
   const laborMultiplier = getBudgetLaborMultiplier(budget)
   const calculatedSummary = calculateFullBudget(budget)
@@ -455,22 +474,32 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     let deletedInputCode = ''
     let deletedInputCost = 0
     let serviceDesc = ''
+    let removedInputObj: BudgetInput | null = null
+    let targetCompositionKey = ''
+    let removedOriginalIndex = 0
 
     const newStages = budget.stages.map((st) => {
       if (st.id !== stageId) return st
       const updatedServices = st.services.map((srv) => {
         if (srv.id !== serviceId) return srv
         serviceDesc = srv.description
-        const targetInput = (srv.composition.inputs || []).find((inp) => inp.id === inputId)
+        targetCompositionKey = srv.composition.code || srv.composition.id || srv.code || srv.id
+        const inputsList = srv.composition.inputs || []
+        const inputIdx = inputsList.findIndex((inp) => inp.id === inputId)
+        const targetInput = inputIdx >= 0 ? inputsList[inputIdx] : null
+
         if (targetInput) {
           deletedInputDesc = targetInput.description
           deletedInputCode = targetInput.code
           deletedInputCost =
             (Number(targetInput.coefficient) || 0) * (Number(targetInput.unitCost) || 0)
+          removedInputObj = targetInput
+          removedOriginalIndex = inputIdx
         }
+
         const updatedComposition: BudgetComposition = {
           ...srv.composition,
-          inputs: (srv.composition.inputs || []).filter((inp) => inp.id !== inputId),
+          inputs: inputsList.filter((inp) => inp.id !== inputId),
         }
         const newCpuCost = calculateCompositionUnitCost(updatedComposition, laborMultiplier)
         const isUserManual = srv.unitPriceSource === 'Usuário'
@@ -487,6 +516,17 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       return { ...st, services: updatedServices }
     })
 
+    // Registra exclusão na lixeira persistente com chave da composição pai
+    let trashRecordId: string | null = null
+    if (removedInputObj && targetCompositionKey) {
+      const rec = recordRemovedCompositionInput(
+        targetCompositionKey,
+        removedInputObj,
+        removedOriginalIndex,
+      )
+      trashRecordId = rec.id
+    }
+
     logAuditEvent({
       budgetId: budget.id,
       action: 'exclusao_item',
@@ -500,6 +540,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         serviceId,
         inputId,
         inputCode: deletedInputCode,
+        compositionKey: targetCompositionKey,
+        trashRecordId,
       },
     })
 
@@ -510,6 +552,99 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     }
     saveSingleBudget(updatedBudget)
     onChange(updatedBudget)
+
+    // Notificação com opção de Desfazer
+    if (removedInputObj) {
+      const inputToRestore = removedInputObj
+      const recIdToPurge = trashRecordId
+      toast({
+        title: 'Insumo removido da composição',
+        description: `${deletedInputCode} - ${deletedInputDesc} foi para a lixeira da CPU.`,
+        action: (
+          <button
+            type="button"
+            onClick={() => {
+              handleRestoreInputToService(stageId, serviceId, inputToRestore, recIdToPurge)
+            }}
+            className="px-2.5 py-1 text-xs font-bold rounded bg-[#294C87] text-white hover:bg-[#1f3b6c] transition-colors cursor-pointer"
+          >
+            Desfazer
+          </button>
+        ),
+      })
+    }
+  }
+
+  // Restaura um insumo diretamente para o serviço e limpa da lixeira
+  const handleRestoreInputToService = (
+    stageId: string,
+    serviceId: string,
+    inputToRestore: BudgetInput,
+    trashRecordId?: string | null,
+  ) => {
+    let serviceDesc = ''
+    let restoredCompKey = ''
+
+    const newStages = budget.stages.map((st) => {
+      if (st.id !== stageId) return st
+      const updatedServices = st.services.map((srv) => {
+        if (srv.id !== serviceId) return srv
+        serviceDesc = srv.description
+        restoredCompKey = srv.composition.code || srv.composition.id || srv.code || srv.id
+        const currentInputs = srv.composition.inputs || []
+        // Evita duplicar se já foi adicionado de volta
+        if (currentInputs.some((i) => i.id === inputToRestore.id)) {
+          return srv
+        }
+        const updatedComposition: BudgetComposition = {
+          ...srv.composition,
+          inputs: [...currentInputs, inputToRestore],
+        }
+        const newCpuCost = calculateCompositionUnitCost(updatedComposition, laborMultiplier)
+        const isUserManual = srv.unitPriceSource === 'Usuário'
+        const newUnitPrice = isUserManual ? srv.unitPrice : newCpuCost
+        const newSource = isUserManual ? srv.unitPriceSource : 'Composição'
+
+        return {
+          ...srv,
+          composition: updatedComposition,
+          unitPrice: newUnitPrice,
+          unitPriceSource: newSource,
+        }
+      })
+      return { ...st, services: updatedServices }
+    })
+
+    if (trashRecordId) {
+      purgeRemovedCompositionInputRecord(trashRecordId)
+    }
+
+    logAuditEvent({
+      budgetId: budget.id,
+      action: 'adicao_item',
+      title: `Insumo Restaurado: ${inputToRestore.description}`,
+      details: `Insumo ${inputToRestore.code} "${inputToRestore.description}" restaurado para o serviço "${serviceDesc}". Recálculo executado.`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      metadata: {
+        stageId,
+        serviceId,
+        inputId: inputToRestore.id,
+        compositionKey: restoredCompKey,
+      },
+    })
+
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
+
+    toast({
+      title: 'Insumo restaurado com sucesso!',
+      description: `${inputToRestore.code} reinserido na composição e custo recalculado.`,
+    })
   }
 
   // Ação de exclusão / limpeza de todos os insumos da composição (Nível 3)
@@ -1410,6 +1545,36 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                   </div>
 
                                   <div className="flex items-center gap-2">
+                                    {/* Botão de Histórico / Lixeira da Composição */}
+                                    {(() => {
+                                      const compKey =
+                                        comp.code || comp.id || service.code || service.id
+                                      const removedCount = compKey
+                                        ? getRemovedCompositionInputs(compKey).length
+                                        : 0
+                                      if (removedCount === 0) return null
+                                      return (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setTrashModalState({
+                                              isOpen: true,
+                                              stageId: stage.id,
+                                              serviceId: service.id,
+                                              serviceDescription: service.description,
+                                              compositionKey: compKey,
+                                            })
+                                          }
+                                          disabled={disabled}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-medium transition-colors cursor-pointer"
+                                          title={`Ver ${removedCount} insumo(s) na lixeira desta CPU`}
+                                        >
+                                          <RotateCcw className="w-3 h-3 text-[#FF6B1F]" />
+                                          <span>Lixeira ({removedCount})</span>
+                                        </button>
+                                      )
+                                    })()}
+
                                     {comp.inputs && comp.inputs.length > 0 && (
                                       <button
                                         type="button"
@@ -1862,6 +2027,103 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
             >
               Confirmar Exclusão
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal Amigável da Lixeira da CPU (Restauração de Insumos da Composição Específica) */}
+      <AlertDialog
+        open={Boolean(trashModalState?.isOpen)}
+        onOpenChange={(open) => !open && setTrashModalState(null)}
+      >
+        <AlertDialogContent className="max-w-lg bg-white border border-[#171A1F]/15 rounded-2xl shadow-2xl p-6">
+          <AlertDialogHeader className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-[#FF6B1F] shrink-0">
+                <RotateCcw className="w-5 h-5" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-base sm:text-lg font-bold text-[#171A1F]">
+                  Lixeira da Composição
+                </AlertDialogTitle>
+                <p className="text-xs text-[#171A1F]/60">
+                  {trashModalState?.serviceDescription} ({trashModalState?.compositionKey})
+                </p>
+              </div>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-3 text-xs text-[#171A1F]">
+                {(() => {
+                  if (!trashModalState?.compositionKey) return null
+                  const removedItems = getRemovedCompositionInputs(trashModalState.compositionKey)
+                  if (removedItems.length === 0) {
+                    return (
+                      <p className="text-center py-6 text-[#171A1F]/60 text-xs">
+                        Nenhum insumo na lixeira desta composição.
+                      </p>
+                    )
+                  }
+                  return (
+                    <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                      {removedItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 hover:border-[#294C87]/30 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[11px] font-bold text-[#294C87]">
+                                {item.input.code}
+                              </span>
+                              <span className="text-[10px] text-[#171A1F]/50">
+                                {new Date(item.removedAt).toLocaleDateString('pt-BR')}
+                              </span>
+                            </div>
+                            <p
+                              className="text-xs font-semibold text-[#171A1F] truncate"
+                              title={item.input.description}
+                            >
+                              {item.input.description}
+                            </p>
+                            <p className="text-[11px] text-[#171A1F]/60">
+                              {item.input.coefficient} {item.input.unit} ×{' '}
+                              {formatCurrencyBRL(item.input.unitCost)} ={' '}
+                              <strong className="text-[#FF6B1F]">
+                                {formatCurrencyBRL(
+                                  (Number(item.input.coefficient) || 0) *
+                                    (Number(item.input.unitCost) || 0),
+                                )}
+                              </strong>
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleRestoreInputToService(
+                                trashModalState.stageId,
+                                trashModalState.serviceId,
+                                item.input,
+                                item.id,
+                              )
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#294C87] hover:bg-[#1f3b6c] text-white text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+                            title="Restaurar este insumo de volta à composição"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                            <span>Restaurar</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="px-4 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] hover:bg-[#171A1F]/5 cursor-pointer">
+              Fechar
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
