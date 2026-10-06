@@ -706,10 +706,19 @@ export function isGenericCompositionCode(code?: string | null): boolean {
  * Para cada serviço casado, atualiza a composição embutida e, caso a fonte não seja
  * 'Usuário' (ou seja 'Composição'), recalcula o unitPrice baseado no novo custo da CPU.
  */
-export function propagateCompositionUpdateToBudgets(savedComposition: BudgetComposition): {
+export function propagateCompositionUpdateToBudgets(
+  savedComposition: BudgetComposition,
+  options?: { optIn?: boolean },
+): {
   affectedBudgetsCount: number
   affectedServicesCount: number
 } {
+  // A propagação é estritamente opt-in para nunca sobrescrever personalizações locais em massa.
+  // Se não houver opt-in explícito, retorna sem modificar nenhum orçamento.
+  if (!options?.optIn) {
+    return { affectedBudgetsCount: 0, affectedServicesCount: 0 }
+  }
+
   if (typeof window === 'undefined' || !savedComposition) {
     return { affectedBudgetsCount: 0, affectedServicesCount: 0 }
   }
@@ -720,10 +729,19 @@ export function propagateCompositionUpdateToBudgets(savedComposition: BudgetComp
   const newCpuCost = calculateCompositionUnitCost(savedComposition)
 
   const savedCompId = savedComposition.id?.trim()
-  const savedCompCode = savedComposition.code?.trim()
-  const isSavedCodeGeneric = isGenericCompositionCode(savedCompCode)
+  if (!savedCompId) {
+    return { affectedBudgetsCount: 0, affectedServicesCount: 0 }
+  }
 
   const updatedBudgets = currentBudgets.map((budget) => {
+    // Regra estrita de segurança: nunca propagar alterações para orçamentos que não estejam em rascunho
+    // (ex.: aprovado, em_andamento, vencido, fechado não devem ser alterados em cascata)
+    const isDraft =
+      (budget.status as string) === 'rascunho' || (budget.status as string) === 'em_analise'
+    if (!isDraft) {
+      return budget
+    }
+
     let budgetModified = false
 
     const newStages = budget.stages.map((stage) => {
@@ -734,54 +752,61 @@ export function propagateCompositionUpdateToBudgets(savedComposition: BudgetComp
         if (!servComp) return service
 
         const servCompId = servComp.id?.trim()
-        const servCompCode = servComp.code?.trim()
 
-        // 1. Casamento estrito por ID: válido quando ambos têm id não-vazio e não-genérico
-        const matchesId = Boolean(
-          servCompId &&
-          savedCompId &&
-          servCompId === savedCompId &&
-          servCompId !== 'temp' &&
-          !servCompId.startsWith('comp-custom-'),
+        // Propagar APENAS quando o serviço tiver vínculo explícito e confiável com a composição salva
+        // (id específico não-derivado-de-template/não-genérico). Se houver qualquer dúvida de vínculo, não propagar.
+        const isDerivedFromTemplate =
+          !servCompId ||
+          servCompId === 'temp' ||
+          servCompId.startsWith('comp-custom-') ||
+          servCompId.startsWith('comp-srv-') ||
+          servCompId.startsWith('comp-sinapi-') ||
+          servCompId.startsWith('comp-conce-') ||
+          servCompId === 'comp-concreto-fck25' ||
+          servCompId === 'comp-armacao-aco-ca50' ||
+          servCompId === 'comp-alvenaria-bloco-ceramico' ||
+          servCompId === 'comp-emboço-interno' ||
+          servCompId === 'comp-pintura-acrilica' ||
+          servCompId === 'comp-ponto-eletrico' ||
+          servCompId === 'comp-conce-impermeabilizacao' ||
+          servCompId === 'comp-escavacao-mecanizada'
+
+        const matchesExplicitId = Boolean(
+          servCompId && savedCompId && servCompId === savedCompId && !isDerivedFromTemplate,
         )
 
-        // 2. Casamento por CODE: permitido APENAS quando nem o código da biblioteca nem o código
-        // do serviço forem genéricos (ex: SINAPI-87529, CONCE-ALV-001)
-        const isServCodeGeneric = isGenericCompositionCode(servCompCode)
-        const matchesCode = Boolean(
-          !isSavedCodeGeneric &&
-          !isServCodeGeneric &&
-          servCompCode &&
-          savedCompCode &&
-          servCompCode.toUpperCase() === savedCompCode.toUpperCase(),
-        )
-
-        if (matchesId || matchesCode) {
-          budgetModified = true
-          stageModified = true
-          affectedServicesCount++
-
-          // Clona a composição com novos dados mantendo integridade
-          const updatedComp: BudgetComposition = {
-            ...savedComposition,
-            id: servComp.id || savedComposition.id,
-          }
-
-          // Se a fonte não foi alterada manualmente pelo usuário ("Usuário"),
-          // recalcula o preço unitário do serviço para o novo custo da CPU
-          const isUserManualPrice = service.unitPriceSource === 'Usuário'
-          const updatedUnitPrice = isUserManualPrice ? service.unitPrice : newCpuCost
-          const updatedSource = isUserManualPrice ? service.unitPriceSource : 'Composição'
-
-          return {
-            ...service,
-            composition: updatedComp,
-            unitPrice: updatedUnitPrice,
-            unitPriceSource: updatedSource,
-          }
+        // Se houver qualquer dúvida de vínculo, não propagar
+        if (!matchesExplicitId) {
+          return service
         }
 
-        return service
+        budgetModified = true
+        stageModified = true
+        affectedServicesCount++
+
+        // NUNCA sobrescrever em cascata o array inputs do serviço (preserva itens locais customizados do serviço)
+        const updatedComp: BudgetComposition = {
+          ...servComp,
+          code: savedComposition.code || servComp.code,
+          description: savedComposition.description || servComp.description,
+          specialty: savedComposition.specialty || servComp.specialty,
+          unit: savedComposition.unit || servComp.unit,
+          version: savedComposition.version || servComp.version,
+          source: savedComposition.source || servComp.source,
+          // Preserva estritamente os inputs já existentes no serviço
+          inputs: servComp.inputs ? [...servComp.inputs] : [],
+        }
+
+        const isUserManualPrice = service.unitPriceSource === 'Usuário'
+        const updatedUnitPrice = isUserManualPrice ? service.unitPrice : newCpuCost
+        const updatedSource = isUserManualPrice ? service.unitPriceSource : 'Composição'
+
+        return {
+          ...service,
+          composition: updatedComp,
+          unitPrice: updatedUnitPrice,
+          unitPriceSource: updatedSource,
+        }
       })
 
       if (stageModified) {
