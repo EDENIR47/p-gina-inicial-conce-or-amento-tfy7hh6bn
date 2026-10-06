@@ -575,9 +575,10 @@ export function getStoredFullBudgets(): FullBudget[] {
           }
           return updatedBudget
         })
-        if (hasFixed) {
-          saveFullBudgets(sanitized)
-        }
+        // A sanitização opera ESTRITAMENTE EM MEMÓRIA ao carregar.
+        // O estado da aplicação reflete os dados sanitizados para exibição e cálculo correto,
+        // mas o localStorage só é gravado quando o usuário executa uma ação real e explícita
+        // de salvar, excluir ou restaurar revisão, impedindo alterações silenciosas no storage.
         return sanitized
       }
     } catch {

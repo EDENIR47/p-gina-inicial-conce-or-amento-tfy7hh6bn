@@ -100,11 +100,12 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
             <button
               type="button"
               onClick={onOpenRevisionsModal}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer"
-              title="Histórico de Revisões (Rev. 0, 1, 2...)"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 hover:text-white border border-amber-400/40 text-xs font-bold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B1F] focus:ring-offset-2 focus:ring-offset-[#171A1F] cursor-pointer"
+              title="Histórico de Revisões e Restauração de Versões Anteriores do Orçamento"
+              aria-label="Abrir histórico e restaurador de revisões do orçamento"
             >
-              <History className="w-3.5 h-3.5 text-[#FF6B1F]" />
-              <span className="hidden sm:inline">Revisões</span>
+              <History className="w-4 h-4 text-[#FF6B1F] shrink-0" aria-hidden="true" />
+              <span className="font-bold">Revisões</span>
             </button>
           )}
 

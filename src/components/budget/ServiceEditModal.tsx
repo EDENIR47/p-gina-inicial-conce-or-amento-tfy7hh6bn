@@ -7,7 +7,6 @@ import React, { useState, useEffect } from 'react'
 import { X, Check, FileSpreadsheet, AlertCircle, BookOpen } from 'lucide-react'
 import { BudgetComposition, BudgetService, BudgetStage } from '@/types/budgetEngine'
 import { CompositionPickerModal } from './CompositionPickerModal'
-import { CONCE_CANONICAL_COMPOSITIONS } from '@/lib/compositionsData'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
 import { UnitSelect } from './UnitSelect'
@@ -246,12 +245,19 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
 
     const customBdi = customBdiPercent.trim() !== '' ? parseFloat(customBdiPercent) : undefined
 
-    // Garante que a composição vinculada mantenha referência coerente
+    // Salvar preserva estritamente os insumos atuais do serviço (sem buscar composição do catálogo nem reimportar)
+    const currentInputs =
+      initialService?.composition?.inputs !== undefined &&
+      composition === initialService.composition
+        ? initialService.composition.inputs
+        : composition.inputs || []
+
     const finalComposition: BudgetComposition = {
       ...composition,
-      description: composition.description.trim() || description.trim(),
-      unit: composition.inputs.length === 0 ? unit.trim() : composition.unit,
-      code: composition.code.trim() || `CPU-${code.trim()}`,
+      description: composition.description?.trim() || description.trim(),
+      unit: (composition.inputs || []).length === 0 ? unit.trim() : composition.unit,
+      code: composition.code?.trim() || `CPU-${code.trim()}`,
+      inputs: [...currentInputs],
     }
 
     // Se o usuário digitou preço unitário manual ou se a composição não tem insumos

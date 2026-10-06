@@ -265,10 +265,11 @@ export const RevisionsModal: React.FC<RevisionsModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleRestore(rev)}
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white text-xs font-bold transition-colors cursor-pointer self-end sm:self-center"
-                      title="Restaurar este snapshot de orçamento"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#294C87] hover:bg-[#1f3b6c] text-white text-xs font-bold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B1F] focus:ring-offset-2 cursor-pointer self-end sm:self-center"
+                      title={`Restaurar este snapshot de orçamento (${rev.revisionCode})`}
+                      aria-label={`Restaurar versão ${rev.revisionCode}: ${rev.description}`}
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
+                      <RotateCcw className="w-4 h-4 text-[#FF6B1F]" aria-hidden="true" />
                       <span>Restaurar Esta Versão</span>
                     </button>
                   </div>
