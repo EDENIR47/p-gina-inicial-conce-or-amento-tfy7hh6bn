@@ -525,13 +525,16 @@ export function generateQuotesForBudget(budget: FullBudget): InputQuoteCompariso
 
     const winningQuote = quotes[0] // Menor preço como sugestão vencedora
 
+    const resolvedCategory: InputCategory =
+      item.category === 'servico' ? 'servico_terceiro' : item.category
+
     return {
       id: `quote-${budget.id}-${item.code}-${index}`,
       budgetId: budget.id,
       inputCode: item.code,
       inputDescription: item.description,
       unit: item.unit,
-      category: item.category,
+      category: resolvedCategory,
       budgetedUnitCost: baseCost,
       requiredQuantity: item.totalQuantity,
       quotes,

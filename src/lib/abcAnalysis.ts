@@ -2,75 +2,97 @@
  * CONCE — Serviço de Engenharia e Consultoria LTDA
  * Motor de Cálculo da Curva ABC (Princípio de Pareto)
  *
- * Agrupa insumos de todas as etapas e serviços do orçamento,
- * calcula o custo total acumulado de cada insumo, ordena de forma decrescente
- * e classifica com base nos limites clássicos de engenharia:
- * - Classe A: até ~80% do custo direto total (máxima prioridade)
- * - Classe B: de ~80% a ~95% do custo direto total (atenção média)
- * - Classe C: os 5% restantes (itens com baixo impacto financeiro individual)
+ * Suporta dois modos de análise técnica rigorosa:
+ * 1. Análise por Insumos (Materiais, Mão de Obra, Equipamentos e Terceiros consolidados da obra)
+ * 2. Análise por Serviços da Obra (Macrovisão do orçamento)
+ *
+ * Base de Valor (Regra CONCE):
+ * - Padrão CONCE: Valor de Venda com BDI (reflete fielmente o orçamento comercial do cliente)
+ * - Alternativo: Custo Direto (com encargos sociais de acordo com o regime tributário)
+ *
+ * Critérios Rigorosos de Classificação Pareto (Engenharia de Custos):
+ * - Classe A: Itens que compõem o acumulado de até ~80% do valor total
+ * - Classe B: Itens que compõem a faixa de 80% até ~95%
+ * - Classe C: Os 5% restantes
+ *
+ * Tratamento de Fronteira:
+ * O item que transpõe o limite (ex.: de 75% para 83%) é mantido na classe A porque encerra a transição
+ * dos 80% de impacto (conforme prevAccumulated < 80).
  */
 
 import { FullBudget, BudgetInput } from '@/types/budgetEngine'
-import { AbcCalculatedItem, AbcCurveAnalysis, AbcClass } from '@/types/intelligence'
-import { getChargesForState } from './chargesData'
+import {
+  AbcCalculatedItem,
+  AbcCurveAnalysis,
+  AbcClass,
+  AbcAnalysisMode,
+  AbcValueBasis,
+} from '@/types/intelligence'
+import {
+  calculateTcuBdi,
+  getBudgetSocialChargesRate,
+  getServiceCostBreakdown,
+  getServiceEffectiveUnitCost,
+} from './budgetEngine'
 
-export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
+export interface ComputeAbcCurveOptions {
+  mode?: AbcAnalysisMode // 'insumos' (default) | 'servicos'
+  valueBasis?: AbcValueBasis // 'venda_bdi' (default CONCE) | 'custo_direto'
+}
+
+export function computeAbcCurve(
+  budget: FullBudget,
+  options: ComputeAbcCurveOptions = {},
+): AbcCurveAnalysis {
+  const mode: AbcAnalysisMode = options.mode || 'insumos'
+  const valueBasis: AbcValueBasis = options.valueBasis || 'venda_bdi'
+
+  // 1. Regime tributário e encargos sociais do orçamento
+  const chargesRate = getBudgetSocialChargesRate(budget)
+  const laborMultiplier = 1 + chargesRate / 100
+
+  // 2. Determinação da taxa geral de BDI oficial (TCU Acórdão 2.622/2013)
   const taxRegime =
     budget.chargesConfig?.taxRegime ||
     (budget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
 
-  // Regra Simples Nacional: encargos trabalhistas zerados (0,00%).
-  // Nos regimes convencionais (com ou sem desoneração), aplica a tabela SINAPI da UF.
-  const isSimples = taxRegime === 'simples_nacional'
-  const isRelievedForCharges = taxRegime === 'com_desoneracao'
-  const stateCharges = getChargesForState(budget.chargesConfig?.uf || 'SP', isRelievedForCharges)
-
-  let chargesRate: number
-
-  if (isSimples) {
-    chargesRate = 0
+  let taxesTotal = 0
+  if (taxRegime === 'simples_nacional') {
+    const dasRate =
+      budget.chargesConfig?.simplesDasRate !== undefined
+        ? budget.chargesConfig.simplesDasRate
+        : budget.bdiConfig?.taxes?.simplesDas !== undefined
+          ? budget.bdiConfig.taxes.simplesDas
+          : 11.0
+    taxesTotal = Number(dasRate) || 0
   } else {
-    const defaultTotalForConfig = Number(
-      (
-        stateCharges.groupA +
-        stateCharges.groupB +
-        stateCharges.groupC +
-        stateCharges.groupD
-      ).toFixed(2),
-    )
-
-    if (budget.chargesConfig?.customGroupA !== undefined) {
-      const customSum =
-        (budget.chargesConfig.customGroupA || 0) +
-        (budget.chargesConfig.customGroupB || 0) +
-        (budget.chargesConfig.customGroupC || 0) +
-        (budget.chargesConfig.customGroupD || 0)
-
-      if (customSum === 0 && !budget.chargesConfig.isExplicitZero) {
-        chargesRate = defaultTotalForConfig
-      } else {
-        chargesRate = Number(customSum.toFixed(2))
-      }
-    } else {
-      chargesRate = defaultTotalForConfig
-    }
-
-    if (chargesRate === 0 && !budget.chargesConfig?.isExplicitZero) {
-      chargesRate = defaultTotalForConfig
-    }
+    taxesTotal =
+      (budget.bdiConfig?.taxes?.iss || 0) +
+      (budget.bdiConfig?.taxes?.pis || 0) +
+      (budget.bdiConfig?.taxes?.cofins || 0) +
+      (budget.bdiConfig?.taxes?.inssOrCprb || 0)
   }
 
-  const laborMultiplier = 1 + chargesRate / 100
+  const tcuResult = calculateTcuBdi({
+    administrationCentral: budget.bdiConfig?.administrationCentral ?? 4.5,
+    risk: budget.bdiConfig?.risk ?? 1.25,
+    insuranceAndGuarantee: budget.bdiConfig?.insuranceAndGuarantee ?? 0.85,
+    financialExpenses: budget.bdiConfig?.financialExpenses ?? 1.15,
+    profit: budget.bdiConfig?.profit ?? 7.8,
+    taxesTotal,
+  })
 
-  // 1. Dicionário de agregação de insumos por código (ou ID caso não tenha código)
-  interface AggregatedInput {
+  const generalBdiRate = tcuResult.bdiPercent
+
+  interface IntermediateItem {
+    key: string
     code: string
     description: string
-    category: BudgetInput['category']
+    category: BudgetInput['category'] | 'servico'
     unit: string
-    unitCost: number
     totalQuantity: number
-    totalCost: number
+    directCost: number
+    salePrice: number
     serviceOccurrences: Array<{
       stageCode: string
       stageName: string
@@ -80,31 +102,85 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
     }>
   }
 
-  const map = new Map<string, AggregatedInput>()
+  const map = new Map<string, IntermediateItem>()
 
+  // 3. Coleta de dados (por Insumos ou por Serviços)
   budget.stages.forEach((stage) => {
     stage.services.forEach((service) => {
       const sQty = Number(service.quantity) || 0
+      const serviceBdi =
+        service.customBdiPercent !== undefined && service.customBdiPercent !== null
+          ? Number(service.customBdiPercent)
+          : generalBdiRate
+      const bdiMultiplier = 1 + serviceBdi / 100
+
+      if (mode === 'servicos') {
+        // MODO SERVIÇOS: agrupa pelo serviço
+        const sUnitCost = getServiceEffectiveUnitCost(service, laborMultiplier)
+        const sDirectCost = Number((sUnitCost * sQty).toFixed(2))
+        const sSalePrice = Number((sDirectCost * bdiMultiplier).toFixed(2))
+        const sKey = (service.code || service.id || service.description).trim().toUpperCase()
+
+        if (!map.has(sKey)) {
+          map.set(sKey, {
+            key: sKey,
+            code: service.code || 'SRV',
+            description: service.description,
+            category: 'servico',
+            unit: service.unit || 'un',
+            totalQuantity: sQty,
+            directCost: sDirectCost,
+            salePrice: sSalePrice,
+            serviceOccurrences: [
+              {
+                stageCode: stage.code,
+                stageName: stage.name,
+                serviceCode: service.code,
+                serviceDescription: service.description,
+                quantity: sQty,
+              },
+            ],
+          })
+        } else {
+          const existing = map.get(sKey)!
+          existing.totalQuantity += sQty
+          existing.directCost += sDirectCost
+          existing.salePrice += sSalePrice
+          existing.serviceOccurrences.push({
+            stageCode: stage.code,
+            stageName: stage.name,
+            serviceCode: service.code,
+            serviceDescription: service.description,
+            quantity: sQty,
+          })
+        }
+        return
+      }
+
+      // MODO INSUMOS:
       const hasInputs =
         service.composition &&
         Array.isArray(service.composition.inputs) &&
         service.composition.inputs.length > 0
 
-      // Se o serviço tiver preço manual e NÃO tiver insumos, entra na Curva ABC como serviço de terceiro/item direto
+      // Se o serviço não tiver insumos na CPU (ou tiver preço manual sem insumos),
+      // entra na Curva ABC como serviço de terceiro/item direto proporcional
       if (!hasInputs && (Number(service.unitPrice) || 0) > 0) {
-        const key = `SERV-${service.code}`.toUpperCase()
-        const unitCost = Number(service.unitPrice) || 0
-        const itemTotalCost = unitCost * sQty
+        const sUnitCost = getServiceEffectiveUnitCost(service, laborMultiplier)
+        const sDirectCost = Number((sUnitCost * sQty).toFixed(2))
+        const sSalePrice = Number((sDirectCost * bdiMultiplier).toFixed(2))
+        const key = `SERV-${service.code || service.id}`.toUpperCase()
 
         if (!map.has(key)) {
           map.set(key, {
+            key,
             code: service.code || 'SRV',
             description: service.description,
             category: 'servico_terceiro',
             unit: service.unit || 'un',
-            unitCost,
             totalQuantity: sQty,
-            totalCost: itemTotalCost,
+            directCost: sDirectCost,
+            salePrice: sSalePrice,
             serviceOccurrences: [
               {
                 stageCode: stage.code,
@@ -118,10 +194,8 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
         } else {
           const existing = map.get(key)!
           existing.totalQuantity += sQty
-          existing.totalCost += itemTotalCost
-          if (existing.totalQuantity > 0) {
-            existing.unitCost = existing.totalCost / existing.totalQuantity
-          }
+          existing.directCost += sDirectCost
+          existing.salePrice += sSalePrice
           existing.serviceOccurrences.push({
             stageCode: stage.code,
             stageName: stage.name,
@@ -135,30 +209,52 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
 
       if (!service.composition?.inputs) return
 
+      // Trata serviço que possui insumos
+      // Se a fonte for 'Usuário' e o preço manual diferir da soma dos insumos,
+      // calculamos o custo real de cada insumo preservando a proporção
+      const breakdown = getServiceCostBreakdown(service)
+      const isUserManual = service.unitPriceSource === 'Usuário'
+
+      // Se o usuário fixou o preço manualmente no serviço e há insumos,
+      // calcula o fator de escala do preço manual sobre o custo base dos insumos
+      let manualScaleFactor = 1.0
+      if (isUserManual && breakdown.baseDirectCost > 0) {
+        const rawInputsSum = service.composition.inputs.reduce((acc, inp) => {
+          const coeff = Number(inp.coefficient) || 0
+          const uCost = Number(inp.unitCost) || 0
+          return acc + coeff * uCost * sQty
+        }, 0)
+        if (rawInputsSum > 0) {
+          manualScaleFactor = breakdown.baseDirectCost / rawInputsSum
+        }
+      }
+
       service.composition.inputs.forEach((input) => {
-        const key = input.code
-          ? input.code.trim().toUpperCase()
-          : input.description.trim().toUpperCase()
+        const rawCode = input.code ? input.code.trim().toUpperCase() : ''
+        const rawDesc = input.description.trim().toUpperCase()
+        const key = rawCode || rawDesc
         const coef = Number(input.coefficient) || 0
         let baseUnitCost = Number(input.unitCost) || 0
 
-        // Se mão de obra, reflete os encargos sociais reais vigentes
+        // Se mão de obra, aplica os encargos sociais reais vigentes do orçamento
         if (input.category === 'mao_de_obra') {
           baseUnitCost = baseUnitCost * laborMultiplier
         }
 
         const consumedQuantity = coef * sQty
-        const itemTotalCost = consumedQuantity * baseUnitCost
+        const itemDirectCost = consumedQuantity * baseUnitCost * manualScaleFactor
+        const itemSalePrice = itemDirectCost * bdiMultiplier
 
         if (!map.has(key)) {
           map.set(key, {
+            key,
             code: input.code || 'S/COD',
             description: input.description,
             category: input.category,
             unit: input.unit || 'un',
-            unitCost: baseUnitCost,
             totalQuantity: consumedQuantity,
-            totalCost: itemTotalCost,
+            directCost: itemDirectCost,
+            salePrice: itemSalePrice,
             serviceOccurrences: [
               {
                 stageCode: stage.code,
@@ -172,11 +268,8 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
         } else {
           const existing = map.get(key)!
           existing.totalQuantity += consumedQuantity
-          existing.totalCost += itemTotalCost
-          // Média ponderada do custo unitário se houver variações
-          if (existing.totalQuantity > 0) {
-            existing.unitCost = existing.totalCost / existing.totalQuantity
-          }
+          existing.directCost += itemDirectCost
+          existing.salePrice += itemSalePrice
           existing.serviceOccurrences.push({
             stageCode: stage.code,
             stageName: stage.name,
@@ -189,24 +282,38 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
     })
   })
 
-  // 2. Ordena decrescente pelo custo total
-  const sorted = Array.from(map.values()).sort((a, b) => b.totalCost - a.totalCost)
+  // 4. Ordenação decrescente pelo valor avaliado
+  const rawItems = Array.from(map.values())
+  const sorted = rawItems.sort((a, b) => {
+    const valA = valueBasis === 'venda_bdi' ? a.salePrice : a.directCost
+    const valB = valueBasis === 'venda_bdi' ? b.salePrice : b.directCost
+    return valB - valA
+  })
 
-  const totalDirectCost = sorted.reduce((acc, it) => acc + it.totalCost, 0)
+  const totalDirectCost = Number(rawItems.reduce((acc, it) => acc + it.directCost, 0).toFixed(2))
+  const totalSalePrice = Number(rawItems.reduce((acc, it) => acc + it.salePrice, 0).toFixed(2))
 
-  // 3. Calcula percentuais acumulados e classificação A, B, C
-  let accumulatedCost = 0
+  const totalAnalyzedValue = valueBasis === 'venda_bdi' ? totalSalePrice : totalDirectCost
+
+  // 5. Cálculo acumulado e classificação rigorosa de Pareto (80% / 95%)
+  let accumulatedValue = 0
 
   const allItems: AbcCalculatedItem[] = sorted.map((item, index) => {
-    accumulatedCost += item.totalCost
-    const percentageOfTotal = totalDirectCost > 0 ? (item.totalCost / totalDirectCost) * 100 : 0
-    const accumulatedPercentage =
-      totalDirectCost > 0 ? (accumulatedCost / totalDirectCost) * 100 : 0
+    const evaluatedValue = valueBasis === 'venda_bdi' ? item.salePrice : item.directCost
+    accumulatedValue += evaluatedValue
 
-    let classification: AbcClass = 'C'
-    // Limites de Pareto: Classe A até 80%, B até 95%, C restante
-    // Se o item anterior era < 80%, este item ainda faz parte ou encerra a transição para A
+    const percentageOfTotal =
+      totalAnalyzedValue > 0 ? (evaluatedValue / totalAnalyzedValue) * 100 : 0
+    const accumulatedPercentage =
+      totalAnalyzedValue > 0 ? (accumulatedValue / totalAnalyzedValue) * 100 : 0
+
+    // Limites clássicos da Engenharia de Custos:
+    // - Classe A: até 80% do valor total acumulado
+    // - Classe B: de 80% até 95%
+    // - Classe C: os 5% restantes
+    // O item que cruza a fronteira faz parte da classe anterior para fechar o corte (prevAccumulated < limite)
     const prevAccumulated = accumulatedPercentage - percentageOfTotal
+    let classification: AbcClass = 'C'
     if (prevAccumulated < 80) {
       classification = 'A'
     } else if (prevAccumulated < 95) {
@@ -215,15 +322,21 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
       classification = 'C'
     }
 
+    const unitCost = item.totalQuantity > 0 ? item.directCost / item.totalQuantity : 0
+    const unitSalePrice = item.totalQuantity > 0 ? item.salePrice / item.totalQuantity : 0
+
     return {
-      id: `abc-${index + 1}-${item.code.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+      id: `abc-${index + 1}-${item.code.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'item'}`,
       code: item.code,
       description: item.description,
       category: item.category,
       unit: item.unit,
       totalQuantity: Number(item.totalQuantity.toFixed(3)),
-      unitCost: Number(item.unitCost.toFixed(2)),
-      totalCost: Number(item.totalCost.toFixed(2)),
+      unitCost: Number(unitCost.toFixed(2)),
+      totalCost: Number(item.directCost.toFixed(2)),
+      unitSalePrice: Number(unitSalePrice.toFixed(2)),
+      totalSalePrice: Number(item.salePrice.toFixed(2)),
+      evaluatedValue: Number(evaluatedValue.toFixed(2)),
       percentageOfTotal: Number(percentageOfTotal.toFixed(2)),
       accumulatedPercentage: Number(accumulatedPercentage.toFixed(2)),
       classification,
@@ -233,32 +346,50 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
     }
   })
 
-  // 4. Separação em blocos A, B e C
+  // 6. Separação por Classes A, B e C
   const classAItems = allItems.filter((i) => i.classification === 'A')
   const classBItems = allItems.filter((i) => i.classification === 'B')
   const classCItems = allItems.filter((i) => i.classification === 'C')
 
   const totalItemsCount = allItems.length
 
-  const sumCost = (list: AbcCalculatedItem[]) => list.reduce((acc, it) => acc + it.totalCost, 0)
+  const sumDirect = (list: AbcCalculatedItem[]) => list.reduce((acc, it) => acc + it.totalCost, 0)
+  const sumSale = (list: AbcCalculatedItem[]) =>
+    list.reduce((acc, it) => acc + it.totalSalePrice, 0)
+  const sumEvaluated = (list: AbcCalculatedItem[]) =>
+    list.reduce((acc, it) => acc + it.evaluatedValue, 0)
 
-  const classACost = sumCost(classAItems)
-  const classBCost = sumCost(classBItems)
-  const classCCost = sumCost(classCItems)
+  const classACost = sumDirect(classAItems)
+  const classBCost = sumDirect(classBItems)
+  const classCCost = sumDirect(classCItems)
+
+  const classASale = sumSale(classAItems)
+  const classBSale = sumSale(classBItems)
+  const classCSale = sumSale(classCItems)
+
+  const classAEval = sumEvaluated(classAItems)
+  const classBEval = sumEvaluated(classBItems)
+  const classCEval = sumEvaluated(classCItems)
 
   return {
     budgetId: budget.id,
     budgetCode: budget.code,
-    budgetName: budget.work.name,
-    totalDirectCost: Number(totalDirectCost.toFixed(2)),
+    budgetName: budget.work?.name || budget.title || 'Orçamento de Engenharia',
+    mode,
+    valueBasis,
+    totalAnalyzedValue: Number(totalAnalyzedValue.toFixed(2)),
+    totalDirectCost,
+    totalSalePrice,
     totalItemsCount,
     classA: {
       itemsCount: classAItems.length,
       percentageOfItems:
         totalItemsCount > 0 ? Number(((classAItems.length / totalItemsCount) * 100).toFixed(1)) : 0,
       totalCost: Number(classACost.toFixed(2)),
+      totalSalePrice: Number(classASale.toFixed(2)),
+      evaluatedValue: Number(classAEval.toFixed(2)),
       percentageOfCost:
-        totalDirectCost > 0 ? Number(((classACost / totalDirectCost) * 100).toFixed(1)) : 0,
+        totalAnalyzedValue > 0 ? Number(((classAEval / totalAnalyzedValue) * 100).toFixed(1)) : 0,
       items: classAItems,
     },
     classB: {
@@ -266,8 +397,10 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
       percentageOfItems:
         totalItemsCount > 0 ? Number(((classBItems.length / totalItemsCount) * 100).toFixed(1)) : 0,
       totalCost: Number(classBCost.toFixed(2)),
+      totalSalePrice: Number(classBSale.toFixed(2)),
+      evaluatedValue: Number(classBEval.toFixed(2)),
       percentageOfCost:
-        totalDirectCost > 0 ? Number(((classBCost / totalDirectCost) * 100).toFixed(1)) : 0,
+        totalAnalyzedValue > 0 ? Number(((classBEval / totalAnalyzedValue) * 100).toFixed(1)) : 0,
       items: classBItems,
     },
     classC: {
@@ -275,8 +408,10 @@ export function computeAbcCurve(budget: FullBudget): AbcCurveAnalysis {
       percentageOfItems:
         totalItemsCount > 0 ? Number(((classCItems.length / totalItemsCount) * 100).toFixed(1)) : 0,
       totalCost: Number(classCCost.toFixed(2)),
+      totalSalePrice: Number(classCSale.toFixed(2)),
+      evaluatedValue: Number(classCEval.toFixed(2)),
       percentageOfCost:
-        totalDirectCost > 0 ? Number(((classCCost / totalDirectCost) * 100).toFixed(1)) : 0,
+        totalAnalyzedValue > 0 ? Number(((classCEval / totalAnalyzedValue) * 100).toFixed(1)) : 0,
       items: classCItems,
     },
     allItems,

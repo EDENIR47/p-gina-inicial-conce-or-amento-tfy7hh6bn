@@ -8,15 +8,24 @@ import { BudgetInput, InputCategory, FullBudget } from './budgetEngine'
 // 1. Curva ABC (Pareto)
 export type AbcClass = 'A' | 'B' | 'C'
 
+export type AbcAnalysisMode = 'insumos' | 'servicos'
+export type AbcValueBasis = 'venda_bdi' | 'custo_direto'
+
 export interface AbcCalculatedItem {
   id: string
   code: string
   description: string
-  category: InputCategory
+  category: InputCategory | 'servico'
   unit: string
   totalQuantity: number
+  // Custo Direto de Referência
   unitCost: number
   totalCost: number
+  // Valor de Venda com BDI (Padrão CONCE)
+  unitSalePrice: number
+  totalSalePrice: number
+  // Valor base utilizado na classificação (Venda c/ BDI por padrão, ou Custo Direto se alternado)
+  evaluatedValue: number
   percentageOfTotal: number
   accumulatedPercentage: number
   classification: AbcClass
@@ -35,12 +44,18 @@ export interface AbcCurveAnalysis {
   budgetId: string
   budgetCode: string
   budgetName: string
+  mode: AbcAnalysisMode
+  valueBasis: AbcValueBasis
+  totalAnalyzedValue: number
   totalDirectCost: number
+  totalSalePrice: number
   totalItemsCount: number
   classA: {
     itemsCount: number
     percentageOfItems: number
     totalCost: number
+    totalSalePrice: number
+    evaluatedValue: number
     percentageOfCost: number
     items: AbcCalculatedItem[]
   }
@@ -48,6 +63,8 @@ export interface AbcCurveAnalysis {
     itemsCount: number
     percentageOfItems: number
     totalCost: number
+    totalSalePrice: number
+    evaluatedValue: number
     percentageOfCost: number
     items: AbcCalculatedItem[]
   }
@@ -55,6 +72,8 @@ export interface AbcCurveAnalysis {
     itemsCount: number
     percentageOfItems: number
     totalCost: number
+    totalSalePrice: number
+    evaluatedValue: number
     percentageOfCost: number
     items: AbcCalculatedItem[]
   }

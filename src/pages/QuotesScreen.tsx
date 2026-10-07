@@ -28,7 +28,7 @@ import {
   Download,
   Calendar,
 } from 'lucide-react'
-import { FullBudget } from '@/types/budgetEngine'
+import { FullBudget, InputCategory } from '@/types/budgetEngine'
 import { InputQuoteComparison } from '@/types/intelligence'
 import { getStoredFullBudgets, purgeTestBudgetsFromStorage } from '@/lib/budgetsStorage'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
@@ -106,13 +106,16 @@ export const QuotesScreen: React.FC = () => {
 
   const handleCreateNewQuoteForInput = (item: (typeof availableClassAInputs)[0]) => {
     if (!activeBudget) return
+    const resolvedCategory: InputCategory =
+      item.category === 'servico' ? 'servico_terceiro' : item.category
+
     const newComp: InputQuoteComparison = {
       id: `quote-${activeBudget.id}-${item.code}-${Date.now()}`,
       budgetId: activeBudget.id,
       inputCode: item.code,
       inputDescription: item.description,
       unit: item.unit,
-      category: item.category,
+      category: resolvedCategory,
       budgetedUnitCost: item.unitCost,
       requiredQuantity: item.totalQuantity,
       quotes: [],
