@@ -1,24 +1,23 @@
 /**
  * CONCE — Serviço de Engenharia e Consultoria LTDA
- * Tela Completa da Curva ABC (Princípio de Pareto)
+ * Tela Completa da Curva ABC (Princípio de Pareto) — Reconstrução Limpa
  *
- * Funcionalidades Avançadas e Integridade de Custos:
- * - Padrão CONCE: Valor de Venda com BDI (reflete fielmente o orçamento comercial do cliente)
- * - Alternância opcional para Custo Direto (com encargos sociais de acordo com o regime tributário)
- * - Visão dupla: Curva ABC de Insumos (Materiais/Mão de Obra/Equipamentos) e Curva ABC de Serviços
- * - Exibição explícita de Custo Direto vs. Venda c/ BDI na tabela analítica
- * - Classificação rigorosa de Pareto (Engenharia de Custos):
- *     Classe A: até ~80% do valor acumulado
- *     Classe B: de ~80% a ~95%
- *     Classe C: os 5% restantes
- * - Destaque visual Pumpkin Orange para Classe A
- * - Filtros rápidos por Categoria e por Classe (A, B, C)
- * - Busca instantânea e modal de cotação integrado
+ * Funcionalidades Técnicas e Integridade de Custos:
+ * - Alternância Insumos × Serviços
+ * - Alternância de Base: Valor de Venda com BDI (Padrão CONCE) × Custo Direto (com encargos sociais reais)
+ * - Tabela analítica com colunas comparativas explícitas:
+ *     Rank, Classe, Código, Descrição, Categoria, Qtd Total, Custo Direto, Venda c/ BDI, Valor Base, % Parcela, % Acumulado
+ * - Painéis de totais e concentração por Classe A (~80%), Classe B (~80-95%) e Classe C (restante)
+ * - Barra visual de distribuição cumulativa
+ * - Busca textual e filtros por Classe e por Categoria de insumo
+ * - Auditoria expansível por item: lista completa de ocorrências com etapa, serviço e quantidade calculada
+ * - Exportação para planilha CSV analítica
+ * - Integração direta com mapa de cotações
+ * - Zero menções a IA
  */
 
 import React, { useState, useMemo } from 'react'
 import {
-  Layers,
   Search,
   Award,
   TrendingUp,
@@ -28,10 +27,12 @@ import {
   DollarSign,
   Briefcase,
   Package,
+  FileCheck2,
 } from 'lucide-react'
 import { FullBudget } from '@/types/budgetEngine'
 import { AbcCalculatedItem, AbcAnalysisMode, AbcValueBasis } from '@/types/intelligence'
 import { computeAbcCurve } from '@/lib/abcAnalysis'
+import { calculateFullBudget } from '@/lib/budgetEngine'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
 import { QuoteComparisonModal } from '@/components/budget/QuoteComparisonModal'
@@ -52,7 +53,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
   const [categoryFilter, setCategoryFilter] = useState<string>('todos')
   const [classFilter, setClassFilter] = useState<string>('todos')
   const [searchTerm, setSearchTerm] = useState('')
-  const [expandedItem, setExpandedItem] = useState<string | null>(null)
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
 
   // Modal de Cotação
   const [selectedQuoteComparison, setSelectedQuoteComparison] = useState<any | null>(null)
@@ -68,12 +69,17 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
     [budget, analysisMode, valueBasis],
   )
 
+  // Resumo oficial do orçamento para validação de fechamento 100%
+  const budgetSummary = useMemo(() => calculateFullBudget(budget), [budget])
+
   // Filtragem dos itens da lista
   const filteredItems = useMemo(() => {
     return abc.allItems.filter((item) => {
+      const term = searchTerm.toLowerCase().trim()
       const matchesSearch =
-        item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.code.toLowerCase().includes(searchTerm.toLowerCase())
+        term === '' ||
+        item.description.toLowerCase().includes(term) ||
+        item.code.toLowerCase().includes(term)
 
       const matchesCat = categoryFilter === 'todos' || item.category === categoryFilter
       const matchesClass = classFilter === 'todos' || item.classification === classFilter
@@ -82,7 +88,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
     })
   }, [abc.allItems, searchTerm, categoryFilter, classFilter])
 
-  // Abertura rápida do comparativo de cotação para o insumo
+  // Abertura do comparativo de cotação para o insumo
   const handleOpenQuoteForInput = (item: AbcCalculatedItem) => {
     const existingQuotes = getStoredQuotes(budget.id)
     let comp = existingQuotes.find((q) => q.inputCode === item.code)
@@ -105,6 +111,13 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
 
   const isBasisBdi = valueBasis === 'venda_bdi'
 
+  // Verificação de fechamento com os totais do orçamento
+  const targetBudgetTotal = isBasisBdi
+    ? budgetSummary.finalSalePrice
+    : budgetSummary.totalDirectCost
+  const closureDifference = Math.abs(abc.totalAnalyzedValue - targetBudgetTotal)
+  const isPerfectClosure = closureDifference <= 0.05
+
   return (
     <div className="space-y-6 animate-fade-in pb-8">
       {/* Cabeçalho da Curva ABC */}
@@ -113,7 +126,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full bg-[#FF6B1F]/15 text-[#FF6B1F] text-xs font-bold uppercase tracking-wider flex items-center gap-1">
               <Award className="w-3.5 h-3.5" />
-              Inteligência de Custos • Princípio de Pareto
+              Engenharia de Custos • Princípio de Pareto
             </span>
             <span className="text-xs text-[#171A1F]/50 hidden sm:inline">
               • Orçamento: <strong>{budget.code}</strong> — {budget.title || budget.work.name}
@@ -125,9 +138,8 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
           </h2>
 
           <p className="text-xs sm:text-sm text-[#171A1F]/70 mt-0.5">
-            Classificação rigorosa em <strong>Classe A</strong> (~80% do valor),{' '}
-            <strong>Classe B</strong> (~80–95%) e <strong>Classe C</strong> (demais itens). Base
-            ativa:{' '}
+            Classificação rigorosa em <strong>Classe A</strong> (até 80%), <strong>Classe B</strong>{' '}
+            (80% a 95%) e <strong>Classe C</strong> (restante). Base ativa:{' '}
             <strong className="text-[#FF6B1F]">
               {isBasisBdi ? 'Valor de Venda com BDI (Padrão CONCE)' : 'Custo Direto'}
             </strong>
@@ -135,7 +147,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
           </p>
         </div>
 
-        {/* Controles de Modo e Base de Valor */}
+        {/* Controles de Modo, Base de Valor e Exportação */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Seletor de Modo: Insumos vs Serviços */}
           <div className="inline-flex rounded-xl p-1 bg-[#171A1F]/5 border border-[#171A1F]/10 text-xs font-bold">
@@ -150,7 +162,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
                   ? 'bg-[#294C87] text-white shadow-xs'
                   : 'text-[#171A1F]/70 hover:text-[#171A1F]'
               }`}
-              title="Curva ABC consolidada por Insumos (materiais, mão de obra, equipamentos)"
+              title="Curva ABC consolidada por Insumos (materiais, mão de obra, equipamentos, terceiros)"
             >
               <Package className="w-3.5 h-3.5 text-[#FF6B1F]" />
               <span>Insumos</span>
@@ -206,7 +218,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
             type="button"
             onClick={() => exportBudgetSpreadsheet(budget, 'abc')}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-[#171A1F]/20 hover:border-[#294C87] text-xs font-bold text-[#171A1F] transition-all shadow-xs cursor-pointer"
-            title="Exportar planilha analítica da Curva ABC em CSV"
+            title="Exportar planilha analítica da Curva ABC em formato CSV"
           >
             <Download className="w-3.5 h-3.5 text-[#294C87]" />
             <span className="hidden sm:inline">Exportar CSV</span>
@@ -214,7 +226,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
         </div>
       </div>
 
-      {/* PAINEL DE METAS E CONCENTRAÇÃO PARETO */}
+      {/* PAINEL DE CONCENTRAÇÃO PARETO (CLASSES A, B E C) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* CLASSE A - DESTAQUE EM PUMPKIN ORANGE */}
         <div className="p-5 rounded-2xl bg-gradient-to-br from-[#FF6B1F]/15 via-white to-white border-2 border-[#FF6B1F] shadow-[0_4px_20px_rgba(255,107,31,0.12)] space-y-3 relative overflow-hidden">
@@ -258,7 +270,9 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
 
           <div className="pt-2 border-t border-[#FF6B1F]/20 text-[11px] text-[#FF6B1F] font-semibold flex items-center gap-1">
             <Award className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Foco prioritário da CONCE para cotações e negociação direta.</span>
+            <span>
+              Foco prioritário da CONCE para cotações e negociação direta de fornecedores.
+            </span>
           </div>
         </div>
 
@@ -270,7 +284,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
                 B
               </span>
               <h3 className="font-extrabold text-sm sm:text-base text-[#171A1F]">
-                Classe B • Atenção Moderada
+                Classe B • Atenção Intermediária
               </h3>
             </div>
             <span className="font-mono text-xs font-extrabold text-[#294C87] px-2 py-0.5 rounded bg-[#294C87]/10">
@@ -344,19 +358,19 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
           </div>
 
           <div className="pt-2 border-t border-[#171A1F]/10 text-[11px] text-[#171A1F]/60">
-            Itens de menor valor individual, consumo sob demanda e almoxarifado.
+            Itens de menor valor individual, compras de almoxarifado sob demanda.
           </div>
         </div>
       </div>
 
-      {/* BARRA VISUAL DE DISTRIBUIÇÃO ACUMULADA */}
+      {/* BARRA DE DISTRIBUIÇÃO ACUMULADA E VALIDAÇÃO DE FECHAMENTO 100% */}
       <div className="bg-white p-4 rounded-xl border border-[#171A1F]/10 space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs font-bold text-[#171A1F]">
           <span className="flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-[#FF6B1F]" />
             Curva de Distribuição Cumulativa ({isBasisBdi ? 'Venda com BDI' : 'Custo Direto'})
           </span>
-          <div className="flex items-center gap-3 font-mono text-xs text-[#171A1F]/70">
+          <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-[#171A1F]/70">
             <span>
               Total Analisado:{' '}
               <strong className="text-[#FF6B1F]">
@@ -371,12 +385,18 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
             <span>
               Venda c/ BDI: <strong>{formatCurrencyBRL(abc.totalSalePrice)}</strong>
             </span>
+            {isPerfectClosure && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+                <FileCheck2 className="w-3 h-3 text-emerald-600" />
+                Fechamento 100%
+              </span>
+            )}
           </div>
         </div>
 
         <div className="h-4 w-full bg-[#171A1F]/10 rounded-full overflow-hidden flex shadow-inner">
           <div
-            style={{ width: `${abc.classA.percentageOfCost}%` }}
+            style={{ width: `${Math.min(100, abc.classA.percentageOfCost)}%` }}
             className="h-full bg-[#FF6B1F] flex items-center justify-center text-[10px] font-extrabold text-white"
             title={`Classe A: ${abc.classA.percentageOfCost}%`}
           >
@@ -384,7 +404,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
           </div>
 
           <div
-            style={{ width: `${abc.classB.percentageOfCost}%` }}
+            style={{ width: `${Math.min(100, abc.classB.percentageOfCost)}%` }}
             className="h-full bg-[#294C87] border-l border-white/40 flex items-center justify-center text-[10px] font-bold text-white"
             title={`Classe B: ${abc.classB.percentageOfCost}%`}
           >
@@ -392,7 +412,7 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
           </div>
 
           <div
-            style={{ width: `${abc.classC.percentageOfCost}%` }}
+            style={{ width: `${Math.min(100, abc.classC.percentageOfCost)}%` }}
             className="h-full bg-[#171A1F] border-l border-white/40 flex items-center justify-center text-[10px] font-bold text-white"
             title={`Classe C: ${abc.classC.percentageOfCost}%`}
           >
@@ -443,12 +463,13 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
               <option value="mao_de_obra">Mão de Obra</option>
               <option value="equipamento">Equipamentos</option>
               <option value="servico_terceiro">Terceiros</option>
+              <option value="outros">Outros</option>
             </select>
           </div>
         )}
       </div>
 
-      {/* TABELA PRINCIPAL DA CURVA ABC */}
+      {/* TABELA ANALÍTICA PRINCIPAL */}
       <div className="bg-white rounded-2xl border border-[#171A1F]/15 shadow-xs overflow-hidden">
         <div className="p-4 bg-[#171A1F] text-white flex items-center justify-between">
           <span className="font-extrabold text-xs sm:text-sm uppercase tracking-wider">
@@ -487,184 +508,197 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#171A1F]/10">
-              {filteredItems.map((item) => {
-                const isClassA = item.classification === 'A'
-                const isExpanded = expandedItem === item.id
+              {filteredItems.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={analysisMode === 'insumos' ? 12 : 11}
+                    className="py-12 text-center text-[#171A1F]/50"
+                  >
+                    Nenhum item encontrado com os filtros aplicados.
+                  </td>
+                </tr>
+              ) : (
+                filteredItems.map((item) => {
+                  const isClassA = item.classification === 'A'
+                  const isExpanded = expandedItemId === item.id
 
-                return (
-                  <React.Fragment key={item.id}>
-                    <tr
-                      className={`transition-colors ${
-                        isClassA
-                          ? 'bg-[#FF6B1F]/[0.08] hover:bg-[#FF6B1F]/[0.13] font-medium'
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      {/* Rank */}
-                      <td className="py-3 px-3 text-center">
-                        <span
-                          className={`w-6 h-6 rounded-full inline-flex items-center justify-center font-bold text-xs ${
-                            isClassA
-                              ? 'bg-[#FF6B1F] text-white shadow-xs'
-                              : 'bg-[#171A1F]/10 text-[#171A1F]'
-                          }`}
-                        >
-                          {item.rank}
-                        </span>
-                      </td>
-
-                      {/* Classe */}
-                      <td className="py-3 px-3 text-center">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-                            item.classification === 'A'
-                              ? 'bg-[#FF6B1F] text-white'
-                              : item.classification === 'B'
-                                ? 'bg-[#294C87] text-white'
-                                : 'bg-[#171A1F]/20 text-[#171A1F]'
-                          }`}
-                        >
-                          Classe {item.classification}
-                        </span>
-                      </td>
-
-                      {/* Código */}
-                      <td className="py-3 px-3 font-mono font-bold text-[11px] text-[#294C87]">
-                        {item.code}
-                      </td>
-
-                      {/* Descrição */}
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-[#171A1F] text-xs sm:text-sm">
-                          {item.description}
-                        </div>
-                        {item.servicesCount > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setExpandedItem(isExpanded ? null : item.id)}
-                            className="text-[10px] text-[#294C87] hover:underline font-semibold flex items-center gap-1 mt-0.5 cursor-pointer"
-                          >
-                            <span>
-                              {analysisMode === 'servicos'
-                                ? `Presente em ${item.servicesCount} etapa(s)`
-                                : `Presente em ${item.servicesCount} serviço(s)`}
-                            </span>
-                            <ChevronDown
-                              className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                            />
-                          </button>
-                        )}
-                      </td>
-
-                      {/* Categoria */}
-                      {analysisMode === 'insumos' && (
-                        <td className="py-3 px-3 uppercase text-[10px] font-semibold text-[#171A1F]/60">
-                          {item.category.replace('_', ' ')}
-                        </td>
-                      )}
-
-                      {/* Quantidade Total */}
-                      <td className="py-3 px-3 text-right font-mono text-[11px] whitespace-nowrap">
-                        {item.totalQuantity.toLocaleString('pt-BR', {
-                          minimumFractionDigits: Number.isInteger(item.totalQuantity) ? 0 : 1,
-                          maximumFractionDigits: 3,
-                        })}{' '}
-                        {item.unit}
-                      </td>
-
-                      {/* Custo Direto */}
-                      <td className="py-3 px-3 text-right font-mono text-[11px] text-[#171A1F]/80">
-                        {formatCurrencyBRL(item.totalCost)}
-                        <span className="block text-[9px] text-[#171A1F]/50">
-                          {formatCurrencyBRL(item.unitCost)}/{item.unit}
-                        </span>
-                      </td>
-
-                      {/* Venda c/ BDI */}
-                      <td className="py-3 px-3 text-right font-mono text-[11px] text-[#294C87] font-semibold">
-                        {formatCurrencyBRL(item.totalSalePrice)}
-                        <span className="block text-[9px] text-[#294C87]/70">
-                          {formatCurrencyBRL(item.unitSalePrice)}/{item.unit}
-                        </span>
-                      </td>
-
-                      {/* Valor Base Utilizado no Ranking */}
-                      <td className="py-3 px-3 text-right font-mono font-bold text-xs sm:text-sm bg-[#FF6B1F]/5 text-[#171A1F]">
-                        {formatCurrencyBRL(item.evaluatedValue)}
-                      </td>
-
-                      {/* % Parcela */}
-                      <td className="py-3 px-2 text-right font-mono text-[11px] font-semibold text-[#171A1F]/70">
-                        {item.percentageOfTotal.toFixed(1)}%
-                      </td>
-
-                      {/* % Acumulado */}
-                      <td
-                        className={`py-3 px-3 text-right font-mono font-extrabold text-xs ${
-                          isClassA ? 'text-[#FF6B1F]' : 'text-[#294C87]'
+                  return (
+                    <React.Fragment key={item.id}>
+                      <tr
+                        className={`transition-colors ${
+                          isClassA
+                            ? 'bg-[#FF6B1F]/[0.08] hover:bg-[#FF6B1F]/[0.13] font-medium'
+                            : 'hover:bg-gray-50'
                         }`}
                       >
-                        {item.accumulatedPercentage.toFixed(1)}%
-                      </td>
+                        {/* Rank */}
+                        <td className="py-3 px-3 text-center">
+                          <span
+                            className={`w-6 h-6 rounded-full inline-flex items-center justify-center font-bold text-xs ${
+                              isClassA
+                                ? 'bg-[#FF6B1F] text-white shadow-xs'
+                                : 'bg-[#171A1F]/10 text-[#171A1F]'
+                            }`}
+                          >
+                            {item.rank}
+                          </span>
+                        </td>
 
-                      {/* Ações */}
-                      <td className="py-3 px-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenQuoteForInput(item)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-[10px] font-bold transition-all shadow-xs active:scale-95 cursor-pointer whitespace-nowrap"
-                          title="Abrir mapa de cotações para este item"
-                        >
-                          <ShoppingBag className="w-3 h-3" />
-                          <span>Cotar</span>
-                        </button>
-                      </td>
-                    </tr>
+                        {/* Classe */}
+                        <td className="py-3 px-3 text-center">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                              item.classification === 'A'
+                                ? 'bg-[#FF6B1F] text-white'
+                                : item.classification === 'B'
+                                  ? 'bg-[#294C87] text-white'
+                                  : 'bg-[#171A1F]/20 text-[#171A1F]'
+                            }`}
+                          >
+                            Classe {item.classification}
+                          </span>
+                        </td>
 
-                    {/* Expansão com os serviços onde o insumo é consumido */}
-                    {isExpanded && (
-                      <tr className="bg-gray-100/80">
-                        <td colSpan={analysisMode === 'insumos' ? 12 : 11} className="py-3 px-6">
-                          <div className="space-y-1.5 text-xs">
-                            <span className="font-bold text-[#171A1F] block text-[11px] uppercase tracking-wider">
-                              {analysisMode === 'servicos'
-                                ? 'Apropriação do serviço nas etapas da obra:'
-                                : 'Apropriação do insumo nas composições do orçamento:'}
-                            </span>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {item.serviceOccurrences.map((occ, idx) => (
-                                <div
-                                  key={idx}
-                                  className="p-2.5 rounded-lg bg-white border border-[#171A1F]/10 flex items-center justify-between text-xs"
-                                >
-                                  <div>
-                                    <span className="font-mono font-bold text-[#294C87] mr-1.5">
-                                      {occ.serviceCode}
-                                    </span>
-                                    <span className="text-[#171A1F] font-medium">
-                                      {occ.serviceDescription}
-                                    </span>
-                                    <span className="block text-[10px] text-[#171A1F]/50">
-                                      Etapa {occ.stageCode}: {occ.stageName}
-                                    </span>
-                                  </div>
-                                  <span className="font-mono font-bold text-[#FF6B1F] text-xs whitespace-nowrap ml-2">
-                                    {occ.quantity.toLocaleString('pt-BR', {
-                                      minimumFractionDigits: Number.isInteger(occ.quantity) ? 0 : 1,
-                                      maximumFractionDigits: 3,
-                                    })}{' '}
-                                    {item.unit}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
+                        {/* Código */}
+                        <td className="py-3 px-3 font-mono font-bold text-[11px] text-[#294C87]">
+                          {item.code}
+                        </td>
+
+                        {/* Descrição */}
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-[#171A1F] text-xs sm:text-sm">
+                            {item.description}
                           </div>
+                          {item.servicesCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+                              className="text-[10px] text-[#294C87] hover:underline font-semibold flex items-center gap-1 mt-0.5 cursor-pointer"
+                            >
+                              <span>
+                                {analysisMode === 'servicos'
+                                  ? `Presente em ${item.servicesCount} etapa(s)`
+                                  : `Presente em ${item.servicesCount} serviço(s)`}
+                              </span>
+                              <ChevronDown
+                                className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              />
+                            </button>
+                          )}
+                        </td>
+
+                        {/* Categoria */}
+                        {analysisMode === 'insumos' && (
+                          <td className="py-3 px-3 uppercase text-[10px] font-semibold text-[#171A1F]/60">
+                            {item.category.replace('_', ' ')}
+                          </td>
+                        )}
+
+                        {/* Quantidade Total */}
+                        <td className="py-3 px-3 text-right font-mono text-[11px] whitespace-nowrap">
+                          {item.totalQuantity.toLocaleString('pt-BR', {
+                            minimumFractionDigits: Number.isInteger(item.totalQuantity) ? 0 : 1,
+                            maximumFractionDigits: 3,
+                          })}{' '}
+                          {item.unit}
+                        </td>
+
+                        {/* Custo Direto */}
+                        <td className="py-3 px-3 text-right font-mono text-[11px] text-[#171A1F]/80">
+                          {formatCurrencyBRL(item.totalCost)}
+                          <span className="block text-[9px] text-[#171A1F]/50">
+                            {formatCurrencyBRL(item.unitCost)}/{item.unit}
+                          </span>
+                        </td>
+
+                        {/* Venda c/ BDI */}
+                        <td className="py-3 px-3 text-right font-mono text-[11px] text-[#294C87] font-semibold">
+                          {formatCurrencyBRL(item.totalSalePrice)}
+                          <span className="block text-[9px] text-[#294C87]/70">
+                            {formatCurrencyBRL(item.unitSalePrice)}/{item.unit}
+                          </span>
+                        </td>
+
+                        {/* Valor Base Utilizado no Ranking */}
+                        <td className="py-3 px-3 text-right font-mono font-bold text-xs sm:text-sm bg-[#FF6B1F]/5 text-[#171A1F]">
+                          {formatCurrencyBRL(item.evaluatedValue)}
+                        </td>
+
+                        {/* % Parcela */}
+                        <td className="py-3 px-2 text-right font-mono text-[11px] font-semibold text-[#171A1F]/70">
+                          {item.percentageOfTotal.toFixed(1)}%
+                        </td>
+
+                        {/* % Acumulado */}
+                        <td
+                          className={`py-3 px-3 text-right font-mono font-extrabold text-xs ${
+                            isClassA ? 'text-[#FF6B1F]' : 'text-[#294C87]'
+                          }`}
+                        >
+                          {item.accumulatedPercentage.toFixed(1)}%
+                        </td>
+
+                        {/* Ações */}
+                        <td className="py-3 px-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenQuoteForInput(item)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-[10px] font-bold transition-all shadow-xs active:scale-95 cursor-pointer whitespace-nowrap"
+                            title="Abrir mapa de cotações para este item"
+                          >
+                            <ShoppingBag className="w-3 h-3" />
+                            <span>Cotar</span>
+                          </button>
                         </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                )
-              })}
+
+                      {/* Expansão com a auditoria de todas as ocorrências de serviços */}
+                      {isExpanded && (
+                        <tr className="bg-gray-100/80">
+                          <td colSpan={analysisMode === 'insumos' ? 12 : 11} className="py-3 px-6">
+                            <div className="space-y-1.5 text-xs">
+                              <span className="font-bold text-[#171A1F] block text-[11px] uppercase tracking-wider">
+                                {analysisMode === 'servicos'
+                                  ? 'Apropriação do serviço nas etapas da obra:'
+                                  : 'Apropriação do insumo nas composições do orçamento:'}
+                              </span>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {item.serviceOccurrences.map((occ, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="p-2.5 rounded-lg bg-white border border-[#171A1F]/10 flex items-center justify-between text-xs shadow-2xs"
+                                  >
+                                    <div>
+                                      <span className="font-mono font-bold text-[#294C87] mr-1.5">
+                                        {occ.serviceCode}
+                                      </span>
+                                      <span className="text-[#171A1F] font-medium">
+                                        {occ.serviceDescription}
+                                      </span>
+                                      <span className="block text-[10px] text-[#171A1F]/50">
+                                        Etapa {occ.stageCode}: {occ.stageName}
+                                      </span>
+                                    </div>
+                                    <span className="font-mono font-bold text-[#FF6B1F] text-xs whitespace-nowrap ml-2">
+                                      {occ.quantity.toLocaleString('pt-BR', {
+                                        minimumFractionDigits: Number.isInteger(occ.quantity)
+                                          ? 0
+                                          : 1,
+                                        maximumFractionDigits: 3,
+                                      })}{' '}
+                                      {item.unit}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -684,4 +718,5 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
     </div>
   )
 }
+
 export default AbcCurveScreen

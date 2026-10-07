@@ -1,26 +1,27 @@
 /**
  * CONCE — Serviço de Engenharia e Consultoria LTDA
- * Motor de Cálculo da Curva ABC (Princípio de Pareto)
+ * Motor de Cálculo da Curva ABC (Princípio de Pareto) — Reconstrução Limpa
  *
- * Suporta dois modos de análise técnica rigorosa:
- * 1. Análise por Insumos (Materiais, Mão de Obra, Equipamentos e Terceiros consolidados da obra)
- * 2. Análise por Serviços da Obra (Macrovisão do orçamento)
- *
- * Base de Valor (Regra CONCE):
- * - Padrão CONCE: Valor de Venda com BDI (reflete fielmente o orçamento comercial do cliente)
- * - Alternativo: Custo Direto (com encargos sociais de acordo com o regime tributário)
- *
- * Critérios Rigorosos de Classificação Pareto (Engenharia de Custos):
- * - Classe A: Itens que compõem o acumulado de até ~80% do valor total
- * - Classe B: Itens que compõem a faixa de 80% até ~95%
- * - Classe C: Os 5% restantes
- *
- * Tratamento de Fronteira:
- * O item que transpõe o limite (ex.: de 75% para 83%) é mantido na classe A porque encerra a transição
- * dos 80% de impacto (conforme prevAccumulated < 80).
+ * REGRAS DE CÁLCULO E ENGENHARIA DE CUSTOS RIGOROSAS:
+ * 1. Quantidade de cada insumo = Σ (coeficiente da CPU do insumo × quantidade do serviço onde aparece).
+ *    Todas as ocorrências do mesmo insumo se somam em UMA ÚNICA linha do ranking.
+ * 2. Consolidação de insumos homônimos: descrição normalizada idêntica (trim, maiúsculas, sem acentos,
+ *    espaços colapsados) funde linhas somando quantidade, custo direto e valor de venda,
+ *    mantendo a lista completa de ocorrências (etapa, serviço, quantidade) para auditoria.
+ *    Tratar "S/COD", "SEM CÓDIGO", "N/A", vazio como ausência de código.
+ *    Descrições diferentes NUNCA se fundem mesmo que compartilhem código genérico.
+ * 3. Insumos de mão de obra entram com o multiplicador real de encargos sociais do orçamento
+ *    (getBudgetLaborMultiplier: 1.0 no Simples Nacional, 1 + chargesRate / 100 nos regimes com/sem desoneração).
+ * 4. Serviços com preço manual / sem composição aparecem como item direto na curva (não são descartados),
+ *    garantindo que o total da curva feche 100% com o total correspondente do orçamento.
+ * 5. Base de valor padrão: Valor de Venda com BDI (fórmula TCU Acórdão 2.622/2013 e BDI customizado por serviço
+ *    quando existir); com alternância para Custo Direto.
+ * 6. Classificação Pareto estrita: Classe A até 80% do acumulado, Classe B até 95%, Classe C o restante.
+ *    O item que cruza a fronteira entra na classe em que o corte é atingido (prevAccumulated < limite).
+ * 7. Zero dependência ou menção a inteligência artificial.
  */
 
-import { FullBudget, BudgetInput } from '@/types/budgetEngine'
+import { FullBudget, BudgetInput, BudgetService } from '@/types/budgetEngine'
 import {
   AbcCalculatedItem,
   AbcCurveAnalysis,
@@ -30,6 +31,7 @@ import {
 } from '@/types/intelligence'
 import {
   calculateTcuBdi,
+  getBudgetLaborMultiplier,
   getBudgetSocialChargesRate,
   getServiceCostBreakdown,
   getServiceEffectiveUnitCost,
@@ -47,7 +49,7 @@ export interface ComputeAbcCurveOptions {
  * - remoção de acentos/diacríticos (NFD)
  * - colapsar múltiplos espaços
  */
-export function normalizeDescription(desc?: string): string {
+export function normalizeDescription(desc?: string | null): string {
   if (!desc) return ''
   return desc
     .normalize('NFD')
@@ -58,9 +60,10 @@ export function normalizeDescription(desc?: string): string {
 }
 
 /**
- * Verifica se um código representa a ausência de código (ex: "S/COD", "SEM CÓDIGO", vazio, hífen)
+ * Verifica se um código representa a ausência de código ou código genérico
+ * (ex: "S/COD", "SEM CÓDIGO", vazio, hífen, "N/A", "SRV", "S/N")
  */
-export function isGenericOrEmptyCode(code?: string): boolean {
+export function isGenericOrEmptyCode(code?: string | null): boolean {
   if (!code) return true
   const c = normalizeDescription(code)
   return (
@@ -81,22 +84,25 @@ export function isGenericOrEmptyCode(code?: string): boolean {
     c === 'SRV' ||
     c === 'SN' ||
     c === 'S.N.' ||
-    c === 'S/N'
+    c === 'S/N' ||
+    c === '0' ||
+    c === 'INDEFINIDO' ||
+    c === 'SEM FONTE'
   )
 }
 
-export function computeAbcCurve(
-  budget: FullBudget,
-  options: ComputeAbcCurveOptions = {},
-): AbcCurveAnalysis {
-  const mode: AbcAnalysisMode = options.mode || 'insumos'
-  const valueBasis: AbcValueBasis = options.valueBasis || 'venda_bdi'
+/**
+ * Normaliza o código para chave de agrupamento primária
+ */
+function normalizeCode(code?: string | null): string {
+  if (!code) return ''
+  return code.trim().toUpperCase().replace(/\s+/g, ' ')
+}
 
-  // 1. Regime tributário e encargos sociais do orçamento
-  const chargesRate = getBudgetSocialChargesRate(budget)
-  const laborMultiplier = 1 + chargesRate / 100
-
-  // 2. Determinação da taxa geral de BDI oficial (TCU Acórdão 2.622/2013)
+/**
+ * Determina a taxa geral de BDI oficial do orçamento pela fórmula TCU Acórdão 2.622/2013
+ */
+export function resolveGeneralBdiRate(budget: FullBudget): number {
   const taxRegime =
     budget.chargesConfig?.taxRegime ||
     (budget.chargesConfig?.isRelieved ? 'com_desoneracao' : 'sem_desoneracao')
@@ -119,269 +125,319 @@ export function computeAbcCurve(
   }
 
   const tcuResult = calculateTcuBdi({
-    administrationCentral: budget.bdiConfig?.administrationCentral ?? 4.5,
-    risk: budget.bdiConfig?.risk ?? 1.25,
-    insuranceAndGuarantee: budget.bdiConfig?.insuranceAndGuarantee ?? 0.85,
-    financialExpenses: budget.bdiConfig?.financialExpenses ?? 1.15,
-    profit: budget.bdiConfig?.profit ?? 7.8,
+    administrationCentral: budget.bdiConfig?.administrationCentral ?? 4.0,
+    risk: budget.bdiConfig?.risk ?? 1.27,
+    insuranceAndGuarantee: budget.bdiConfig?.insuranceAndGuarantee ?? 0.8,
+    financialExpenses: budget.bdiConfig?.financialExpenses ?? 1.23,
+    profit: budget.bdiConfig?.profit ?? 7.4,
     taxesTotal,
   })
 
-  const generalBdiRate = tcuResult.bdiPercent
+  return tcuResult.bdiPercent
+}
 
-  interface IntermediateItem {
-    key: string
-    code: string
-    description: string
-    category: BudgetInput['category'] | 'servico'
-    unit: string
-    totalQuantity: number
-    directCost: number
-    salePrice: number
-    serviceOccurrences: Array<{
-      stageCode: string
-      stageName: string
-      serviceCode: string
-      serviceDescription: string
-      quantity: number
-    }>
+/**
+ * Retorna a taxa de BDI efetiva de um serviço (respeita customBdiPercent do serviço quando houver)
+ */
+export function resolveServiceBdiRate(service: BudgetService, generalBdiRate: number): number {
+  if (
+    service.customBdiPercent !== undefined &&
+    service.customBdiPercent !== null &&
+    !Number.isNaN(Number(service.customBdiPercent))
+  ) {
+    return Number(service.customBdiPercent)
   }
+  return generalBdiRate
+}
 
-  const map = new Map<string, IntermediateItem>()
+interface IntermediateOccurrence {
+  stageCode: string
+  stageName: string
+  serviceCode: string
+  serviceDescription: string
+  quantity: number
+}
 
-  // 3. Coleta de dados (por Insumos ou por Serviços)
+interface RawCollectedItem {
+  code: string
+  description: string
+  category: BudgetInput['category'] | 'servico'
+  unit: string
+  totalQuantity: number
+  directCost: number
+  salePrice: number
+  serviceOccurrences: IntermediateOccurrence[]
+}
+
+/**
+ * Processa a coleta no Modo Serviços:
+ * Cada serviço do orçamento é quantificado e acumulado diretamente.
+ */
+function collectServicesMode(
+  budget: FullBudget,
+  laborMultiplier: number,
+  generalBdiRate: number,
+): RawCollectedItem[] {
+  const map = new Map<string, RawCollectedItem>()
+
   budget.stages.forEach((stage) => {
     stage.services.forEach((service) => {
       const sQty = Number(service.quantity) || 0
-      const serviceBdi =
-        service.customBdiPercent !== undefined && service.customBdiPercent !== null
-          ? Number(service.customBdiPercent)
-          : generalBdiRate
-      const bdiMultiplier = 1 + serviceBdi / 100
+      const serviceBdi = resolveServiceBdiRate(service, generalBdiRate)
+      const bdiMult = 1 + serviceBdi / 100
 
-      if (mode === 'servicos') {
-        // MODO SERVIÇOS: agrupa pelo serviço
-        const sUnitCost = getServiceEffectiveUnitCost(service, laborMultiplier)
-        const sDirectCost = Number((sUnitCost * sQty).toFixed(2))
-        const sSalePrice = Number((sDirectCost * bdiMultiplier).toFixed(2))
-        const sKey = (service.code || service.id || service.description).trim().toUpperCase()
+      const unitEffectiveCost = getServiceEffectiveUnitCost(service, laborMultiplier)
+      const directCost = Number((unitEffectiveCost * sQty).toFixed(2))
+      const salePrice = Number((directCost * bdiMult).toFixed(2))
 
-        if (!map.has(sKey)) {
-          map.set(sKey, {
-            key: sKey,
-            code: service.code || 'SRV',
-            description: service.description,
-            category: 'servico',
-            unit: service.unit || 'un',
-            totalQuantity: sQty,
-            directCost: sDirectCost,
-            salePrice: sSalePrice,
-            serviceOccurrences: [
-              {
-                stageCode: stage.code,
-                stageName: stage.name,
-                serviceCode: service.code,
-                serviceDescription: service.description,
-                quantity: sQty,
-              },
-            ],
-          })
-        } else {
-          const existing = map.get(sKey)!
-          existing.totalQuantity += sQty
-          existing.directCost += sDirectCost
-          existing.salePrice += sSalePrice
-          existing.serviceOccurrences.push({
-            stageCode: stage.code,
-            stageName: stage.name,
-            serviceCode: service.code,
-            serviceDescription: service.description,
-            quantity: sQty,
-          })
-        }
-        return
+      // Chave por código de serviço se existir e não for genérico, senão por descrição normalizada
+      const hasCode = !isGenericOrEmptyCode(service.code)
+      const normDesc = normalizeDescription(service.description)
+      const key = hasCode ? `CODE:::${normalizeCode(service.code)}` : `DESC:::${normDesc}`
+
+      const occ: IntermediateOccurrence = {
+        stageCode: stage.code || '',
+        stageName: stage.name || '',
+        serviceCode: service.code || 'SRV',
+        serviceDescription: service.description,
+        quantity: sQty,
       }
 
-      // MODO INSUMOS:
+      const existing = map.get(key)
+      if (!existing) {
+        map.set(key, {
+          code: service.code || 'SRV',
+          description: service.description,
+          category: 'servico',
+          unit: service.unit || 'un',
+          totalQuantity: sQty,
+          directCost,
+          salePrice,
+          serviceOccurrences: [occ],
+        })
+      } else {
+        existing.totalQuantity += sQty
+        existing.directCost += directCost
+        existing.salePrice += salePrice
+        existing.serviceOccurrences.push(occ)
+        if (isGenericOrEmptyCode(existing.code) && hasCode) {
+          existing.code = service.code
+        }
+      }
+    })
+  })
+
+  return Array.from(map.values())
+}
+
+/**
+ * Processa a coleta no Modo Insumos:
+ * Explode as CPUs dos serviços calculando consumo e custo direto real com encargos,
+ * tratando itens diretos sem composição e consolidando homônimos.
+ */
+function collectInputsMode(
+  budget: FullBudget,
+  laborMultiplier: number,
+  generalBdiRate: number,
+): RawCollectedItem[] {
+  // 1. Coleta inicial por insumo e serviço sem composição
+  const rawList: RawCollectedItem[] = []
+
+  budget.stages.forEach((stage) => {
+    stage.services.forEach((service) => {
+      const sQty = Number(service.quantity) || 0
+      const serviceBdi = resolveServiceBdiRate(service, generalBdiRate)
+      const bdiMult = 1 + serviceBdi / 100
+
       const hasInputs =
         service.composition &&
         Array.isArray(service.composition.inputs) &&
         service.composition.inputs.length > 0
 
-      // Se o serviço não tiver insumos na CPU (ou tiver preço manual sem insumos),
-      // entra na Curva ABC como serviço de terceiro/item direto proporcional
-      if (!hasInputs && (Number(service.unitPrice) || 0) > 0) {
-        const sUnitCost = getServiceEffectiveUnitCost(service, laborMultiplier)
-        const sDirectCost = Number((sUnitCost * sQty).toFixed(2))
-        const sSalePrice = Number((sDirectCost * bdiMultiplier).toFixed(2))
-        const key = `SERV-${service.code || service.id}`.toUpperCase()
+      // CASO A: Serviço sem composição ou com preço manual informado sem insumos na CPU
+      // Deve aparecer como item direto na curva para fechar 100% com o orçamento
+      if (!hasInputs) {
+        const unitEffectiveCost = getServiceEffectiveUnitCost(service, laborMultiplier)
+        const directCost = Number((unitEffectiveCost * sQty).toFixed(2))
+        const salePrice = Number((directCost * bdiMult).toFixed(2))
 
-        if (!map.has(key)) {
-          map.set(key, {
-            key,
-            code: service.code || 'SRV',
-            description: service.description,
-            category: 'servico_terceiro',
-            unit: service.unit || 'un',
-            totalQuantity: sQty,
-            directCost: sDirectCost,
-            salePrice: sSalePrice,
-            serviceOccurrences: [
-              {
-                stageCode: stage.code,
-                stageName: stage.name,
-                serviceCode: service.code,
-                serviceDescription: service.description,
-                quantity: sQty,
-              },
-            ],
-          })
-        } else {
-          const existing = map.get(key)!
-          existing.totalQuantity += sQty
-          existing.directCost += sDirectCost
-          existing.salePrice += sSalePrice
-          existing.serviceOccurrences.push({
-            stageCode: stage.code,
-            stageName: stage.name,
-            serviceCode: service.code,
-            serviceDescription: service.description,
-            quantity: sQty,
-          })
-        }
+        rawList.push({
+          code: service.code || 'SRV',
+          description: service.description,
+          category: 'servico_terceiro',
+          unit: service.unit || 'un',
+          totalQuantity: sQty,
+          directCost,
+          salePrice,
+          serviceOccurrences: [
+            {
+              stageCode: stage.code || '',
+              stageName: stage.name || '',
+              serviceCode: service.code || 'SRV',
+              serviceDescription: service.description,
+              quantity: sQty,
+            },
+          ],
+        })
         return
       }
 
-      if (!service.composition?.inputs) return
-
-      // Trata serviço que possui insumos
-      // Se a fonte for 'Usuário' e o preço manual diferir da soma dos insumos,
-      // calculamos o custo real de cada insumo preservando a proporção
+      // CASO B: Serviço com composição de insumos
       const breakdown = getServiceCostBreakdown(service)
       const isUserManual = service.unitPriceSource === 'Usuário'
 
-      // Se o usuário fixou o preço manualmente no serviço e há insumos,
-      // calcula o fator de escala do preço manual sobre o custo base dos insumos
+      // Se o usuário digitou preço manual no serviço e há insumos, calcula fator de escala
       let manualScaleFactor = 1.0
       if (isUserManual && breakdown.baseDirectCost > 0) {
         const rawInputsSum = service.composition.inputs.reduce((acc, inp) => {
-          const coeff = Number(inp.coefficient) || 0
+          const coef = Number(inp.coefficient) || 0
           const uCost = Number(inp.unitCost) || 0
-          return acc + coeff * uCost * sQty
+          return acc + coef * uCost * sQty
         }, 0)
         if (rawInputsSum > 0) {
           manualScaleFactor = breakdown.baseDirectCost / rawInputsSum
         }
       }
 
-      service.composition.inputs.forEach((input) => {
-        const rawCode = input.code ? input.code.trim().toUpperCase() : ''
-        const rawDesc = input.description.trim().toUpperCase()
-        const key = rawCode || rawDesc
+      service.composition.inputs.forEach((input: BudgetInput) => {
         const coef = Number(input.coefficient) || 0
+        const consumedQuantity = coef * sQty
         let baseUnitCost = Number(input.unitCost) || 0
 
-        // Se mão de obra, aplica os encargos sociais reais vigentes do orçamento
+        // Regra 3: Insumos de mão de obra entram com o multiplicador real de encargos sociais
         if (input.category === 'mao_de_obra') {
           baseUnitCost = baseUnitCost * laborMultiplier
         }
 
-        const consumedQuantity = coef * sQty
         const itemDirectCost = consumedQuantity * baseUnitCost * manualScaleFactor
-        const itemSalePrice = itemDirectCost * bdiMultiplier
+        const itemSalePrice = itemDirectCost * bdiMult
 
-        if (!map.has(key)) {
-          map.set(key, {
-            key,
-            code: input.code || 'S/COD',
-            description: input.description,
-            category: input.category,
-            unit: input.unit || 'un',
-            totalQuantity: consumedQuantity,
-            directCost: itemDirectCost,
-            salePrice: itemSalePrice,
-            serviceOccurrences: [
-              {
-                stageCode: stage.code,
-                stageName: stage.name,
-                serviceCode: service.code,
-                serviceDescription: service.description,
-                quantity: consumedQuantity,
-              },
-            ],
-          })
-        } else {
-          const existing = map.get(key)!
-          existing.totalQuantity += consumedQuantity
-          existing.directCost += itemDirectCost
-          existing.salePrice += itemSalePrice
-          existing.serviceOccurrences.push({
-            stageCode: stage.code,
-            stageName: stage.name,
-            serviceCode: service.code,
-            serviceDescription: service.description,
-            quantity: consumedQuantity,
-          })
-        }
+        rawList.push({
+          code: input.code || 'S/COD',
+          description: input.description,
+          category: input.category,
+          unit: input.unit || 'un',
+          totalQuantity: consumedQuantity,
+          directCost: itemDirectCost,
+          salePrice: itemSalePrice,
+          serviceOccurrences: [
+            {
+              stageCode: stage.code || '',
+              stageName: stage.name || '',
+              serviceCode: service.code || 'SRV',
+              serviceDescription: service.description,
+              quantity: consumedQuantity,
+            },
+          ],
+        })
       })
     })
   })
 
-  // 3.5. CONSOLIDAÇÃO DE INSUMOS HOMÔNIMOS (Modo Insumos)
-  // Quando a descrição normalizada for idêntica (ex: "Saco de ráfia" cadastrado com código SINAPI
-  // em uma CPU e sem código ou com código genérico em outra), funde em UMA única linha:
-  // - Soma totalQuantity (coeficiente CPU x quantidade de serviço já calculada)
-  // - Soma directCost e salePrice
-  // - Agrega todas as ocorrências de serviços/etapas para auditoria completa
-  // - Prioriza o código real (SINAPI/oficial) se disponível, senão "S/COD"
-  // - Nunca funde insumos de descrições normalizadas diferentes
-  let intermediateList = Array.from(map.values())
-  if (mode === 'insumos') {
-    const consolidatedByDesc = new Map<string, IntermediateItem>()
+  // 2. CONSOLIDAÇÃO E FUSÃO RIGOROSA:
+  // - Insumos homônimos: descrição normalizada idêntica funde linhas somando:
+  //   totalQuantity, directCost e salePrice, agregando serviceOccurrences.
+  // - Tratar "S/COD", "SEM CÓDIGO", "N/A", vazio como ausência de código.
+  // - Descrições diferentes NUNCA se fundem mesmo que compartilhem código genérico ou inexistente.
+  // - Se um insumo tem código oficial SINAPI e outro tem descrição normalizada idêntica mas sem código,
+  //   eles se fundem, e o código oficial e descrição oficial são preservados.
+  const consolidated = new Map<string, RawCollectedItem>()
 
-    intermediateList.forEach((item) => {
-      const normDesc = normalizeDescription(item.description)
-      // Chave composta com a categoria para não misturar insumos de tipos diferentes com mesmo nome
-      const groupKey = `${item.category}:::${normDesc}`
+  rawList.forEach((item) => {
+    const normDesc = normalizeDescription(item.description)
+    const hasValidCode = !isGenericOrEmptyCode(item.code)
+    const cleanCode = hasValidCode ? normalizeCode(item.code) : ''
 
-      const existing = consolidatedByDesc.get(groupKey)
-      if (!existing) {
-        consolidatedByDesc.set(groupKey, {
-          ...item,
-          serviceOccurrences: [...item.serviceOccurrences],
-        })
-      } else {
-        // Funde no item já existente
-        existing.totalQuantity += item.totalQuantity
-        existing.directCost += item.directCost
-        existing.salePrice += item.salePrice
-        existing.serviceOccurrences.push(...item.serviceOccurrences)
+    // Chave de agrupamento:
+    // Se a descrição normalizada for idêntica, funde pelo par (normDesc, category)
+    // Isso garante que homônimos com ou sem código sejam somados em uma única linha.
+    // Descrições diferentes NUNCA compartilham a mesma chave.
+    const groupKey = `${item.category}:::${normDesc}`
 
-        // Se o item consolidado ainda não tem código real mas o novo tem, adota o código real
-        if (isGenericOrEmptyCode(existing.code) && !isGenericOrEmptyCode(item.code)) {
-          existing.code = item.code
-          existing.description = item.description
-        }
+    const existing = consolidated.get(groupKey)
+    if (!existing) {
+      consolidated.set(groupKey, {
+        code: hasValidCode ? item.code : 'S/COD',
+        description: item.description,
+        category: item.category,
+        unit: item.unit,
+        totalQuantity: item.totalQuantity,
+        directCost: item.directCost,
+        salePrice: item.salePrice,
+        serviceOccurrences: [...item.serviceOccurrences],
+      })
+    } else {
+      existing.totalQuantity += item.totalQuantity
+      existing.directCost += item.directCost
+      existing.salePrice += item.salePrice
+      existing.serviceOccurrences.push(...item.serviceOccurrences)
+
+      // Se o existente estava sem código oficial mas o novo tem código oficial, adota o código oficial
+      if (isGenericOrEmptyCode(existing.code) && hasValidCode) {
+        existing.code = item.code
+        existing.description = item.description
       }
-    })
 
-    intermediateList = Array.from(consolidatedByDesc.values())
-  }
+      // Se a unidade do existente estava vazia/genérica e o novo tem unidade, adota
+      if ((!existing.unit || existing.unit === 'un') && item.unit && item.unit !== 'un') {
+        existing.unit = item.unit
+      }
+    }
+  })
 
-  // 4. Ordenação decrescente pelo valor avaliado
-  const rawItems = intermediateList
-  const sorted = rawItems.sort((a, b) => {
+  return Array.from(consolidated.values())
+}
+
+/**
+ * Agrupa ocorrências duplicadas no mesmo serviço (quando houver mais de uma aplicação no mesmo serviço)
+ */
+function consolidateOccurrences(occurrences: IntermediateOccurrence[]): IntermediateOccurrence[] {
+  const map = new Map<string, IntermediateOccurrence>()
+  occurrences.forEach((occ) => {
+    const key = `${occ.stageCode}:::${occ.serviceCode}:::${occ.serviceDescription}`
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, { ...occ })
+    } else {
+      existing.quantity += occ.quantity
+    }
+  })
+  return Array.from(map.values())
+}
+
+/**
+ * Função pura principal: Computa a Curva ABC do orçamento
+ */
+export function computeAbcCurve(
+  budget: FullBudget,
+  options: ComputeAbcCurveOptions = {},
+): AbcCurveAnalysis {
+  const mode: AbcAnalysisMode = options.mode || 'insumos'
+  const valueBasis: AbcValueBasis = options.valueBasis || 'venda_bdi'
+
+  // 1. Multiplicador de encargos e taxa BDI geral do orçamento
+  const laborMultiplier = getBudgetLaborMultiplier(budget)
+  const generalBdiRate = resolveGeneralBdiRate(budget)
+
+  // 2. Coleta dos itens brutos
+  const rawItems =
+    mode === 'servicos'
+      ? collectServicesMode(budget, laborMultiplier, generalBdiRate)
+      : collectInputsMode(budget, laborMultiplier, generalBdiRate)
+
+  // 3. Ordenação decrescente pelo valor avaliado
+  const sorted = [...rawItems].sort((a, b) => {
     const valA = valueBasis === 'venda_bdi' ? a.salePrice : a.directCost
     const valB = valueBasis === 'venda_bdi' ? b.salePrice : b.directCost
     return valB - valA
   })
 
-  const totalDirectCost = Number(rawItems.reduce((acc, it) => acc + it.directCost, 0).toFixed(2))
-  const totalSalePrice = Number(rawItems.reduce((acc, it) => acc + it.salePrice, 0).toFixed(2))
-
+  // 4. Totais globais da análise
+  const totalDirectCost = Number(sorted.reduce((acc, it) => acc + it.directCost, 0).toFixed(2))
+  const totalSalePrice = Number(sorted.reduce((acc, it) => acc + it.salePrice, 0).toFixed(2))
   const totalAnalyzedValue = valueBasis === 'venda_bdi' ? totalSalePrice : totalDirectCost
 
-  // 5. Cálculo acumulado e classificação rigorosa de Pareto (80% / 95%)
+  // 5. Cálculo cumulativo e classificação Pareto (80% / 95%)
   let accumulatedValue = 0
 
   const allItems: AbcCalculatedItem[] = sorted.map((item, index) => {
@@ -393,11 +449,11 @@ export function computeAbcCurve(
     const accumulatedPercentage =
       totalAnalyzedValue > 0 ? (accumulatedValue / totalAnalyzedValue) * 100 : 0
 
-    // Limites clássicos da Engenharia de Custos:
-    // - Classe A: até 80% do valor total acumulado
-    // - Classe B: de 80% até 95%
-    // - Classe C: os 5% restantes
-    // O item que cruza a fronteira faz parte da classe anterior para fechar o corte (prevAccumulated < limite)
+    // Regra de transição clássica de Pareto:
+    // O item que cruza a fronteira entra na classe em que o corte é atingido (prevAccumulated < limite).
+    // prevAccumulated < 80 => Classe A
+    // prevAccumulated < 95 => Classe B
+    // caso contrário => Classe C
     const prevAccumulated = accumulatedPercentage - percentageOfTotal
     let classification: AbcClass = 'C'
     if (prevAccumulated < 80) {
@@ -410,9 +466,13 @@ export function computeAbcCurve(
 
     const unitCost = item.totalQuantity > 0 ? item.directCost / item.totalQuantity : 0
     const unitSalePrice = item.totalQuantity > 0 ? item.salePrice / item.totalQuantity : 0
+    const cleanOccurrences = consolidateOccurrences(item.serviceOccurrences)
+
+    const codeSafe = item.code.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'item'
+    const id = `abc-${mode}-${index + 1}-${codeSafe}`
 
     return {
-      id: `abc-${index + 1}-${item.code.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'item'}`,
+      id,
       code: item.code,
       description: item.description,
       category: item.category,
@@ -427,8 +487,8 @@ export function computeAbcCurve(
       accumulatedPercentage: Number(accumulatedPercentage.toFixed(2)),
       classification,
       rank: index + 1,
-      servicesCount: item.serviceOccurrences.length,
-      serviceOccurrences: item.serviceOccurrences,
+      servicesCount: cleanOccurrences.length,
+      serviceOccurrences: cleanOccurrences,
     }
   })
 
@@ -436,14 +496,14 @@ export function computeAbcCurve(
   const classAItems = allItems.filter((i) => i.classification === 'A')
   const classBItems = allItems.filter((i) => i.classification === 'B')
   const classCItems = allItems.filter((i) => i.classification === 'C')
-
   const totalItemsCount = allItems.length
 
-  const sumDirect = (list: AbcCalculatedItem[]) => list.reduce((acc, it) => acc + it.totalCost, 0)
+  const sumDirect = (list: AbcCalculatedItem[]) =>
+    Number(list.reduce((acc, it) => acc + it.totalCost, 0).toFixed(2))
   const sumSale = (list: AbcCalculatedItem[]) =>
-    list.reduce((acc, it) => acc + it.totalSalePrice, 0)
+    Number(list.reduce((acc, it) => acc + it.totalSalePrice, 0).toFixed(2))
   const sumEvaluated = (list: AbcCalculatedItem[]) =>
-    list.reduce((acc, it) => acc + it.evaluatedValue, 0)
+    Number(list.reduce((acc, it) => acc + it.evaluatedValue, 0).toFixed(2))
 
   const classACost = sumDirect(classAItems)
   const classBCost = sumDirect(classBItems)
@@ -457,47 +517,47 @@ export function computeAbcCurve(
   const classBEval = sumEvaluated(classBItems)
   const classCEval = sumEvaluated(classCItems)
 
+  const calcPercentageOfItems = (count: number) =>
+    totalItemsCount > 0 ? Number(((count / totalItemsCount) * 100).toFixed(1)) : 0
+
+  const calcPercentageOfCost = (value: number) =>
+    totalAnalyzedValue > 0 ? Number(((value / totalAnalyzedValue) * 100).toFixed(1)) : 0
+
   return {
     budgetId: budget.id,
     budgetCode: budget.code,
     budgetName: budget.work?.name || budget.title || 'Orçamento de Engenharia',
     mode,
     valueBasis,
-    totalAnalyzedValue: Number(totalAnalyzedValue.toFixed(2)),
+    totalAnalyzedValue,
     totalDirectCost,
     totalSalePrice,
     totalItemsCount,
     classA: {
       itemsCount: classAItems.length,
-      percentageOfItems:
-        totalItemsCount > 0 ? Number(((classAItems.length / totalItemsCount) * 100).toFixed(1)) : 0,
-      totalCost: Number(classACost.toFixed(2)),
-      totalSalePrice: Number(classASale.toFixed(2)),
-      evaluatedValue: Number(classAEval.toFixed(2)),
-      percentageOfCost:
-        totalAnalyzedValue > 0 ? Number(((classAEval / totalAnalyzedValue) * 100).toFixed(1)) : 0,
+      percentageOfItems: calcPercentageOfItems(classAItems.length),
+      totalCost: classACost,
+      totalSalePrice: classASale,
+      evaluatedValue: classAEval,
+      percentageOfCost: calcPercentageOfCost(classAEval),
       items: classAItems,
     },
     classB: {
       itemsCount: classBItems.length,
-      percentageOfItems:
-        totalItemsCount > 0 ? Number(((classBItems.length / totalItemsCount) * 100).toFixed(1)) : 0,
-      totalCost: Number(classBCost.toFixed(2)),
-      totalSalePrice: Number(classBSale.toFixed(2)),
-      evaluatedValue: Number(classBEval.toFixed(2)),
-      percentageOfCost:
-        totalAnalyzedValue > 0 ? Number(((classBEval / totalAnalyzedValue) * 100).toFixed(1)) : 0,
+      percentageOfItems: calcPercentageOfItems(classBItems.length),
+      totalCost: classBCost,
+      totalSalePrice: classBSale,
+      evaluatedValue: classBEval,
+      percentageOfCost: calcPercentageOfCost(classBEval),
       items: classBItems,
     },
     classC: {
       itemsCount: classCItems.length,
-      percentageOfItems:
-        totalItemsCount > 0 ? Number(((classCItems.length / totalItemsCount) * 100).toFixed(1)) : 0,
-      totalCost: Number(classCCost.toFixed(2)),
-      totalSalePrice: Number(classCSale.toFixed(2)),
-      evaluatedValue: Number(classCEval.toFixed(2)),
-      percentageOfCost:
-        totalAnalyzedValue > 0 ? Number(((classCEval / totalAnalyzedValue) * 100).toFixed(1)) : 0,
+      percentageOfItems: calcPercentageOfItems(classCItems.length),
+      totalCost: classCCost,
+      totalSalePrice: classCSale,
+      evaluatedValue: classCEval,
+      percentageOfCost: calcPercentageOfCost(classCEval),
       items: classCItems,
     },
     allItems,
