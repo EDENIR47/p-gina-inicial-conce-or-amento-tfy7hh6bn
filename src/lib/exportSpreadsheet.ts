@@ -154,10 +154,21 @@ export function exportBudgetSpreadsheet(
 
   budget.stages.forEach((stage) => {
     const stageSummary = summary.stagesSubtotals.find((s) => s.stageId === stage.id)
+    const stageInfoDetails = [
+      stage.volumeM3 !== undefined && stage.volumeM3 !== null ? `Vol: ${stage.volumeM3} m³` : null,
+      stage.weightKg !== undefined && stage.weightKg !== null ? `Peso: ${stage.weightKg} kg` : null,
+    ]
+      .filter(Boolean)
+      .join(' | ')
+
+    const stageDisplayName = stageInfoDetails
+      ? `${stage.name.toUpperCase()} [${stageInfoDetails}]`
+      : stage.name.toUpperCase()
+
     budgetRows.push([
       stage.code,
       '---',
-      stage.name.toUpperCase(),
+      stageDisplayName,
       '---',
       '---',
       '---',

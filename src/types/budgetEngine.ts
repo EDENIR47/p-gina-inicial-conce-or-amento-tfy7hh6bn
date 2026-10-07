@@ -75,6 +75,9 @@ export interface BudgetStage {
   name: string // ex.: "01. SERVIÇOS PRELIMINARES", "02. FUNDAÇÕES E ESTRUTURA"
   services: BudgetService[]
   notes?: string
+  volumeM3?: number | null // Volume da etapa retirada em m³ (opcional / em branco se não houver)
+  weightKg?: number | null // Peso da etapa retirada em kg (opcional / em branco se não houver)
+  photoUrl?: string | null // 1 foto anexada da etapa (base64 comprimida, persistida no localStorage)
 }
 
 export interface ClientData {

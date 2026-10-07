@@ -25,7 +25,11 @@ import {
   Clock,
   Sparkles,
   RotateCcw,
+  Box,
+  Scale,
+  Camera,
 } from 'lucide-react'
+import { formatOptionalNumberPtBr } from '@/lib/imageCompression'
 import {
   BudgetComposition,
   BudgetInput,
@@ -1176,11 +1180,50 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                     </span>
 
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-sm sm:text-base font-extrabold text-white truncate tracking-wide">
-                        {stage.name}
-                      </h4>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm sm:text-base font-extrabold text-white truncate tracking-wide">
+                          {stage.name}
+                        </h4>
+
+                        {/* Badges discretos de Volume e Peso (quando informados na etapa) */}
+                        {stage.volumeM3 !== undefined && stage.volumeM3 !== null && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#294C87]/80 text-white border border-white/20"
+                            title={`Volume retirado: ${formatOptionalNumberPtBr(stage.volumeM3)} m³`}
+                          >
+                            <Box className="w-3 h-3 text-[#FF6B1F]" />
+                            <span>{formatOptionalNumberPtBr(stage.volumeM3)} m³</span>
+                          </span>
+                        )}
+
+                        {stage.weightKg !== undefined && stage.weightKg !== null && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/10 text-white/90 border border-white/20"
+                            title={`Peso retirado: ${formatOptionalNumberPtBr(stage.weightKg)} kg`}
+                          >
+                            <Scale className="w-3 h-3 text-[#FF6B1F]" />
+                            <span>{formatOptionalNumberPtBr(stage.weightKg)} kg</span>
+                          </span>
+                        )}
+
+                        {/* Indicador de Foto Anexada */}
+                        {stage.photoUrl && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/20 text-[#FF6B1F] border border-[#FF6B1F]/40 cursor-pointer hover:bg-[#FF6B1F]/30 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setStageModalState({ isOpen: true, stage })
+                            }}
+                            title="1 foto anexada nesta etapa — clique em editar para visualizar ou trocar"
+                          >
+                            <Camera className="w-3 h-3 text-[#FF6B1F]" />
+                            <span>1 Foto</span>
+                          </span>
+                        )}
+                      </div>
+
                       {stage.notes && (
-                        <p className="text-[11px] text-white/60 truncate">{stage.notes}</p>
+                        <p className="text-[11px] text-white/60 truncate mt-0.5">{stage.notes}</p>
                       )}
                     </div>
                   </div>
