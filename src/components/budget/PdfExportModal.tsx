@@ -67,17 +67,17 @@ const EXPORT_MODE_OPTIONS: ExportModeOption[] = [
     badge: 'Síntese Direta',
     icon: Award,
     description:
-      'Proposta comercial direta contendo discriminação enxuta dos itens e seus respectivos valores com BDI, identificação das partes, valor final da obra, condições comerciais e termo de assinatura formal.',
+      'Proposta comercial direta contendo discriminação enxuta dos itens sem valores individuais, identificação das partes, valor geral da obra ao final, condições comerciais e termo de assinatura formal.',
     features: [
       'Capa institucional enxuta (logo CONCE, razão social e CNPJ 57.149.101/0001-46)',
       'Identificação clara dos clientes e endereço completo da obra',
-      'Relação de itens com descrição, valores unitários com BDI e total geral',
-      'VALOR FINAL DA OBRA como elemento central, sóbrio e elegante em Poppins',
+      'Relação de itens sem valores individuais (apenas código e descrição)',
+      'VALOR FINAL DA OBRA em destaque ao final como preço global fechado',
       'Condições comerciais: forma de pagamento, prazo de execução e validade',
       'Termo formal de aceite com assinatura do RT Eng. Edenir Souza da Rosa',
     ],
     recommendedFor:
-      'Fechamentos rápidos, propostas diretas e clientes que solicitam os itens com preço final.',
+      'Fechamentos rápidos, propostas diretas e clientes que solicitam a lista de serviços com valor global no final.',
   },
   {
     id: 'simplificado',
@@ -399,7 +399,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
             <span className="text-[11px] text-[#FF6B1F] font-bold">
               {selectedMode === 'valor_final' &&
-                '✓ Síntese direta com relação de itens, valor e valor total global'}
+                '✓ Síntese direta com relação dos itens sem valores e valor geral ao final'}
               {selectedMode === 'simplificado' &&
                 '✓ Relação de itens e quantitativos comerciais sem memória técnica'}
               {selectedMode === 'etapas' && '✓ Síntese executiva e peso percentual das etapas'}
@@ -578,15 +578,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </div>
             </div>
 
-            {/* TABELA ENXUTA: DESCRIÇÃO DOS ITENS E VALORES COM BDI (somente se houver serviços cadastrados) */}
+            {/* TABELA ENXUTA: RELAÇÃO DOS ITENS SEM VALORES INDIVIDUAIS (somente se houver serviços cadastrados) */}
             {summary.servicesCount > 0 && (
               <div className="my-2 space-y-1.5 print:my-1.5">
                 <div className="flex items-center justify-between border-b border-[#294C87]/30 pb-1">
                   <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#294C87] flex items-center gap-1.5">
-                    <span>📋 Relação de Itens e Valores</span>
+                    <span>📋 Relação de Itens e Escopo dos Serviços</span>
                   </span>
                   <span className="text-[9.5px] text-[#171A1F]/60 font-mono">
-                    Valores finais com BDI e tributos inclusos
+                    Lista de serviços inclusos na proposta global
                   </span>
                 </div>
 
@@ -594,51 +594,35 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   <table className="w-full text-left text-xs">
                     <thead className="bg-[#171A1F] text-white uppercase text-[9px] font-bold tracking-wider">
                       <tr>
-                        <th className="py-2 px-2.5 w-16 text-center">Item</th>
-                        <th className="py-2 px-3">Descrição do Item / Serviço</th>
-                        <th className="py-2 px-3 w-36 text-right">Valor (R$)</th>
+                        <th className="py-2 px-3 w-20 text-center">Item</th>
+                        <th className="py-2 px-4">Descrição do Item / Serviço</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#171A1F]/10">
                       {budget.stages.flatMap((stage) =>
-                        stage.services.map((service, sIdx) => {
-                          const sQty = Number(service.quantity) || 0
-                          const laborMult = 1 + (summary.socialChargesRate || 0) / 100
-                          const compUnit = getServiceEffectiveUnitCost(service, laborMult)
-                          const serviceBdi = service.customBdiPercent ?? summary.bdiRate
-                          const unitWithBdi = compUnit * (1 + serviceBdi / 100)
-                          const totalWithBdi = unitWithBdi * sQty
-
-                          return (
-                            <tr
-                              key={service.id}
-                              className={`transition-colors ${
-                                sIdx % 2 === 0 ? 'bg-white' : 'bg-[#F8F9FA]/70'
-                              }`}
-                            >
-                              <td className="py-1.5 px-2.5 font-mono text-[#171A1F]/70 text-center font-semibold text-[11px]">
-                                {service.code || '-'}
-                              </td>
-                              <td className="py-1.5 px-3 font-medium text-[#171A1F] text-[11px]">
-                                {service.description}
-                              </td>
-                              <td className="py-1.5 px-3 text-right font-mono font-bold text-[#171A1F] text-xs">
-                                {formatCurrencyBRL(totalWithBdi)}
-                              </td>
-                            </tr>
-                          )
-                        }),
+                        stage.services.map((service, sIdx) => (
+                          <tr
+                            key={service.id}
+                            className={`transition-colors ${
+                              sIdx % 2 === 0 ? 'bg-white' : 'bg-[#F8F9FA]/70'
+                            }`}
+                          >
+                            <td className="py-1.5 px-3 font-mono text-[#171A1F]/70 text-center font-semibold text-[11px]">
+                              {service.code || '-'}
+                            </td>
+                            <td className="py-1.5 px-4 font-medium text-[#171A1F] text-[11px] leading-relaxed">
+                              {service.description}
+                            </td>
+                          </tr>
+                        )),
                       )}
                     </tbody>
                     <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs border-t-2 border-[#171A1F]">
                       <tr>
-                        <td
-                          className="py-2 px-3 uppercase text-right tracking-wider text-[10.5px]"
-                          colSpan={2}
-                        >
+                        <td className="py-2 px-3 uppercase text-right tracking-wider text-[10.5px] font-bold">
                           TOTAL GERAL:
                         </td>
-                        <td className="py-2 px-3 text-right font-mono text-xs sm:text-sm font-bold text-white">
+                        <td className="py-2 px-4 text-right font-mono text-xs sm:text-sm font-bold text-white">
                           {formatCurrencyBRL(summary.finalSalePrice)}
                         </td>
                       </tr>
