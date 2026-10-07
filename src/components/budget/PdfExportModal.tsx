@@ -578,73 +578,75 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </div>
             </div>
 
-            {/* TABELA ENXUTA: DESCRIÇÃO DOS ITENS E VALORES COM BDI */}
-            <div className="my-2 space-y-1.5 print:my-1.5">
-              <div className="flex items-center justify-between border-b border-[#294C87]/30 pb-1">
-                <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#294C87] flex items-center gap-1.5">
-                  <span>📋 Relação de Itens e Valores</span>
-                </span>
-                <span className="text-[9.5px] text-[#171A1F]/60 font-mono">
-                  Valores finais com BDI e tributos inclusos
-                </span>
-              </div>
+            {/* TABELA ENXUTA: DESCRIÇÃO DOS ITENS E VALORES COM BDI (somente se houver serviços cadastrados) */}
+            {summary.servicesCount > 0 && (
+              <div className="my-2 space-y-1.5 print:my-1.5">
+                <div className="flex items-center justify-between border-b border-[#294C87]/30 pb-1">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#294C87] flex items-center gap-1.5">
+                    <span>📋 Relação de Itens e Valores</span>
+                  </span>
+                  <span className="text-[9.5px] text-[#171A1F]/60 font-mono">
+                    Valores finais com BDI e tributos inclusos
+                  </span>
+                </div>
 
-              <div className="overflow-x-auto border border-[#171A1F]/15 rounded-xl shadow-xs bg-white">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#171A1F] text-white uppercase text-[9px] font-bold tracking-wider">
-                    <tr>
-                      <th className="py-2 px-2.5 w-16 text-center">Item</th>
-                      <th className="py-2 px-3">Descrição do Item / Serviço</th>
-                      <th className="py-2 px-3 w-36 text-right">Valor (R$)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#171A1F]/10">
-                    {budget.stages.flatMap((stage) =>
-                      stage.services.map((service, sIdx) => {
-                        const sQty = Number(service.quantity) || 0
-                        const laborMult = 1 + (summary.socialChargesRate || 0) / 100
-                        const compUnit = getServiceEffectiveUnitCost(service, laborMult)
-                        const serviceBdi = service.customBdiPercent ?? summary.bdiRate
-                        const unitWithBdi = compUnit * (1 + serviceBdi / 100)
-                        const totalWithBdi = unitWithBdi * sQty
+                <div className="overflow-x-auto border border-[#171A1F]/15 rounded-xl shadow-xs bg-white">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#171A1F] text-white uppercase text-[9px] font-bold tracking-wider">
+                      <tr>
+                        <th className="py-2 px-2.5 w-16 text-center">Item</th>
+                        <th className="py-2 px-3">Descrição do Item / Serviço</th>
+                        <th className="py-2 px-3 w-36 text-right">Valor (R$)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#171A1F]/10">
+                      {budget.stages.flatMap((stage) =>
+                        stage.services.map((service, sIdx) => {
+                          const sQty = Number(service.quantity) || 0
+                          const laborMult = 1 + (summary.socialChargesRate || 0) / 100
+                          const compUnit = getServiceEffectiveUnitCost(service, laborMult)
+                          const serviceBdi = service.customBdiPercent ?? summary.bdiRate
+                          const unitWithBdi = compUnit * (1 + serviceBdi / 100)
+                          const totalWithBdi = unitWithBdi * sQty
 
-                        return (
-                          <tr
-                            key={service.id}
-                            className={`transition-colors ${
-                              sIdx % 2 === 0 ? 'bg-white' : 'bg-[#F8F9FA]/70'
-                            }`}
-                          >
-                            <td className="py-1.5 px-2.5 font-mono text-[#171A1F]/70 text-center font-semibold text-[11px]">
-                              {service.code}
-                            </td>
-                            <td className="py-1.5 px-3 font-medium text-[#171A1F] text-[11px]">
-                              {service.description}
-                            </td>
-                            <td className="py-1.5 px-3 text-right font-mono font-bold text-[#171A1F] text-xs">
-                              {formatCurrencyBRL(totalWithBdi)}
-                            </td>
-                          </tr>
-                        )
-                      }),
-                    )}
-                  </tbody>
-                  <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs border-t-2 border-[#171A1F]">
-                    <tr>
-                      <td
-                        className="py-2 px-3 uppercase text-right tracking-wider text-[10.5px]"
-                        colSpan={2}
-                      >
-                        TOTAL GERAL:
-                      </td>
-                      <td className="py-2 px-3 text-right font-mono text-xs sm:text-sm font-bold text-white">
-                        {formatCurrencyBRL(summary.finalSalePrice)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                          return (
+                            <tr
+                              key={service.id}
+                              className={`transition-colors ${
+                                sIdx % 2 === 0 ? 'bg-white' : 'bg-[#F8F9FA]/70'
+                              }`}
+                            >
+                              <td className="py-1.5 px-2.5 font-mono text-[#171A1F]/70 text-center font-semibold text-[11px]">
+                                {service.code || '-'}
+                              </td>
+                              <td className="py-1.5 px-3 font-medium text-[#171A1F] text-[11px]">
+                                {service.description}
+                              </td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-[#171A1F] text-xs">
+                                {formatCurrencyBRL(totalWithBdi)}
+                              </td>
+                            </tr>
+                          )
+                        }),
+                      )}
+                    </tbody>
+                    <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs border-t-2 border-[#171A1F]">
+                      <tr>
+                        <td
+                          className="py-2 px-3 uppercase text-right tracking-wider text-[10.5px]"
+                          colSpan={2}
+                        >
+                          TOTAL GERAL:
+                        </td>
+                        <td className="py-2 px-3 text-right font-mono text-xs sm:text-sm font-bold text-white">
+                          {formatCurrencyBRL(summary.finalSalePrice)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ELEMENTO CENTRAL: O VALOR FINAL DA OBRA */}
             <div className="my-1 p-3 rounded-xl bg-[#F4F6F9] border-2 border-[#294C87]/30 shadow-xs text-center space-y-1 print:p-2 print:my-0.5">
