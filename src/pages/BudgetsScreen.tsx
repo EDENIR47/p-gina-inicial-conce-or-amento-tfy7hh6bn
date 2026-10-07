@@ -465,6 +465,25 @@ export const BudgetsScreen: React.FC = () => {
           userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
         })
       }
+
+      // 5.3 Alteração de Observações do Orçamento
+      const prevObs = previousBudget.observations ?? ''
+      const currObs = activeBudget.observations ?? ''
+      if (prevObs !== currObs) {
+        logAuditEvent({
+          budgetId: activeBudget.id,
+          action: 'edicao_observacoes',
+          title: 'Observações do Orçamento Atualizadas',
+          details: `Observações atualizadas: "${currObs.slice(0, 80)}${currObs.length > 80 ? '...' : ''}"`,
+          oldValue: prevObs,
+          newValue: currObs,
+          userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          metadata: {
+            field: 'observations',
+            signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          },
+        })
+      }
     }
 
     setIsSaving(true)
@@ -690,6 +709,29 @@ export const BudgetsScreen: React.FC = () => {
               <BudgetHeaderForm
                 budget={activeBudget}
                 onChange={handleUpdateActiveBudget}
+                onSaveObservations={(newObs) => {
+                  const updated: FullBudget = {
+                    ...activeBudget,
+                    observations: newObs,
+                  }
+                  setActiveBudget(updated)
+                  saveSingleBudget(updated)
+                  setBudgetsList(getStoredFullBudgets())
+                  logAuditEvent({
+                    budgetId: activeBudget.id,
+                    action: 'edicao_observacoes',
+                    title: 'Observações do Orçamento Atualizadas',
+                    details: `Observações salvas no orçamento: "${newObs.slice(0, 80)}${newObs.length > 80 ? '...' : ''}"`,
+                    oldValue: activeBudget.observations ?? '',
+                    newValue: newObs,
+                    userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                    metadata: {
+                      field: 'observations',
+                      signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+                    },
+                  })
+                  showToast('Observações salvas com sucesso!')
+                }}
                 validationErrors={validationErrors}
               />
             </div>

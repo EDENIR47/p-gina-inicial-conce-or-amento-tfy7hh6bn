@@ -22,6 +22,9 @@ import {
   CreditCard,
   Briefcase,
   Sparkles,
+  Save,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react'
 import {
   ClientData,
@@ -44,6 +47,7 @@ import { logAuditEvent } from '@/lib/intelligenceStorage'
 interface BudgetHeaderFormProps {
   budget: FullBudget
   onChange: (updated: FullBudget) => void
+  onSaveObservations?: (newObservations: string) => void
   disabled?: boolean
   validationErrors?: Record<string, string>
 }
@@ -51,9 +55,34 @@ interface BudgetHeaderFormProps {
 export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
   budget,
   onChange,
+  onSaveObservations,
   disabled = false,
   validationErrors = {},
 }) => {
+  const [obsInput, setObsInput] = React.useState<string>(budget.observations ?? '')
+  const [isSavedBadgeVisible, setIsSavedBadgeVisible] = React.useState<boolean>(false)
+
+  // Sincroniza estado local quando o budget externo mudar (ex.: troca de orçamento selecionado)
+  React.useEffect(() => {
+    setObsInput(budget.observations ?? '')
+    setIsSavedBadgeVisible(false)
+  }, [budget.id, budget.observations])
+
+  const savedObs = budget.observations ?? ''
+  const isDirty = obsInput !== savedObs
+
+  const handleSaveObservations = () => {
+    if (onSaveObservations) {
+      onSaveObservations(obsInput)
+    } else {
+      onChange({
+        ...budget,
+        observations: obsInput,
+      })
+    }
+    setIsSavedBadgeVisible(true)
+  }
+
   const handleClientChange = (field: keyof ClientData, value: string) => {
     onChange({
       ...budget,
@@ -1006,6 +1035,63 @@ export const BudgetHeaderForm: React.FC<BudgetHeaderFormProps> = ({
             <p className="text-[10.5px] text-[#171A1F]/60">
               Itens contratuais de garantia quinquenal (Art. 618 Código Civil), emissão de ART
               CREA/RS e cumprimento irrestrito às normas da ABNT e NRs.
+            </p>
+          </div>
+
+          {/* 1.6 OBSERVAÇÕES DO ORÇAMENTO (DESTAQUE PUMPKIN ORANGE #FF6B1F) */}
+          <div className="border-t border-[#171A1F]/10 pt-4 space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="text-xs sm:text-sm font-extrabold text-[#FF6B1F] flex items-center gap-2">
+                <span>Observações do Orçamento</span>
+              </label>
+
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {/* Badge de estado */}
+                {isDirty ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Alterações não salvas</span>
+                  </span>
+                ) : isSavedBadgeVisible || savedObs ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Salvo no orçamento</span>
+                  </span>
+                ) : null}
+
+                {/* Botão dedicado Salvar Observações */}
+                <button
+                  type="button"
+                  disabled={disabled || !isDirty}
+                  onClick={handleSaveObservations}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                    isDirty && !disabled
+                      ? 'bg-[#FF6B1F] hover:bg-[#e55d17] text-white cursor-pointer active:scale-95 shadow-sm'
+                      : 'bg-[#171A1F]/10 text-[#171A1F]/40 cursor-not-allowed'
+                  }`}
+                  title={isDirty ? 'Gravar observações no orçamento' : 'Nenhuma alteração pendente'}
+                >
+                  <Save className="w-3.5 h-3.5 shrink-0" />
+                  <span>Salvar Observações</span>
+                </button>
+              </div>
+            </div>
+
+            <textarea
+              rows={4}
+              disabled={disabled}
+              value={obsInput}
+              onChange={(e) => {
+                setObsInput(e.target.value)
+                setIsSavedBadgeVisible(false)
+              }}
+              placeholder="Ex.: Os itens 4, 5 e 6 serão fornecidos pelo cliente."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#171A1F]/20 bg-[#F8F9FA] text-xs sm:text-sm font-medium leading-relaxed focus:outline-none focus:border-[#FF6B1F] focus:ring-1 focus:ring-[#FF6B1F]/30 transition-all font-sans"
+            />
+            <p className="text-[10.5px] text-[#171A1F]/60">
+              Observações gerais, ressalvas e condições especiais de fornecimento. São gravadas
+              exclusivamente via botão &quot;Salvar Observações&quot; e impressas no relatório em
+              PDF.
             </p>
           </div>
         </div>

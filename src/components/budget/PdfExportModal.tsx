@@ -222,6 +222,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
     budget.executionDeadline ||
     budget.work?.executionDeadline ||
     'PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA'
+  const cleanObservations = sanitizeDocumentText(budget.observations?.trim() ?? '')
   const technicalResponsibilityText =
     getTechnicalResponsibilityText(budget) || DEFAULT_TECHNICAL_RESPONSIBILITY_TEXT
   const technicalObligationsText =
@@ -626,9 +627,14 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     {cleanExecutionDeadline}
                   </p>
                 )}
+                {cleanObservations && (
+                  <p className="text-[#171A1F]/90 text-[10px] pt-1 border-t border-[#171A1F]/10 leading-relaxed whitespace-pre-wrap">
+                    <strong className="text-[#171A1F]">Observações:</strong> {cleanObservations}
+                  </p>
+                )}
                 {budget.commercialNotes && (
                   <p className="text-[#171A1F]/75 text-[9.5px] pt-0.5 border-t border-[#171A1F]/10">
-                    <strong className="text-[#171A1F]">Observações:</strong>{' '}
+                    <strong className="text-[#171A1F]">Notas Comerciais:</strong>{' '}
                     {budget.commercialNotes}
                   </p>
                 )}
@@ -1856,6 +1862,18 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Bloco de Observações do Orçamento (somente quando houver texto preenchido) */}
+            {cleanObservations && (
+              <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-1">
+                <span className="font-bold uppercase tracking-wider text-[#294C87] text-[9.5px] block">
+                  Observações do Orçamento
+                </span>
+                <div className="text-[#171A1F]/90 text-[10.5px] leading-relaxed whitespace-pre-wrap font-medium">
+                  {cleanObservations}
+                </div>
+              </div>
+            )}
 
             {/* Identificação das Partes e Endereços para Fechamento */}
             <div className="p-2.5 rounded-xl bg-[#171A1F]/[0.02] border border-[#171A1F]/10 text-[10.5px] grid grid-cols-1 sm:grid-cols-2 gap-2.5">
