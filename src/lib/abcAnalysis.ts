@@ -40,6 +40,51 @@ export interface ComputeAbcCurveOptions {
   valueBasis?: AbcValueBasis // 'venda_bdi' (default CONCE) | 'custo_direto'
 }
 
+/**
+ * Normaliza descrição de insumo/serviço para agrupamento de homônimos:
+ * - trim
+ * - maiúsculas
+ * - remoção de acentos/diacríticos (NFD)
+ * - colapsar múltiplos espaços
+ */
+export function normalizeDescription(desc?: string): string {
+  if (!desc) return ''
+  return desc
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Verifica se um código representa a ausência de código (ex: "S/COD", "SEM CÓDIGO", vazio, hífen)
+ */
+export function isGenericOrEmptyCode(code?: string): boolean {
+  if (!code) return true
+  const c = normalizeDescription(code)
+  return (
+    c === '' ||
+    c === 'S/COD' ||
+    c === 'S/ COD' ||
+    c === 'S/CODIGO' ||
+    c === 'S/ CODIGO' ||
+    c === 'SEM CODIGO' ||
+    c === 'SEM COD' ||
+    c === 'S CODIGO' ||
+    c === 'S COD' ||
+    c === '-' ||
+    c === '--' ||
+    c === '---' ||
+    c === 'N/A' ||
+    c === 'NA' ||
+    c === 'SRV' ||
+    c === 'SN' ||
+    c === 'S.N.' ||
+    c === 'S/N'
+  )
+}
+
 export function computeAbcCurve(
   budget: FullBudget,
   options: ComputeAbcCurveOptions = {},
@@ -282,8 +327,49 @@ export function computeAbcCurve(
     })
   })
 
+  // 3.5. CONSOLIDAÇÃO DE INSUMOS HOMÔNIMOS (Modo Insumos)
+  // Quando a descrição normalizada for idêntica (ex: "Saco de ráfia" cadastrado com código SINAPI
+  // em uma CPU e sem código ou com código genérico em outra), funde em UMA única linha:
+  // - Soma totalQuantity (coeficiente CPU x quantidade de serviço já calculada)
+  // - Soma directCost e salePrice
+  // - Agrega todas as ocorrências de serviços/etapas para auditoria completa
+  // - Prioriza o código real (SINAPI/oficial) se disponível, senão "S/COD"
+  // - Nunca funde insumos de descrições normalizadas diferentes
+  let intermediateList = Array.from(map.values())
+  if (mode === 'insumos') {
+    const consolidatedByDesc = new Map<string, IntermediateItem>()
+
+    intermediateList.forEach((item) => {
+      const normDesc = normalizeDescription(item.description)
+      // Chave composta com a categoria para não misturar insumos de tipos diferentes com mesmo nome
+      const groupKey = `${item.category}:::${normDesc}`
+
+      const existing = consolidatedByDesc.get(groupKey)
+      if (!existing) {
+        consolidatedByDesc.set(groupKey, {
+          ...item,
+          serviceOccurrences: [...item.serviceOccurrences],
+        })
+      } else {
+        // Funde no item já existente
+        existing.totalQuantity += item.totalQuantity
+        existing.directCost += item.directCost
+        existing.salePrice += item.salePrice
+        existing.serviceOccurrences.push(...item.serviceOccurrences)
+
+        // Se o item consolidado ainda não tem código real mas o novo tem, adota o código real
+        if (isGenericOrEmptyCode(existing.code) && !isGenericOrEmptyCode(item.code)) {
+          existing.code = item.code
+          existing.description = item.description
+        }
+      }
+    })
+
+    intermediateList = Array.from(consolidatedByDesc.values())
+  }
+
   // 4. Ordenação decrescente pelo valor avaliado
-  const rawItems = Array.from(map.values())
+  const rawItems = intermediateList
   const sorted = rawItems.sort((a, b) => {
     const valA = valueBasis === 'venda_bdi' ? a.salePrice : a.directCost
     const valB = valueBasis === 'venda_bdi' ? b.salePrice : b.directCost

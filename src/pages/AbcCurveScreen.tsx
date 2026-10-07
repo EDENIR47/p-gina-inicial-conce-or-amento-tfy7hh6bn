@@ -565,7 +565,11 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
 
                       {/* Quantidade Total */}
                       <td className="py-3 px-3 text-right font-mono text-[11px] whitespace-nowrap">
-                        {item.totalQuantity.toLocaleString('pt-BR')} {item.unit}
+                        {item.totalQuantity.toLocaleString('pt-BR', {
+                          minimumFractionDigits: Number.isInteger(item.totalQuantity) ? 0 : 1,
+                          maximumFractionDigits: 3,
+                        })}{' '}
+                        {item.unit}
                       </td>
 
                       {/* Custo Direto */}
@@ -645,7 +649,11 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
                                     </span>
                                   </div>
                                   <span className="font-mono font-bold text-[#FF6B1F] text-xs whitespace-nowrap ml-2">
-                                    {occ.quantity.toLocaleString('pt-BR')} {item.unit}
+                                    {occ.quantity.toLocaleString('pt-BR', {
+                                      minimumFractionDigits: Number.isInteger(occ.quantity) ? 0 : 1,
+                                      maximumFractionDigits: 3,
+                                    })}{' '}
+                                    {item.unit}
                                   </span>
                                 </div>
                               ))}
