@@ -189,17 +189,27 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
   if (!isOpen) return null
 
   const handleSelectComposition = (comp: BudgetComposition) => {
-    setComposition(comp)
+    // Clona a composição com novos IDs para seus insumos, garantindo total isolamento
+    const isolatedComposition: BudgetComposition = {
+      ...comp,
+      id: `comp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      inputs: (comp.inputs || []).map((inp, idx) => ({
+        ...inp,
+        id: `inp-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+      })),
+    }
+
+    setComposition(isolatedComposition)
     // Se a descrição do serviço estava vazia ou era igual à anterior, sincroniza
     if (!description.trim() || description === composition.description) {
-      setDescription(comp.description)
+      setDescription(isolatedComposition.description)
     }
-    setUnit(comp.unit)
+    setUnit(isolatedComposition.unit)
     // Se selecionou composição com insumos, podemos limpar o unitPrice manual para calcular pela composição
-    if (comp.inputs && comp.inputs.length > 0) {
-      const calculatedCost = calculateCompositionUnitCost(comp)
+    if (isolatedComposition.inputs && isolatedComposition.inputs.length > 0) {
+      const calculatedCost = calculateCompositionUnitCost(isolatedComposition)
       setUnitPrice(String(calculatedCost))
-      setUnitPriceSource(comp.source || 'Composição')
+      setUnitPriceSource(isolatedComposition.source || 'Composição')
     }
   }
 

@@ -62,6 +62,8 @@ import {
   recordRemovedCompositionInput,
   getRemovedCompositionInputs,
   purgeRemovedCompositionInputRecord,
+  buildServiceTrashKey,
+  isGenericCompositionCode,
   RemovedCompositionInputItem,
 } from '@/lib/budgetsStorage'
 import { useToast } from '@/hooks/use-toast'
@@ -220,12 +222,35 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
   }
 
   const handleDuplicateStage = (stage: BudgetStage) => {
+    const newStageId = `stage-${Date.now()}`
+    const duplicatedServices: BudgetService[] = (stage.services || []).map((srv, srvIdx) => {
+      const newSrvId = `serv-${Date.now()}-${srvIdx}-${Math.random().toString(36).substring(2, 6)}`
+      const newCompId = `comp-${Date.now()}-${srvIdx}-${Math.random().toString(36).substring(2, 7)}`
+      const duplicatedInputs: BudgetInput[] = (srv.composition?.inputs || []).map(
+        (inp, inpIdx) => ({
+          ...inp,
+          id: `inp-${Date.now()}-${srvIdx}-${inpIdx}-${Math.random().toString(36).substring(2, 6)}`,
+        }),
+      )
+
+      return {
+        ...JSON.parse(JSON.stringify(srv)),
+        id: newSrvId,
+        composition: {
+          ...srv.composition,
+          id: newCompId,
+          inputs: duplicatedInputs,
+        },
+      }
+    })
+
     const duplicatedStage: BudgetStage = {
       ...JSON.parse(JSON.stringify(stage)),
-      id: `stage-${Date.now()}`,
+      id: newStageId,
       code: String(budget.stages.length + 1).padStart(2, '0'),
       name: `${stage.name} (CÓPIA)`,
       order: budget.stages.length + 1,
+      services: duplicatedServices,
     }
     const newStages = [...budget.stages, duplicatedStage]
     setExpandedStages((prev) => ({ ...prev, [duplicatedStage.id]: true }))
@@ -380,14 +405,28 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
   const handleDuplicateService = (stageId: string, service: BudgetService) => {
     const stage = budget.stages.find((s) => s.id === stageId)
     if (!stage) return
+
+    // Desacopla estritamente os IDs de serviço, composição e insumos para evitar contaminação
+    const newServiceId = `serv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+    const newCompositionId = `comp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+    const duplicatedInputs: BudgetInput[] = (service.composition?.inputs || []).map((inp, idx) => ({
+      ...inp,
+      id: `inp-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+    }))
+
     const duplicatedService: BudgetService = {
       ...JSON.parse(JSON.stringify(service)),
-      id: `serv-${Date.now()}`,
+      id: newServiceId,
       order: stage.services.length + 1,
       code: `${stage.code}.${String(stage.services.length + 1).padStart(2, '0')}`,
       description: `${service.description} (CÓPIA)`,
       unitPrice: service.unitPrice,
       unitPriceSource: service.unitPriceSource || 'Usuário',
+      composition: {
+        ...service.composition,
+        id: newCompositionId,
+        inputs: duplicatedInputs,
+      },
     }
 
     const newStages = budget.stages.map((st) => {
@@ -475,7 +514,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     let deletedInputCost = 0
     let serviceDesc = ''
     let removedInputObj: BudgetInput | null = null
-    let targetCompositionKey = ''
+    // Lixeira estritamente amarrada ao serviço (${budgetId}:${stageId}:${serviceId})
+    let targetCompositionKey = buildServiceTrashKey(serviceId, stageId, budget.id)
     let removedOriginalIndex = 0
 
     const newStages = budget.stages.map((st) => {
@@ -483,7 +523,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       const updatedServices = st.services.map((srv) => {
         if (srv.id !== serviceId) return srv
         serviceDesc = srv.description
-        targetCompositionKey = srv.composition.code || srv.composition.id || srv.code || srv.id
+        // Garante a chave isolada do serviço
+        targetCompositionKey = buildServiceTrashKey(srv.id, st.id, budget.id)
         const inputsList = srv.composition.inputs || []
         const inputIdx = inputsList.findIndex((inp) => inp.id === inputId)
         const targetInput = inputIdx >= 0 ? inputsList[inputIdx] : null
@@ -516,7 +557,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       return { ...st, services: updatedServices }
     })
 
-    // Registra exclusão na lixeira persistente com chave da composição pai
+    // Registra exclusão na lixeira persistente amarrada ao serviço
     let trashRecordId: string | null = null
     if (removedInputObj && targetCompositionKey) {
       const rec = recordRemovedCompositionInput(
@@ -583,14 +624,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     trashRecordId?: string | null,
   ) => {
     let serviceDesc = ''
-    let restoredCompKey = ''
+    const restoredCompKey = buildServiceTrashKey(serviceId, stageId, budget.id)
 
     const newStages = budget.stages.map((st) => {
       if (st.id !== stageId) return st
       const updatedServices = st.services.map((srv) => {
         if (srv.id !== serviceId) return srv
         serviceDesc = srv.description
-        restoredCompKey = srv.composition.code || srv.composition.id || srv.code || srv.id
         const currentInputs = srv.composition.inputs || []
         // Evita duplicar se já foi adicionado de volta
         if (currentInputs.some((i) => i.id === inputToRestore.id)) {
@@ -1545,14 +1585,27 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                   </div>
 
                                   <div className="flex items-center gap-2">
-                                    {/* Botão de Histórico / Lixeira da Composição */}
+                                    {/* Botão de Histórico / Lixeira da Composição (Amarrada estritamente ao serviço) */}
                                     {(() => {
-                                      const compKey =
-                                        comp.code || comp.id || service.code || service.id
-                                      const removedCount = compKey
-                                        ? getRemovedCompositionInputs(compKey).length
-                                        : 0
+                                      // Chave isolada por serviço
+                                      const srvTrashKey = buildServiceTrashKey(
+                                        service.id,
+                                        stage.id,
+                                        budget.id,
+                                      )
+                                      let removedItems = getRemovedCompositionInputs(srvTrashKey)
+
+                                      // Se não encontrou pela chave composta de serviço e o código NÃO for genérico, tenta o código canônico
+                                      const hasCanonicalCode =
+                                        comp.code && !isGenericCompositionCode(comp.code)
+                                      if (removedItems.length === 0 && hasCanonicalCode) {
+                                        removedItems = getRemovedCompositionInputs(comp.code)
+                                      }
+
+                                      const removedCount = removedItems.length
                                       if (removedCount === 0) return null
+
+                                      const activeTrashKey = srvTrashKey
                                       return (
                                         <button
                                           type="button"
@@ -1562,7 +1615,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                               stageId: stage.id,
                                               serviceId: service.id,
                                               serviceDescription: service.description,
-                                              compositionKey: compKey,
+                                              compositionKey: activeTrashKey,
                                             })
                                           }
                                           disabled={disabled}
@@ -2044,11 +2097,9 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
               </div>
               <div>
                 <AlertDialogTitle className="text-base sm:text-lg font-bold text-[#171A1F]">
-                  Lixeira da Composição
+                  Lixeira da Composição do Serviço
                 </AlertDialogTitle>
-                <p className="text-xs text-[#171A1F]/60">
-                  {trashModalState?.serviceDescription} ({trashModalState?.compositionKey})
-                </p>
+                <p className="text-xs text-[#171A1F]/60">{trashModalState?.serviceDescription}</p>
               </div>
             </div>
             <AlertDialogDescription asChild>

@@ -204,16 +204,46 @@ export const BudgetsScreen: React.FC = () => {
     setValidationErrors({})
   }
 
-  // Duplicar orçamento existente
+  // Duplicar orçamento existente (desacopla estritamente os IDs de etapas, serviços e insumos)
   const handleDuplicateBudget = (b: FullBudget) => {
+    const newBudgetId = `budget-${Date.now()}`
+    const duplicatedStages = (b.stages || []).map((stage, stIdx) => {
+      const newStageId = `stage-${Date.now()}-${stIdx}`
+      const duplicatedServices = (stage.services || []).map((srv, srvIdx) => {
+        const newSrvId = `serv-${Date.now()}-${stIdx}-${srvIdx}`
+        const newCompId = `comp-${Date.now()}-${stIdx}-${srvIdx}-${Math.random().toString(36).substring(2, 6)}`
+        const duplicatedInputs = (srv.composition?.inputs || []).map((inp, inpIdx) => ({
+          ...inp,
+          id: `inp-${Date.now()}-${stIdx}-${srvIdx}-${inpIdx}-${Math.random().toString(36).substring(2, 6)}`,
+        }))
+
+        return {
+          ...srv,
+          id: newSrvId,
+          composition: {
+            ...srv.composition,
+            id: newCompId,
+            inputs: duplicatedInputs,
+          },
+        }
+      })
+
+      return {
+        ...stage,
+        id: newStageId,
+        services: duplicatedServices,
+      }
+    })
+
     const duplicated: FullBudget = {
       ...JSON.parse(JSON.stringify(b)),
-      id: `budget-${Date.now()}`,
+      id: newBudgetId,
       code: `${b.code}-COP`,
       title: b.title ? `${b.title} (Cópia)` : `${b.work.name} (Cópia)`,
       status: 'em_andamento',
       createdAt: new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString(),
+      stages: duplicatedStages,
       work: {
         ...b.work,
         name: `${b.work.name} (Cópia)`,
