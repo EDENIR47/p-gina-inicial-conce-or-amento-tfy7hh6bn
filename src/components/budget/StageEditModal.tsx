@@ -1,10 +1,16 @@
 /**
  * CONCE — Serviço de Engenharia e Consultoria LTDA
  * Modal para Criar ou Editar Etapa da Obra (Nível 1 da Árvore)
- * Suporta Volume (m³), Peso (kg) e 1 Foto anexada com compressão client-side.
+ * Suporta:
+ * 1. Volume via Medidas: comprimento (m) × largura (m) × altura/espessura (m) calculando volumeM3 em tempo real
+ *    com suporte a retrocompatibilidade (ajuste manual direto também mantido se desejado)
+ * 2. Peso via Peso Específico (kg/m³) do material com lista de referência ou digitação livre,
+ *    calculando weightKg = peso específico × volume m³ em tempo real (ou modo peso manual direto)
+ * 3. 1 Foto anexada com compressão client-side.
+ * 4. Regra inegociável: em itens sem volume ou peso fica em branco (nunca zero automático).
  */
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useId } from 'react'
 import {
   X,
   Check,
@@ -17,6 +23,8 @@ import {
   Scale,
   Loader2,
   Info,
+  Calculator,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { BudgetStage } from '@/types/budgetEngine'
 import {
@@ -24,6 +32,66 @@ import {
   parseOptionalNumberPtBr,
   formatOptionalNumberPtBr,
 } from '@/lib/imageCompression'
+
+// Materiais típicos de referência com pesos específicos médios de projeto / demolição
+export interface SpecificWeightPreset {
+  label: string
+  densityKgM3: number
+  description?: string
+}
+
+export const TYPICAL_SPECIFIC_WEIGHTS: SpecificWeightPreset[] = [
+  {
+    label: 'Alvenaria de tijolo cerâmico',
+    densityKgM3: 1400,
+    description: '~1.400 kg/m³ (alvenaria furada com argamassa)',
+  },
+  {
+    label: 'Alvenaria de bloco de concreto',
+    densityKgM3: 1800,
+    description: '~1.800 kg/m³',
+  },
+  {
+    label: 'Concreto armado',
+    densityKgM3: 2500,
+    description: '~2.500 kg/m³ (estruturas, vigas, lajes)',
+  },
+  {
+    label: 'Concreto simples (sem armadura)',
+    densityKgM3: 2300,
+    description: '~2.300 kg/m³',
+  },
+  {
+    label: 'Argamassa / mistura cimentícia',
+    densityKgM3: 2100,
+    description: '~2.100 kg/m³ (reboco, contrapiso, emboço)',
+  },
+  {
+    label: 'Gesso / Drywall',
+    densityKgM3: 1000,
+    description: '~1.000 kg/m³ (placas de gesso / forro)',
+  },
+  {
+    label: 'Madeira / formas / escoras',
+    densityKgM3: 600,
+    description: '~600 kg/m³ (pinus, eucalipto, compensado)',
+  },
+  {
+    label: 'Metal / aço estrutural / vergalhões',
+    densityKgM3: 7850,
+    description: '~7.850 kg/m³',
+  },
+  {
+    label: 'Entulho misto solto / demolição geral',
+    densityKgM3: 1300,
+    description: '~1.300 kg/m³ (entulho misturado solto)',
+  },
+  {
+    label: 'Solo / terra escavada',
+    densityKgM3: 1600,
+    description: '~1.600 kg/m³',
+  },
+]
 
 interface StageEditModalProps {
   isOpen: boolean
@@ -43,13 +111,27 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
   const [name, setName] = useState(initialStage?.name || '')
   const [code, setCode] = useState(initialStage?.code || String(nextOrder).padStart(2, '0'))
   const [notes, setNotes] = useState(initialStage?.notes || '')
-  const [volumeStr, setVolumeStr] = useState('')
-  const [weightStr, setWeightStr] = useState('')
+
+  // Medidas de cálculo de volume (comprimento × largura × altura)
+  const [lengthStr, setLengthStr] = useState('')
+  const [widthStr, setWidthStr] = useState('')
+  const [heightStr, setHeightStr] = useState('')
+
+  // Modo de volume: 'measures' (padrão) ou 'manual'
+  const [volumeMode, setVolumeMode] = useState<'measures' | 'manual'>('measures')
+  const [manualVolumeStr, setManualVolumeStr] = useState('')
+
+  // Peso: 'density' (peso específico × volume) ou 'manual'
+  const [weightMode, setWeightMode] = useState<'density' | 'manual'>('density')
+  const [densityStr, setDensityStr] = useState('')
+  const [manualWeightStr, setManualWeightStr] = useState('')
+
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false)
   const [error, setError] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const presetSelectId = useId()
 
   // Sincroniza e popula os dados da etapa ao abrir a modal ou alterar initialStage
   useEffect(() => {
@@ -58,23 +140,50 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
         setName(initialStage.name || '')
         setCode(initialStage.code || String(initialStage.order || nextOrder).padStart(2, '0'))
         setNotes(initialStage.notes || '')
-        setVolumeStr(
+
+        const hasExistingVolume =
           initialStage.volumeM3 !== undefined && initialStage.volumeM3 !== null
-            ? formatOptionalNumberPtBr(initialStage.volumeM3)
-            : '',
-        )
-        setWeightStr(
+        const hasExistingWeight =
           initialStage.weightKg !== undefined && initialStage.weightKg !== null
-            ? formatOptionalNumberPtBr(initialStage.weightKg)
-            : '',
-        )
+
+        if (hasExistingVolume) {
+          // Mantém o volume existente no campo manual para retrocompatibilidade sem perdas
+          setManualVolumeStr(formatOptionalNumberPtBr(initialStage.volumeM3, 3))
+          // Por padrão se tem volume já pré-existente sem medidas gravadas, pode abrir em manual
+          // mas o usuário pode facilmente alternar para medidas
+          setVolumeMode('manual')
+        } else {
+          setManualVolumeStr('')
+          setVolumeMode('measures')
+        }
+
+        if (hasExistingWeight) {
+          setManualWeightStr(formatOptionalNumberPtBr(initialStage.weightKg, 2))
+          setWeightMode('manual')
+        } else {
+          setManualWeightStr('')
+          setWeightMode('density')
+        }
+
+        // Limpa medidas e peso específico
+        setLengthStr('')
+        setWidthStr('')
+        setHeightStr('')
+        setDensityStr('')
+
         setPhotoUrl(initialStage.photoUrl || null)
       } else {
         setName('')
         setCode(String(nextOrder).padStart(2, '0'))
         setNotes('')
-        setVolumeStr('')
-        setWeightStr('')
+        setLengthStr('')
+        setWidthStr('')
+        setHeightStr('')
+        setManualVolumeStr('')
+        setVolumeMode('measures')
+        setDensityStr('')
+        setManualWeightStr('')
+        setWeightMode('density')
         setPhotoUrl(null)
       }
       setIsCompressingPhoto(false)
@@ -84,11 +193,50 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
 
   if (!isOpen) return null
 
+  // Cálculo do volume em tempo real
+  const parsedLength = parseOptionalNumberPtBr(lengthStr)
+  const parsedWidth = parseOptionalNumberPtBr(widthStr)
+  const parsedHeight = parseOptionalNumberPtBr(heightStr)
+
+  // Volume calculado a partir das 3 medidas (somente se todas foram preenchidas e > 0)
+  const hasAllMeasures =
+    parsedLength !== null &&
+    parsedLength > 0 &&
+    parsedWidth !== null &&
+    parsedWidth > 0 &&
+    parsedHeight !== null &&
+    parsedHeight > 0
+
+  const calculatedVolumeFromMeasures: number | null = hasAllMeasures
+    ? parsedLength * parsedWidth * parsedHeight
+    : null
+
+  const parsedManualVolume = parseOptionalNumberPtBr(manualVolumeStr)
+
+  // Volume efetivo atual dependendo do modo
+  const effectiveVolumeM3: number | null =
+    volumeMode === 'measures' ? calculatedVolumeFromMeasures : parsedManualVolume
+
+  // Cálculo do peso em tempo real
+  const parsedDensity = parseOptionalNumberPtBr(densityStr)
+  const calculatedWeightFromDensity: number | null =
+    effectiveVolumeM3 !== null &&
+    effectiveVolumeM3 > 0 &&
+    parsedDensity !== null &&
+    parsedDensity > 0
+      ? effectiveVolumeM3 * parsedDensity
+      : null
+
+  const parsedManualWeight = parseOptionalNumberPtBr(manualWeightStr)
+
+  // Peso efetivo atual dependendo do modo
+  const effectiveWeightKg: number | null =
+    weightMode === 'density' ? calculatedWeightFromDensity : parsedManualWeight
+
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Limpa o valor do input para permitir selecionar o mesmo arquivo novamente
     e.target.value = ''
 
     if (!file.type.startsWith('image/')) {
@@ -99,7 +247,6 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
     try {
       setIsCompressingPhoto(true)
       setError('')
-      // Comprime no cliente para máx 1200px e JPEG 70%
       const compressed = await compressImageFile(file, {
         maxWidth: 1200,
         maxHeight: 1200,
@@ -118,6 +265,10 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
     setPhotoUrl(null)
   }
 
+  const handleSelectDensityPreset = (densityValue: number) => {
+    setDensityStr(formatOptionalNumberPtBr(densityValue, 0))
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
@@ -125,9 +276,16 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
       return
     }
 
-    // Trata volume e peso: se o usuário deixou em branco, permanece null/indefinido (nunca zero forçado)
-    const parsedVolume = parseOptionalNumberPtBr(volumeStr)
-    const parsedWeight = parseOptionalNumberPtBr(weightStr)
+    // Regra inegociável: em itens que não têm volume ou peso fica em branco (null, nunca zero forçado)
+    const finalVolume =
+      effectiveVolumeM3 !== null && !isNaN(effectiveVolumeM3) && effectiveVolumeM3 > 0
+        ? Number(effectiveVolumeM3.toFixed(3))
+        : null
+
+    const finalWeight =
+      effectiveWeightKg !== null && !isNaN(effectiveWeightKg) && effectiveWeightKg > 0
+        ? Number(effectiveWeightKg.toFixed(2))
+        : null
 
     onSave({
       id: initialStage?.id || `stage-${Date.now()}`,
@@ -136,8 +294,8 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
       name: name.trim().toUpperCase(),
       services: initialStage?.services || [],
       notes: notes.trim(),
-      volumeM3: parsedVolume,
-      weightKg: parsedWeight,
+      volumeM3: finalVolume,
+      weightKg: finalWeight,
       photoUrl: photoUrl || null,
     })
 
@@ -146,7 +304,7 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-[#171A1F]/20 overflow-hidden my-6">
+      <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl border border-[#171A1F]/20 overflow-hidden my-6">
         <div className="p-4 bg-[#171A1F] text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-[#FF6B1F]" />
@@ -202,29 +360,134 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
             </div>
           </div>
 
-          {/* Volume (m³) e Peso (kg) por Etapa Retirada — Opcionais */}
-          <div className="p-3.5 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-2.5">
+          {/* BLOCO 1: Volume Retirado (m³) — via Medidas (CxLxA) ou Manual */}
+          <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#171A1F] flex items-center gap-1.5">
-                <Box className="w-3.5 h-3.5 text-[#294C87]" />
-                Volume e Peso da Etapa Retirada
+                <Box className="w-4 h-4 text-[#294C87]" />
+                Volume Retirado (m³)
               </span>
-              <span className="text-[10px] text-[#171A1F]/50 font-medium">
-                Opcional (em branco se não houver)
-              </span>
+
+              {/* Alternador de Modo */}
+              <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-[#171A1F]/15 text-[10px] font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setVolumeMode('measures')}
+                  className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                    volumeMode === 'measures'
+                      ? 'bg-[#294C87] text-white font-bold'
+                      : 'text-[#171A1F]/70 hover:text-[#171A1F]'
+                  }`}
+                  title="Calcular volume a partir das medidas (Comprimento × Largura × Altura)"
+                >
+                  <Calculator className="w-3 h-3" />
+                  <span>Por Medidas (C×L×A)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVolumeMode('manual')}
+                  className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                    volumeMode === 'manual'
+                      ? 'bg-[#294C87] text-white font-bold'
+                      : 'text-[#171A1F]/70 hover:text-[#171A1F]'
+                  }`}
+                  title="Digitar volume pronto diretamente"
+                >
+                  <SlidersHorizontal className="w-3 h-3" />
+                  <span>Volume Manual</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] font-semibold text-[#171A1F]/80 flex items-center gap-1 mb-1">
-                  <Box className="w-3 h-3 text-[#294C87]" />
-                  Volume Retirado (m³)
+            {volumeMode === 'measures' ? (
+              <div className="space-y-2.5">
+                <p className="text-[11px] text-[#171A1F]/60">
+                  Informe as dimensões em metros (padrão brasileiro com vírgula ou ponto):
+                </p>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#171A1F]/80 block mb-0.5">
+                      Comprimento (m)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={lengthStr}
+                        onChange={(e) => setLengthStr(e.target.value)}
+                        placeholder="Ex: 5,20"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#171A1F]/20 text-xs font-mono font-semibold bg-white focus:outline-none focus:border-[#294C87]"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#171A1F]/40 font-bold pointer-events-none">
+                        m
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#171A1F]/80 block mb-0.5">
+                      Largura (m)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={widthStr}
+                        onChange={(e) => setWidthStr(e.target.value)}
+                        placeholder="Ex: 3,00"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#171A1F]/20 text-xs font-mono font-semibold bg-white focus:outline-none focus:border-[#294C87]"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#171A1F]/40 font-bold pointer-events-none">
+                        m
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#171A1F]/80 block mb-0.5">
+                      Altura / Esp. (m)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={heightStr}
+                        onChange={(e) => setHeightStr(e.target.value)}
+                        placeholder="Ex: 0,15"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#171A1F]/20 text-xs font-mono font-semibold bg-white focus:outline-none focus:border-[#294C87]"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#171A1F]/40 font-bold pointer-events-none">
+                        m
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Exibição em tempo real do volume calculado */}
+                <div className="p-2.5 rounded-lg bg-white border border-[#294C87]/20 flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-[#171A1F]/80 flex items-center gap-1.5">
+                    <Calculator className="w-3.5 h-3.5 text-[#294C87]" />
+                    Volume calculado (C × L × A):
+                  </span>
+                  {calculatedVolumeFromMeasures !== null ? (
+                    <span className="text-xs sm:text-sm font-extrabold font-mono text-[#294C87]">
+                      {formatOptionalNumberPtBr(calculatedVolumeFromMeasures, 3)} m³
+                    </span>
+                  ) : (
+                    <span className="text-[11px] italic text-[#171A1F]/40 font-mono">
+                      (em branco — preencha as 3 medidas)
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-[#171A1F]/80 block">
+                  Volume Direto (m³)
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    value={volumeStr}
-                    onChange={(e) => setVolumeStr(e.target.value)}
+                    value={manualVolumeStr}
+                    onChange={(e) => setManualVolumeStr(e.target.value)}
                     placeholder="Ex: 14,50"
                     className="w-full pl-3 pr-10 py-1.5 rounded-lg border border-[#171A1F]/20 text-xs font-mono font-semibold bg-white focus:outline-none focus:border-[#294C87]"
                   />
@@ -233,17 +496,134 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
                   </span>
                 </div>
               </div>
+            )}
+          </div>
 
-              <div>
-                <label className="text-[11px] font-semibold text-[#171A1F]/80 flex items-center gap-1 mb-1">
-                  <Scale className="w-3 h-3 text-[#FF6B1F]" />
-                  Peso Retirado (kg)
+          {/* BLOCO 2: Peso Retirado (kg) — via Peso Específico (kg/m³) × Volume ou Manual */}
+          <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#171A1F]/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#171A1F] flex items-center gap-1.5">
+                <Scale className="w-4 h-4 text-[#FF6B1F]" />
+                Peso Retirado (kg)
+              </span>
+
+              {/* Alternador de Modo de Peso */}
+              <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-[#171A1F]/15 text-[10px] font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setWeightMode('density')}
+                  className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                    weightMode === 'density'
+                      ? 'bg-[#FF6B1F] text-white font-bold'
+                      : 'text-[#171A1F]/70 hover:text-[#171A1F]'
+                  }`}
+                  title="Calcular peso multiplicando o peso específico (kg/m³) pelo volume (m³)"
+                >
+                  <Calculator className="w-3 h-3" />
+                  <span>Por Peso Específico</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWeightMode('manual')}
+                  className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                    weightMode === 'manual'
+                      ? 'bg-[#FF6B1F] text-white font-bold'
+                      : 'text-[#171A1F]/70 hover:text-[#171A1F]'
+                  }`}
+                  title="Digitar peso total em kg diretamente"
+                >
+                  <SlidersHorizontal className="w-3 h-3" />
+                  <span>Peso Manual</span>
+                </button>
+              </div>
+            </div>
+
+            {weightMode === 'density' ? (
+              <div className="space-y-2.5">
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor={presetSelectId}
+                    className="text-[11px] font-semibold text-[#171A1F]/80 flex items-center justify-between"
+                  >
+                    <span>Material de Referência (Sugestões de Peso Específico):</span>
+                    <span className="text-[10px] text-[#171A1F]/50">Opcional</span>
+                  </label>
+                  <select
+                    id={presetSelectId}
+                    value=""
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value)
+                      if (!isNaN(val)) {
+                        handleSelectDensityPreset(val)
+                      }
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-[#171A1F]/20 text-xs bg-white text-[#171A1F] font-medium focus:outline-none focus:border-[#294C87] cursor-pointer"
+                  >
+                    <option value="">Selecione um material típico para preencher...</option>
+                    {TYPICAL_SPECIFIC_WEIGHTS.map((mat) => (
+                      <option key={mat.label} value={mat.densityKgM3}>
+                        {mat.label} — {mat.densityKgM3.toLocaleString('pt-BR')} kg/m³
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-[#171A1F]/80 block">
+                    Peso Específico do Material (kg/m³)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={densityStr}
+                      onChange={(e) => setDensityStr(e.target.value)}
+                      placeholder="Ex: 1400 ou 2500"
+                      className="w-full pl-3 pr-14 py-1.5 rounded-lg border border-[#171A1F]/20 text-xs font-mono font-semibold bg-white focus:outline-none focus:border-[#294C87]"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#171A1F]/40 pointer-events-none">
+                      kg/m³
+                    </span>
+                  </div>
+                </div>
+
+                {/* Exibição em tempo real do peso calculado */}
+                <div className="p-2.5 rounded-lg bg-white border border-[#FF6B1F]/30 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[11px] font-semibold text-[#171A1F]/80 flex items-center gap-1.5">
+                      <Scale className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                      Peso calculado (Vol × Peso Específico):
+                    </span>
+                    {effectiveVolumeM3 !== null &&
+                    effectiveVolumeM3 > 0 &&
+                    parsedDensity !== null ? (
+                      <span className="text-[10px] text-[#171A1F]/50 block font-mono">
+                        {formatOptionalNumberPtBr(effectiveVolumeM3, 3)} m³ ×{' '}
+                        {formatOptionalNumberPtBr(parsedDensity, 0)} kg/m³
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {calculatedWeightFromDensity !== null ? (
+                    <span className="text-xs sm:text-sm font-extrabold font-mono text-[#FF6B1F]">
+                      {formatOptionalNumberPtBr(calculatedWeightFromDensity, 2)} kg
+                    </span>
+                  ) : (
+                    <span className="text-[11px] italic text-[#171A1F]/40 font-mono">
+                      (em branco — requer volume e peso específico)
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-[#171A1F]/80 block">
+                  Peso Retirado Direto (kg)
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    value={weightStr}
-                    onChange={(e) => setWeightStr(e.target.value)}
+                    value={manualWeightStr}
+                    onChange={(e) => setManualWeightStr(e.target.value)}
                     placeholder="Ex: 850,00"
                     className="w-full pl-3 pr-10 py-1.5 rounded-lg border border-[#171A1F]/20 text-xs font-mono font-semibold bg-white focus:outline-none focus:border-[#294C87]"
                   />
@@ -252,11 +632,11 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
                   </span>
                 </div>
               </div>
-            </div>
+            )}
 
             <p className="text-[10px] text-[#171A1F]/60 flex items-center gap-1 leading-relaxed">
-              <Info className="w-3 h-3 text-[#294C87] shrink-0" />
-              Deixe em branco em itens que não possuem volume ou peso para retirada.
+              <Info className="w-3.5 h-3.5 text-[#294C87] shrink-0" />
+              Em itens sem volume ou peso a retirar, deixe em branco (nunca zero automático).
             </p>
           </div>
 
@@ -353,7 +733,7 @@ export const StageEditModal: React.FC<StageEditModalProps> = ({
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ex: Medições quinzenais conforme diário de obra"
+              placeholder="Ex: Medições quinzenais conforme avanço real e destinação de entulho"
               className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs focus:outline-none focus:border-[#294C87]"
             />
           </div>

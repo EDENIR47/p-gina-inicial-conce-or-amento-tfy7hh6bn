@@ -1,15 +1,28 @@
 /**
  * CONCE — Serviço de Engenharia e Consultoria LTDA
  * Modal para Criar ou Editar Serviço de uma Etapa
+ * Agora com recurso "Melhorar com IA" via Agente Nativo Skip Cloud (service-description-improver)
+ * com pré-visualização, aprovação explícita ("Aplicar" / "Descartar") e fallback resiliente.
  */
 
 import React, { useState, useEffect } from 'react'
-import { X, Check, FileSpreadsheet, AlertCircle, BookOpen } from 'lucide-react'
+import {
+  X,
+  Check,
+  FileSpreadsheet,
+  AlertCircle,
+  BookOpen,
+  Sparkles,
+  Loader2,
+  Undo2,
+  CheckCircle2,
+} from 'lucide-react'
 import { BudgetComposition, BudgetService, BudgetStage } from '@/types/budgetEngine'
 import { CompositionPickerModal } from './CompositionPickerModal'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
 import { UnitSelect } from './UnitSelect'
+import pb from '@/lib/pocketbase/client'
 
 interface ServiceEditModalProps {
   isOpen: boolean
@@ -99,6 +112,11 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [error, setError] = useState('')
 
+  // Estados para melhoria de descrição com IA nativa Skip Cloud
+  const [isAiLoading, setIsAiLoading] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null)
+  const [aiNotice, setAiNotice] = useState<string | null>(null)
+
   // Sincroniza e popula os dados do serviço ao abrir a modal ou alterar initialService
   useEffect(() => {
     if (isOpen) {
@@ -183,6 +201,9 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
         setUnitPriceSource('Usuário')
       }
       setError('')
+      setAiSuggestion(null)
+      setAiNotice(null)
+      setIsAiLoading(false)
     }
   }, [isOpen, initialService, currentStageId])
 
@@ -236,6 +257,76 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
         setCode(`${st.code}.${String(nextIdx).padStart(2, '0')}`)
       }
     }
+  }
+
+  // Aciona o Agente Nativo Skip Cloud para aprimorar a descrição do serviço
+  const handleImproveWithAi = async () => {
+    const trimmedDesc = description.trim()
+    if (!trimmedDesc || trimmedDesc.length < 2) {
+      setError('Digite pelo menos 2 caracteres na descrição para que a IA possa aprimorá-la.')
+      return
+    }
+
+    setIsAiLoading(true)
+    setError('')
+    setAiNotice(null)
+    setAiSuggestion(null)
+
+    try {
+      const baseUrl = import.meta.env.VITE_POCKETBASE_URL || ''
+      const res = await fetch(`${baseUrl}/backend/v1/improve-service-description`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(pb.authStore.token ? { Authorization: pb.authStore.token } : {}),
+        },
+        body: JSON.stringify({
+          description: trimmedDesc,
+          unit: unit.trim() || undefined,
+          stageName: activeStage?.name || undefined,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(
+          data.error || 'O serviço de IA está temporariamente indisponível no momento.',
+        )
+      }
+
+      const improved = data.improvedDescription ? String(data.improvedDescription).trim() : ''
+      if (!improved) {
+        throw new Error('A IA não gerou uma sugestão válida.')
+      }
+
+      setAiSuggestion(improved)
+      setAiNotice('Sugestão técnica gerada! Revise abaixo e decida se deseja Aplicar ou Descartar.')
+    } catch (err: any) {
+      // Mensagem amigável de indisponibilidade mantendo campo editável manualmente
+      setAiNotice(
+        err?.message ||
+          'Assistente de IA temporariamente indisponível. Você pode continuar editando a descrição manualmente com total liberdade.',
+      )
+    } finally {
+      setIsAiLoading(false)
+    }
+  }
+
+  // Aplica a sugestão gerada pela IA na descrição (ação explícita do usuário)
+  const handleApplyAiSuggestion = () => {
+    if (aiSuggestion) {
+      setDescription(aiSuggestion)
+      setAiSuggestion(null)
+      setAiNotice('Descrição atualizada com a versão técnica sugerida!')
+      if (error) setError('')
+    }
+  }
+
+  // Descarta a sugestão gerada pela IA mantendo a descrição original intacta
+  const handleDiscardAiSuggestion = () => {
+    setAiSuggestion(null)
+    setAiNotice(null)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -340,7 +431,7 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
                 {initialService ? 'Editar Serviço da Etapa' : 'Adicionar Novo Serviço'}
               </h3>
             </div>
-            <button onClick={onClose} className="text-white/70 hover:text-white">
+            <button onClick={onClose} className="text-white/70 hover:text-white cursor-pointer">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -457,19 +548,102 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-[#171A1F] block mb-1">
-                Descrição do Serviço *
-              </label>
+            {/* Descrição do Serviço com Botão "Melhorar com IA" */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#171A1F] block">
+                  Descrição do Serviço *
+                </label>
+
+                {/* Botão de IA Nativa Skip Cloud */}
+                <button
+                  type="button"
+                  onClick={handleImproveWithAi}
+                  disabled={isAiLoading || !description.trim()}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-[#294C87] to-[#1F3B6C] hover:from-[#171A1F] hover:to-[#294C87] text-white text-[11px] font-bold shadow-xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                  title="Aprimorar redação técnica do serviço com agente de IA nativo Skip Cloud para propostas de obras"
+                >
+                  {isAiLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FF6B1F]" />
+                      <span>Aprimorando com IA...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                      <span>Melhorar com IA</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               <textarea
-                rows={2}
+                rows={3}
                 value={description}
                 onChange={(e) => {
                   setDescription(e.target.value)
                   setError('')
                 }}
+                placeholder="Ex: Execução de alvenaria em tijolos cerâmicos furados 9x19x19 cm..."
                 className="w-full px-3 py-2 rounded-lg border border-[#171A1F]/20 text-xs focus:outline-none focus:border-[#294C87]"
               />
+
+              {/* Card de Pré-visualização da Sugestão da IA (regra anti-sobrescrita silenciosa: nada grava sem clique em Aplicar) */}
+              {aiSuggestion && (
+                <div className="p-3.5 rounded-xl bg-gradient-to-br from-blue-50/70 to-indigo-50/60 border-2 border-[#294C87]/30 space-y-2.5 shadow-sm animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-[#294C87]">
+                      <Sparkles className="w-4 h-4 text-[#FF6B1F]" />
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        Versão Técnica Sugerida pela IA
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-medium text-[#171A1F]/60">
+                      Pré-visualização (nada foi salvo ainda)
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-[#171A1F] font-medium leading-relaxed bg-white p-3 rounded-lg border border-[#294C87]/20">
+                    {aiSuggestion}
+                  </p>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleDiscardAiSuggestion}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F]/80 hover:bg-white hover:text-red-600 transition-colors cursor-pointer"
+                      title="Descartar sugestão e manter a descrição atual"
+                    >
+                      <Undo2 className="w-3.5 h-3.5" />
+                      <span>Descartar</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleApplyAiSuggestion}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#294C87] hover:bg-[#171A1F] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                      title="Substituir a descrição atual pela versão sugerida"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                      <span>Aplicar na Descrição</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Aviso / Notificação amigável de status da IA */}
+              {aiNotice && !aiSuggestion && (
+                <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200 text-xs text-[#294C87] flex items-center justify-between">
+                  <span>{aiNotice}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAiNotice(null)}
+                    className="text-[#294C87]/60 hover:text-[#294C87] text-xs font-bold cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Caixa de Composição Vinculada */}
@@ -487,7 +661,7 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
                     <button
                       type="button"
                       onClick={handleClearComposition}
-                      className="px-2.5 py-1 rounded-lg border border-[#171A1F]/20 text-[#171A1F]/70 hover:text-red-600 hover:bg-white text-[11px] font-semibold transition-colors"
+                      className="px-2.5 py-1 rounded-lg border border-[#171A1F]/20 text-[#171A1F]/70 hover:text-red-600 hover:bg-white text-[11px] font-semibold transition-colors cursor-pointer"
                     >
                       Esvaziar Insumos
                     </button>
@@ -632,13 +806,13 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] hover:bg-[#171A1F]/5"
+                className="px-4 py-2 rounded-lg border border-[#171A1F]/20 text-xs font-semibold text-[#171A1F] hover:bg-[#171A1F]/5 cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#294C87] hover:bg-[#171A1F] text-white text-xs font-bold transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#294C87] hover:bg-[#171A1F] text-white text-xs font-bold transition-colors cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5 text-[#FF6B1F]" />
                 <span>Salvar Serviço</span>
