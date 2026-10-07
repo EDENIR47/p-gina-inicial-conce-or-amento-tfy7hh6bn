@@ -63,21 +63,21 @@ const EXPORT_MODE_OPTIONS: ExportModeOption[] = [
   {
     id: 'valor_final',
     title: 'Apenas Valor Final',
-    subtitle: 'Proposta Simples — Valor Global',
+    subtitle: 'Proposta Simples — Síntese Direta',
     badge: 'Síntese Direta',
     icon: Award,
     description:
-      'Proposta comercial direta contendo exclusivamente o valor final da obra como elemento central, identificação das partes, condições comerciais e termo de assinatura formal — sem nenhuma discriminação de serviços, itens ou custos internos.',
+      'Proposta comercial direta contendo discriminação enxuta dos itens e seus respectivos valores com BDI, identificação das partes, valor final da obra, condições comerciais e termo de assinatura formal.',
     features: [
       'Capa institucional enxuta (logo CONCE, razão social e CNPJ 57.149.101/0001-46)',
       'Identificação clara dos clientes e endereço completo da obra',
+      'Relação de itens com descrição, valores unitários com BDI e total geral',
       'VALOR FINAL DA OBRA como elemento central, sóbrio e elegante em Poppins',
       'Condições comerciais: forma de pagamento, prazo de execução e validade',
-      'Zero discriminação de itens, serviços, insumos, BDI ou dados técnicos',
       'Termo formal de aceite com assinatura do RT Eng. Edenir Souza da Rosa',
     ],
     recommendedFor:
-      'Fechamentos rápidos, propostas de valor global e clientes que solicitam apenas o preço final.',
+      'Fechamentos rápidos, propostas diretas e clientes que solicitam os itens com preço final.',
   },
   {
     id: 'simplificado',
@@ -399,7 +399,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
             <span className="text-[11px] text-[#FF6B1F] font-bold">
               {selectedMode === 'valor_final' &&
-                '✓ Apenas valor final da obra (sem itens, serviços ou detalhamento)'}
+                '✓ Síntese direta com relação de itens, valor e valor total global'}
               {selectedMode === 'simplificado' &&
                 '✓ Relação de itens e quantitativos comerciais sem memória técnica'}
               {selectedMode === 'etapas' && '✓ Síntese executiva e peso percentual das etapas'}
@@ -472,7 +472,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         {/* Zero itens, zero serviços, zero coeficientes, zero BDI ou dados técnicos. */}
         {/* ============================================================ */}
         {selectedMode === 'valor_final' && (
-          <section className="print-page-section print-single-page min-h-[960px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-0 print:border-2 print:p-4 print:m-0 print:page-break-inside-avoid">
+          <section className="print-page-section print-cover-page min-h-[960px] flex flex-col justify-between border-4 border-[#171A1F] p-8 sm:p-12 relative overflow-hidden bg-gradient-to-b from-white via-[#F8F9FA] to-white rounded-xl print:min-h-0 print:border-2 print:p-4 print:m-0">
             {/* Faixa decorativa superior Cobalt + Pumpkin */}
             <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-[#294C87] via-[#FF6B1F] to-[#294C87]" />
 
@@ -497,7 +497,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 </p>
                 <div className="mt-0.5">
                   <span className="inline-block px-2 py-0.5 rounded text-[9.5px] font-bold bg-[#294C87]/15 text-[#294C87]">
-                    Proposta Comercial — Valor Global
+                    Proposta Comercial — Síntese Direta
                   </span>
                 </div>
               </div>
@@ -507,7 +507,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             <div className="py-2 print:py-1.5 space-y-1.5">
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#294C87]/10 border border-[#294C87]/20 text-[#294C87] text-[10px] font-bold uppercase tracking-wider">
                 <Award className="w-3 h-3 text-[#FF6B1F]" />
-                <span>Proposta Comercial Direta</span>
+                <span>Proposta Comercial — Síntese Direta</span>
               </div>
               <div>
                 <h1 className="text-lg sm:text-xl font-extrabold text-[#171A1F] tracking-tight leading-snug">
@@ -578,8 +578,76 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </div>
             </div>
 
+            {/* TABELA ENXUTA: DESCRIÇÃO DOS ITENS E VALORES COM BDI */}
+            <div className="my-2 space-y-1.5 print:my-1.5">
+              <div className="flex items-center justify-between border-b border-[#294C87]/30 pb-1">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#294C87] flex items-center gap-1.5">
+                  <span>📋 Relação de Itens e Valores</span>
+                </span>
+                <span className="text-[9.5px] text-[#171A1F]/60 font-mono">
+                  Valores finais com BDI e tributos inclusos
+                </span>
+              </div>
+
+              <div className="overflow-x-auto border border-[#171A1F]/15 rounded-xl shadow-xs bg-white">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#171A1F] text-white uppercase text-[9px] font-bold tracking-wider">
+                    <tr>
+                      <th className="py-2 px-2.5 w-16 text-center">Item</th>
+                      <th className="py-2 px-3">Descrição do Item / Serviço</th>
+                      <th className="py-2 px-3 w-36 text-right">Valor (R$)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#171A1F]/10">
+                    {budget.stages.flatMap((stage) =>
+                      stage.services.map((service, sIdx) => {
+                        const sQty = Number(service.quantity) || 0
+                        const laborMult = 1 + (summary.socialChargesRate || 0) / 100
+                        const compUnit = getServiceEffectiveUnitCost(service, laborMult)
+                        const serviceBdi = service.customBdiPercent ?? summary.bdiRate
+                        const unitWithBdi = compUnit * (1 + serviceBdi / 100)
+                        const totalWithBdi = unitWithBdi * sQty
+
+                        return (
+                          <tr
+                            key={service.id}
+                            className={`transition-colors ${
+                              sIdx % 2 === 0 ? 'bg-white' : 'bg-[#F8F9FA]/70'
+                            }`}
+                          >
+                            <td className="py-1.5 px-2.5 font-mono text-[#171A1F]/70 text-center font-semibold text-[11px]">
+                              {service.code}
+                            </td>
+                            <td className="py-1.5 px-3 font-medium text-[#171A1F] text-[11px]">
+                              {service.description}
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono font-bold text-[#171A1F] text-xs">
+                              {formatCurrencyBRL(totalWithBdi)}
+                            </td>
+                          </tr>
+                        )
+                      }),
+                    )}
+                  </tbody>
+                  <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs border-t-2 border-[#171A1F]">
+                    <tr>
+                      <td
+                        className="py-2 px-3 uppercase text-right tracking-wider text-[10.5px]"
+                        colSpan={2}
+                      >
+                        TOTAL GERAL:
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono text-xs sm:text-sm font-bold text-white">
+                        {formatCurrencyBRL(summary.finalSalePrice)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
             {/* ELEMENTO CENTRAL: O VALOR FINAL DA OBRA */}
-            <div className="my-1 p-3 rounded-xl bg-[#F4F6F9] border-2 border-[#294C87]/30 shadow-xs text-center space-y-1 print:p-2.5 print:my-0.5">
+            <div className="my-1 p-3 rounded-xl bg-[#F4F6F9] border-2 border-[#294C87]/30 shadow-xs text-center space-y-1 print:p-2 print:my-0.5">
               <span className="text-[9.5px] uppercase tracking-widest font-extrabold text-[#294C87] block">
                 VALOR FINAL DA OBRA (PREÇO GLOBAL FECHADO)
               </span>
