@@ -51,12 +51,22 @@ export interface ComputeAbcCurveOptions {
  */
 export function normalizeDescription(desc?: string | null): string {
   if (!desc) return ''
-  return desc
+  let cleaned = desc
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
     .replace(/\s+/g, ' ')
     .trim()
+
+  // Padronização de expressões para chave unificada de homônimos na Curva ABC:
+  // 1. "SACOS DE RAFIA" e "SACO DE RAFIA" -> "SACO DE RAFIA"
+  cleaned = cleaned.replace(/\bSACOS DE RAFIAS?\b/g, 'SACO DE RAFIA')
+  // 2. "ENCARREGADO DE OBRA" e "ENCARREGADO OBRA" -> "ENCARREGADO DA OBRA"
+  cleaned = cleaned.replace(/\bENCARREGAD[OA]S? (?:DE )?OBRA\b/g, 'ENCARREGADO DA OBRA')
+  // 3. "CACAMBA DE ENTULHO" -> "CACAMBA DE ENTULHOS"
+  cleaned = cleaned.replace(/\bCACAMBAS? DE ENTULHO\b/g, 'CACAMBA DE ENTULHOS')
+
+  return cleaned
 }
 
 /**

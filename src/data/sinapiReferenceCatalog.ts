@@ -75,7 +75,7 @@ export const SINAPI_REFERENCE_DATASET: SinapiCatalogItem[] = [
     numericCode: '98458',
     type: 'composicao',
     description:
-      'Locação e transporte de caçamba metálica estacionária para entulho de obra (5 m³)',
+      'Locação e transporte de caçamba metálica estacionária para entulhos de obra (5 m³)',
     unit: 'un',
     category: 'servico_terceiro',
     specialty: 'Serviços Preliminares',

@@ -13,6 +13,7 @@
 import { FullBudget } from '@/types/budgetEngine'
 import { computeAbcCurve, normalizeDescription, isGenericOrEmptyCode } from './abcAnalysis'
 import { calculateFullBudget } from './budgetEngine'
+import { normalizeInputDescription } from './budgetsStorage'
 
 export function runAbcTests(): { passed: boolean; details: string[] } {
   const details: string[] = []
@@ -42,6 +43,58 @@ export function runAbcTests(): { passed: boolean; details: string[] } {
   assert(isGenericOrEmptyCode('N/A') === true, 'N/A é genérico')
   assert(isGenericOrEmptyCode('') === true, 'Vazio é genérico')
   assert(isGenericOrEmptyCode('SINAPI-88316') === false, 'SINAPI-88316 é código oficial válido')
+
+  // TESTE 1.1: Testes de normalização de nomenclatura solicitada pelo usuário (normalizeInputDescription)
+  assert(
+    normalizeInputDescription('Encarregado de obra') === 'Encarregado da obra',
+    'normalizeInputDescription: "Encarregado de obra" -> "Encarregado da obra"',
+  )
+  assert(
+    normalizeInputDescription('encarregado obra') === 'encarregado da obra',
+    'normalizeInputDescription: "encarregado obra" -> "encarregado da obra"',
+  )
+  assert(
+    normalizeInputDescription('ENCARREGADO DE OBRA') === 'ENCARREGADO DA OBRA',
+    'normalizeInputDescription: "ENCARREGADO DE OBRA" -> "ENCARREGADO DA OBRA"',
+  )
+  assert(
+    normalizeInputDescription('Caçamba de entulho') === 'Caçamba de entulhos',
+    'normalizeInputDescription: "Caçamba de entulho" -> "Caçamba de entulhos"',
+  )
+  assert(
+    normalizeInputDescription('caçamba de entulho') === 'caçamba de entulhos',
+    'normalizeInputDescription: "caçamba de entulho" -> "caçamba de entulhos"',
+  )
+  assert(
+    normalizeInputDescription('cacamba de entulho') === 'caçamba de entulhos',
+    'normalizeInputDescription: "cacamba de entulho" (sem acento) -> "caçamba de entulhos"',
+  )
+  assert(
+    normalizeInputDescription('sacos de ráfia') === 'saco de ráfia',
+    'normalizeInputDescription: "sacos de ráfia" -> "saco de ráfia"',
+  )
+  assert(
+    normalizeInputDescription('SACOS DE RAFIA') === 'SACO DE RÁFIA',
+    'normalizeInputDescription: "SACOS DE RAFIA" -> "SACO DE RÁFIA"',
+  )
+  assert(
+    normalizeInputDescription('Sacos de rafia') === 'Saco de ráfia',
+    'normalizeInputDescription: "Sacos de rafia" -> "Saco de ráfia"',
+  )
+
+  // TESTE 1.2: Testes de chave normalizada unificada da Curva ABC (normalizeDescription)
+  assert(
+    normalizeDescription('sacos de ráfia') === normalizeDescription('saco de ráfia'),
+    'normalizeDescription: "sacos de ráfia" e "saco de ráfia" geram a mesma chave normalizada ("SACO DE RAFIA")',
+  )
+  assert(
+    normalizeDescription('Encarregado de obra') === normalizeDescription('encarregado da obra'),
+    'normalizeDescription: "Encarregado de obra" e "encarregado da obra" geram a mesma chave normalizada ("ENCARREGADO DA OBRA")',
+  )
+  assert(
+    normalizeDescription('Caçamba de entulho') === normalizeDescription('caçamba de entulhos'),
+    'normalizeDescription: "Caçamba de entulho" e "caçamba de entulhos" geram a mesma chave normalizada ("CACAMBA DE ENTULHOS")',
+  )
 
   // MOCK DE ORÇAMENTO PARA TESTES 2, 3, 4, 5, 6
   const mockBudget: FullBudget = {
@@ -310,6 +363,125 @@ export function runAbcTests(): { passed: boolean; details: string[] } {
 
   // O item de maior valor do mock é o Aço CA-50 ou Concreto usinado
   assert(abcInputsBdi.classA.itemsCount >= 1, 'Classe A contém ao menos 1 item prioritário')
+
+  // TESTE 7: Fusão na Curva ABC com "sacos de ráfia" vs "saco de ráfia" e "encarregado de obra" vs "encarregado da obra"
+  const mockBudgetFusion: FullBudget = {
+    ...mockBudget,
+    id: 'orc-test-fusion',
+    stages: [
+      {
+        id: 'stg-fusion',
+        order: 1,
+        code: '01',
+        name: 'Limpeza e Gestão',
+        services: [
+          {
+            id: 'srv-f1',
+            order: 1,
+            code: '01.01',
+            description: 'Serviço de Limpeza A',
+            unit: 'un',
+            quantity: 10,
+            composition: {
+              id: 'comp-f1',
+              code: 'COMP-F1',
+              description: 'Composição Limpeza 1',
+              specialty: 'Serviços Preliminares',
+              unit: 'un',
+              version: 'v1.0',
+              source: 'CONCE',
+              inputs: [
+                {
+                  id: 'inp-f1',
+                  code: 'S/COD',
+                  description: 'Sacos de ráfia para entulho',
+                  unit: 'un',
+                  category: 'material',
+                  coefficient: 5, // 5 * 10 = 50 un
+                  unitCost: 3.5,
+                },
+                {
+                  id: 'inp-f2',
+                  code: 'S/COD',
+                  description: 'Encarregado de obra',
+                  unit: 'h',
+                  category: 'mao_de_obra',
+                  coefficient: 1, // 1 * 10 = 10 h
+                  unitCost: 35.0,
+                },
+              ],
+            },
+          },
+          {
+            id: 'srv-f2',
+            order: 2,
+            code: '01.02',
+            description: 'Serviço de Limpeza B',
+            unit: 'un',
+            quantity: 20,
+            composition: {
+              id: 'comp-f2',
+              code: 'COMP-F2',
+              description: 'Composição Limpeza 2',
+              specialty: 'Serviços Preliminares',
+              unit: 'un',
+              version: 'v1.0',
+              source: 'CONCE',
+              inputs: [
+                {
+                  id: 'inp-f3',
+                  code: 'S/COD',
+                  description: 'Saco de ráfia para entulho', // Expressão singular!
+                  unit: 'un',
+                  category: 'material',
+                  coefficient: 2, // 2 * 20 = 40 un
+                  unitCost: 3.5,
+                },
+                {
+                  id: 'inp-f4',
+                  code: 'S/COD',
+                  description: 'Encarregado da obra', // Expressão "da obra"!
+                  unit: 'h',
+                  category: 'mao_de_obra',
+                  coefficient: 0.5, // 0.5 * 20 = 10 h
+                  unitCost: 35.0,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  }
+
+  const abcFusion = computeAbcCurve(mockBudgetFusion, { mode: 'insumos', valueBasis: 'venda_bdi' })
+  const rafiaItems = abcFusion.allItems.filter((it) =>
+    normalizeDescription(it.description).includes('SACO DE RAFIA'),
+  )
+  assert(
+    rafiaItems.length === 1,
+    'Curva ABC: "Sacos de ráfia" e "Saco de ráfia" fundidos em linha única',
+  )
+  if (rafiaItems.length === 1) {
+    assert(
+      Math.abs(rafiaItems[0].totalQuantity - 90) < 0.001,
+      `Curva ABC: soma total da quantidade de saco de ráfia = 90 (obtido: ${rafiaItems[0].totalQuantity})`,
+    )
+  }
+
+  const encarregadoItems = abcFusion.allItems.filter((it) =>
+    normalizeDescription(it.description).includes('ENCARREGADO DA OBRA'),
+  )
+  assert(
+    encarregadoItems.length === 1,
+    'Curva ABC: "Encarregado de obra" e "Encarregado da obra" fundidos em linha única',
+  )
+  if (encarregadoItems.length === 1) {
+    assert(
+      Math.abs(encarregadoItems[0].totalQuantity - 20) < 0.001,
+      `Curva ABC: soma total da quantidade de encarregado da obra = 20h (obtido: ${encarregadoItems[0].totalQuantity})`,
+    )
+  }
 
   return { passed: allOk, details }
 }

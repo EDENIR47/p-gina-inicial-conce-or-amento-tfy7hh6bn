@@ -242,6 +242,117 @@ export function createCanonicalDemoBudget(): FullBudget {
  * Os orçamentos reais dos clientes "Andreia" e "Jader" ou endereço "Tomaz Gonzaga"
  * JAMAIS devem ser classificados como demo.
  */
+/**
+ * Normaliza descrições de insumos/serviços de acordo com os padrões da CONCE:
+ * 1. "encarregado de obra" ou "encarregado obra" -> "encarregado da obra"
+ * 2. "caçamba de entulho" -> "caçamba de entulhos"
+ * 3. "sacos de ráfia" -> "saco de ráfia" (singular)
+ * Case-insensitive, tolerando acentuação e preservando casing natural aproximado.
+ */
+export function normalizeInputDescription(desc?: string | null): string {
+  if (!desc) return ''
+  let result = desc
+
+  // 1. "encarregado de obra" ou "encarregado obra" -> "encarregado da obra"
+  // Suporta variações com/sem acento e maiúsculas/minúsculas
+  result = result.replace(/\bencarregad[oa]s?\s+(?:de\s+)?obra\b/gi, (match) => {
+    const isUpper = match === match.toUpperCase()
+    const isTitle = /^[A-Z]/.test(match)
+    if (isUpper) return 'ENCARREGADO DA OBRA'
+    if (isTitle) return 'Encarregado da obra'
+    return 'encarregado da obra'
+  })
+
+  // 2. "caçamba(s) de entulho" -> "caçamba(s) de entulhos"
+  result = result.replace(/\bca[cç]ambas?\s+de\s+entulho\b/gi, (match) => {
+    const isUpper = match === match.toUpperCase()
+    const isPluralCacamba = /^ca[cç]ambas/i.test(match)
+    const isTitle = /^[A-Z]/.test(match)
+    const baseCacamba = isPluralCacamba ? 'caçambas' : 'caçamba'
+    if (isUpper) return `${baseCacamba.toUpperCase()} DE ENTULHOS`
+    if (isTitle) return `${isPluralCacamba ? 'Caçambas' : 'Caçamba'} de entulhos`
+    return `${baseCacamba} de entulhos`
+  })
+
+  // 3. "sacos de ráfia" -> "saco de ráfia" (singular)
+  result = result.replace(/\bsacos\s+de\s+r[aá]fias?\b/gi, (match) => {
+    const isUpper = match === match.toUpperCase()
+    const isTitle = /^[A-Z]/.test(match)
+    if (isUpper) return 'SACO DE RÁFIA'
+    if (isTitle) return 'Saco de ráfia'
+    return 'saco de ráfia'
+  })
+
+  return result
+}
+
+/**
+ * Sanitiza recursivamente as descrições de serviços e insumos em memória
+ */
+function sanitizeBudgetDescriptions(budget: FullBudget): FullBudget {
+  if (!budget.stages || !Array.isArray(budget.stages)) return budget
+
+  let anyChanged = false
+  const updatedStages = budget.stages.map((stage) => {
+    let stageChanged = false
+    const updatedServices = (stage.services || []).map((service) => {
+      let serviceChanged = false
+      const normServiceDesc = normalizeInputDescription(service.description)
+      if (normServiceDesc !== service.description) {
+        serviceChanged = true
+      }
+
+      let updatedComp = service.composition
+      if (service.composition) {
+        let compChanged = false
+        const normCompDesc = normalizeInputDescription(service.composition.description)
+        if (normCompDesc !== service.composition.description) {
+          compChanged = true
+        }
+
+        const normInputs = (service.composition.inputs || []).map((inp) => {
+          const normInpDesc = normalizeInputDescription(inp.description)
+          if (normInpDesc !== inp.description) {
+            compChanged = true
+            return { ...inp, description: normInpDesc }
+          }
+          return inp
+        })
+
+        if (compChanged) {
+          serviceChanged = true
+          updatedComp = {
+            ...service.composition,
+            description: normCompDesc,
+            inputs: normInputs,
+          }
+        }
+      }
+
+      if (serviceChanged) {
+        stageChanged = true
+        return {
+          ...service,
+          description: normServiceDesc,
+          composition: updatedComp,
+        }
+      }
+      return service
+    })
+
+    if (stageChanged) {
+      anyChanged = true
+      return { ...stage, services: updatedServices }
+    }
+    return stage
+  })
+
+  if (anyChanged) {
+    return { ...budget, stages: updatedStages }
+  }
+  return budget
+}
+
 export function isDemoOrTestBudget(budget: FullBudget): boolean {
   // Orçamentos reais sagrados:
   const clientName = (budget.client?.name || '').toLowerCase()
@@ -573,6 +684,9 @@ export function getStoredFullBudgets(): FullBudget[] {
               }
             }
           }
+          // Sanitização em memória de descrições dos serviços e insumos (encarregado da obra, caçamba de entulhos, saco de ráfia)
+          updatedBudget = sanitizeBudgetDescriptions(updatedBudget)
+
           return updatedBudget
         })
         // A sanitização opera ESTRITAMENTE EM MEMÓRIA ao carregar.
