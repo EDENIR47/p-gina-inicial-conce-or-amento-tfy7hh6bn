@@ -192,6 +192,8 @@ export interface FullBudget {
   validityDaysType?: 'corridos' | 'uteis' // Tipo de contagem de dias: 'corridos' ou 'uteis' (default: 'uteis' ou 'corridos')
   executionDeadline?: string // Prazo de execução da proposta / escopo de gestão
   commercialNotes?: string // Observações e condições comerciais adicionais
+  observations?: string // Observações gerais do orçamento (ex.: "Os itens 4, 5 e 6 serão fornecidos pelo cliente")
+  notes?: string // Alias/compatibilidade para notas gerais do orçamento
   technicalResponsibilityText?: string // Texto editável de "Garantia e Responsabilidade Técnica" (nível proposta)
   technicalObligationsText?: string // Texto editável de "Garantia e Obrigações Técnicas" (nível proposta)
   stages: BudgetStage[]
