@@ -166,7 +166,7 @@ describe('memorialEngine', () => {
     expect(doc.stages[0].services[0].technicalSpecification.length).toBeGreaterThan(50)
   })
 
-  it('suporta serviços sem composição gerando parágrafo a partir da descrição e quantidade', () => {
+  it('suporta serviços sem composição gerando parágrafo a partir da descrição técnica', () => {
     const simpleService: BudgetService = {
       id: 'srv-2',
       order: 2,
@@ -188,8 +188,86 @@ describe('memorialEngine', () => {
 
     const spec = generateServiceTechnicalSpecification(simpleService)
     expect(spec).toContain('Limpeza fina final de obra pós-reforma')
-    expect(spec).toContain('185 m²')
     expect(spec).not.toContain('R$')
+  })
+
+  it('remove totalmente o item/bloco de medição e a frase genérica de arremates/nivelamento/limpeza', () => {
+    const spec = generateServiceTechnicalSpecification(mockServiceWithComposition, mockStage)
+    // Bloco de medição removido
+    expect(spec.toLowerCase()).not.toContain('a medição será efetuada')
+    expect(spec.toLowerCase()).not.toContain('item de medição')
+    expect(spec.toLowerCase()).not.toContain('critérios de medição')
+    expect(spec.toLowerCase()).not.toContain('critério da etapa')
+    // Frase genérica removida
+    expect(spec.toLowerCase()).not.toContain('contemplando arremates')
+    expect(spec.toLowerCase()).not.toContain('cortes necessários')
+    expect(spec.toLowerCase()).not.toContain('nivelamento e limpeza')
+  })
+
+  it('garante capitalização com primeira letra SEMPRE maiúscula, preservando o restante (inclusive SINAPI em caixa alta)', () => {
+    // 1. Descrição começando com minúscula em caixa alta SINAPI
+    const sinapiService: BudgetService = {
+      id: 'srv-sinapi',
+      order: 1,
+      code: '02.01',
+      description: 'pISO DE CONCRETO POLIDO INDUSTRIAL FCK 30 MPA',
+      unit: 'm²',
+      quantity: 200,
+      composition: {
+        id: 'comp-sinapi-piso',
+        code: 'SINAPI-99999',
+        description: 'PISO DE CONCRETO POLIDO INDUSTRIAL FCK 30 MPA',
+        specialty: 'Pisos e Pavimentações',
+        unit: 'm²',
+        source: 'SINAPI',
+        inputs: [],
+        version: 'v1.0',
+      },
+    }
+    const specSinapi = generateServiceTechnicalSpecification(sinapiService)
+    // A especificação deve começar com inicial maiúscula
+    expect(specSinapi.charAt(0)).toMatch(/[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ]/)
+    expect(specSinapi.charAt(0)).toBe(specSinapi.charAt(0).toUpperCase())
+    expect(specSinapi).toContain('PISO DE CONCRETO POLIDO INDUSTRIAL FCK 30 MPA')
+
+    // 2. No buildMemorialDocumentData, tanto serviceDescription quanto technicalSpecification têm inicial maiúscula
+    const budgetWithSinapi: FullBudget = {
+      ...mockBudget,
+      stages: [
+        {
+          ...mockStage,
+          services: [sinapiService],
+        },
+      ],
+    }
+    const doc = buildMemorialDocumentData(budgetWithSinapi)
+    const srvDoc = doc.stages[0].services[0]
+    expect(srvDoc.serviceDescription.startsWith('PISO DE CONCRETO')).toBe(true)
+    expect(srvDoc.technicalSpecification.charAt(0)).toBe(
+      srvDoc.technicalSpecification.charAt(0).toUpperCase(),
+    )
+
+    // 3. Descrição iniciando com verbo de ação em minúsculo: "assentamento de piso cerâmico"
+    const lowerVerbService: BudgetService = {
+      id: 'srv-verb',
+      order: 2,
+      code: '02.02',
+      description: 'assentamento de piso cerâmico esmaltado 60x60',
+      unit: 'm²',
+      quantity: 50,
+      composition: {
+        id: 'comp-piso-ceramico',
+        code: 'SINAPI-88888',
+        description: 'Piso cerâmico 60x60',
+        specialty: 'Revestimentos',
+        unit: 'm²',
+        source: 'SINAPI',
+        inputs: [],
+        version: 'v1.0',
+      },
+    }
+    const specVerb = generateServiceTechnicalSpecification(lowerVerbService)
+    expect(specVerb.startsWith('Assentamento de piso cerâmico')).toBe(true)
   })
 
   it('gera introdução geral de engenharia civil formal', () => {

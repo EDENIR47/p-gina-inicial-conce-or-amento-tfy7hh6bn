@@ -674,7 +674,11 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
                           </div>
                         ) : (
                           <p className="text-xs text-[#171A1F]/90 leading-relaxed text-justify pl-3 border-l-2 border-[#FF6B1F]/60">
-                            {service.technicalSpecification}
+                            {service.technicalSpecification &&
+                            service.technicalSpecification.length > 0
+                              ? service.technicalSpecification.charAt(0).toUpperCase() +
+                                service.technicalSpecification.slice(1)
+                              : service.technicalSpecification}
                           </p>
                         )}
                       </div>

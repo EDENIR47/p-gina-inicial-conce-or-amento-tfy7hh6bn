@@ -146,18 +146,26 @@ export function generateServiceTechnicalSpecification(
   const parts: string[] = []
 
   // 1. Abertura do serviço com descrição técnica e escopo
-  let opening = normServiceDesc
+  // Regra de Capitalização: A primeira letra da descrição deve ser sempre MAIÚSCULA,
+  // preservando o restante (inclusive se estiver em caixa alta vinda do SINAPI).
+  let opening = normServiceDesc.trim()
+  if (opening.length > 0) {
+    opening = opening.charAt(0).toUpperCase() + opening.slice(1)
+  }
+
   // Se a descrição começar com verbo no particípio ou substantivo de ação, enriquecer suavemente
   if (
     !/^(execu[cç][aã]o|fornecimento|assentamento|aplica[cç][aã]o|instala[cç][aã]o|demoli[cç][aã]o|retirada|preparo|montagem|limpeza|revis[aã]o|pintura|impermeabiliza[cç][aã]o|confei[cç][aã]o|arma[cç][aã]o|concretagem|escava[cç][aã]o|regulariza[cç][aã]o|raspagem|lixamento|transporte|gest[aã]o|vistoria)/i.test(
       opening,
     )
   ) {
-    opening = `Execução de ${opening.charAt(0).toLowerCase() + opening.slice(1)}`
+    // Se o restante for todo em caixa alta (ex: "PISO DE CONCRETO..."), mantemos "PISO DE CONCRETO..."
+    // Se for misto/minúsculo, mantemos como veio sem minúsculas forçadas no início
+    opening = `Execução de ${opening}`
   }
   parts.push(`${opening}.`)
 
-  // 2. Especificação dos materiais aplicados
+  // 2. Especificação dos materiais aplicados (estritamente pertinentes ao serviço)
   if (uniqMateriais.length > 0) {
     const joinedMat = joinWordsPtBr(uniqMateriais)
     parts.push(
@@ -165,7 +173,7 @@ export function generateServiceTechnicalSpecification(
     )
   }
 
-  // 3. Mão de obra especializada empregada
+  // 3. Mão de obra especializada empregada (estritamente pertinente ao serviço)
   if (uniqMaoDeObra.length > 0) {
     const joinedMo = joinWordsPtBr(uniqMaoDeObra)
     parts.push(
@@ -173,7 +181,7 @@ export function generateServiceTechnicalSpecification(
     )
   }
 
-  // 4. Equipamentos, maquinários e ferramentas de apoio
+  // 4. Equipamentos, maquinários e ferramentas de apoio (estritamente pertinentes ao serviço)
   if (uniqEquipamentos.length > 0) {
     const joinedEq = joinWordsPtBr(uniqEquipamentos)
     parts.push(
@@ -181,35 +189,22 @@ export function generateServiceTechnicalSpecification(
     )
   }
 
-  // 5. Serviços especializados terceirizados
+  // 5. Serviços especializados terceirizados (estritamente pertinentes ao serviço)
   if (uniqTerceiros.length > 0) {
     const joinedTerc = joinWordsPtBr(uniqTerceiros)
     parts.push(`Engloba a realização de etapas especializadas: ${joinedTerc}.`)
   }
 
-  // 6. Critérios de execução / medição / notas adicionais do serviço
+  // 6. Observação técnica específica informada para o serviço
   if (service.notes && service.notes.trim().length > 0) {
     const cleanNotes = service.notes.trim().replace(/[.;]+$/, '')
     parts.push(`Observação técnica específica: ${cleanNotes}.`)
   }
 
-  // 7. Critérios de medição e tolerâncias técnicas da etapa (se houverem)
-  if (stage?.notes && stage.notes.trim().length > 0) {
-    const stageNotes = stage.notes.trim().replace(/[.;]+$/, '')
-    // Se a nota da etapa contiver diretrizes pertinentes
-    if (stageNotes.length > 10) {
-      parts.push(`Critério da etapa: ${stageNotes}.`)
-    }
-  }
-
-  // 8. Fechamento padrão de qualidade técnica
-  const formattedQty = Number(service.quantity || 0).toLocaleString('pt-BR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 3,
-  })
-  parts.push(
-    `A medição será efetuada por ${service.unit || 'un'} de serviço efetivamente concluído, conferido e aprovado pela fiscalização técnica (volume previsto: ${formattedQty} ${service.unit || 'un'}), contemplando arremates, cortes necessários, nivelamento e limpeza final da área trabalhada.`,
-  )
+  // NOTA: Conforme solicitação explícita do usuário:
+  // - O bloco/item de medição do serviço foi REMOVIDO de todas as etapas e serviços.
+  // - A frase genérica "contemplando arremates, cortes necessários, nivelamento e limpeza..." foi REMOVIDA.
+  // - Nenhuma frase genérica sem contexto com o serviço é adicionada.
 
   return parts.join(' ')
 }
@@ -275,14 +270,24 @@ export function buildMemorialDocumentData(
               )) ||
             (srvIndex < savedServicesList.length ? savedServicesList[srvIndex] : undefined)
 
-          const techSpec =
+          let rawDesc = normalizeInputDescription(srv.description).trim()
+          if (rawDesc.length > 0) {
+            rawDesc = rawDesc.charAt(0).toUpperCase() + rawDesc.slice(1)
+          }
+
+          let techSpec =
             savedSrv?.technicalSpecification?.trim() ||
             generateServiceTechnicalSpecification(srv, st)
+
+          // Garante primeira letra maiúscula também no texto de especificação
+          if (techSpec.length > 0) {
+            techSpec = techSpec.charAt(0).toUpperCase() + techSpec.slice(1)
+          }
 
           return {
             serviceId: srv.id,
             serviceCode: srv.code || '',
-            serviceDescription: normalizeInputDescription(srv.description),
+            serviceDescription: rawDesc,
             unit: srv.unit || 'un',
             quantity: srv.quantity || 0,
             compositionCode: srv.composition?.code,
@@ -343,17 +348,27 @@ export function buildMemorialDocumentData(
   const stages: MemorialStageItem[] = (budget.stages || [])
     .filter((st) => (st.services || []).length > 0)
     .map((st) => {
-      const services: MemorialServiceItem[] = (st.services || []).map((srv) => ({
-        serviceId: srv.id,
-        serviceCode: srv.code || '',
-        serviceDescription: normalizeInputDescription(srv.description),
-        unit: srv.unit || 'un',
-        quantity: srv.quantity || 0,
-        compositionCode: srv.composition?.code,
-        compositionDescription: srv.composition?.description,
-        technicalSpecification: generateServiceTechnicalSpecification(srv, st),
-        isCustomized: false,
-      }))
+      const services: MemorialServiceItem[] = (st.services || []).map((srv) => {
+        let rawDesc = normalizeInputDescription(srv.description).trim()
+        if (rawDesc.length > 0) {
+          rawDesc = rawDesc.charAt(0).toUpperCase() + rawDesc.slice(1)
+        }
+        let techSpec = generateServiceTechnicalSpecification(srv, st)
+        if (techSpec.length > 0) {
+          techSpec = techSpec.charAt(0).toUpperCase() + techSpec.slice(1)
+        }
+        return {
+          serviceId: srv.id,
+          serviceCode: srv.code || '',
+          serviceDescription: rawDesc,
+          unit: srv.unit || 'un',
+          quantity: srv.quantity || 0,
+          compositionCode: srv.composition?.code,
+          compositionDescription: srv.composition?.description,
+          technicalSpecification: techSpec,
+          isCustomized: false,
+        }
+      })
 
       return {
         stageId: st.id,
