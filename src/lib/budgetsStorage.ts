@@ -24,23 +24,239 @@ export interface RemovedCompositionInputItem {
   originalIndex?: number // índice em que estava na lista de insumos
 }
 
+export interface CleanupResult {
+  demoBudgetsRemoved: number
+  obsoleteKeysRemoved: number
+  orphanedRevisionsRemoved: number
+  orphanedQuotesRemoved: number
+  orphanedLogsRemoved: number
+  orphanedTrashRemoved: number
+  totalItemsCleaned: number
+  cleanedDetails: string[]
+}
+
 /**
- * Remove qualquer orçamento de teste/demonstração que tenha sido gravado anteriormente em localStorage,
- * garantindo a preservação exclusiva dos orçamentos reais ("Andreia", "Jader", "Tomaz Gonzaga").
+ * Executa uma varredura profunda no localStorage para purgar todos os dados de demonstração,
+ * obras fictícias e chaves obsoletas ou órfãs, preservando rigorosamente os orçamentos reais.
  */
-export function purgeTestBudgetsFromStorage(): void {
-  if (typeof window === 'undefined') return
-  const raw = localStorage.getItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS)
-  if (!raw) return
+export function purgeTestBudgetsFromStorage(): CleanupResult {
+  const result: CleanupResult = {
+    demoBudgetsRemoved: 0,
+    obsoleteKeysRemoved: 0,
+    orphanedRevisionsRemoved: 0,
+    orphanedQuotesRemoved: 0,
+    orphanedLogsRemoved: 0,
+    orphanedTrashRemoved: 0,
+    totalItemsCleaned: 0,
+    cleanedDetails: [],
+  }
+
+  if (typeof window === 'undefined') return result
+
+  // 1. Limpa orçamentos de demonstração da lista principal
+  let validBudgetIds = new Set<string>()
+  const rawBudgets = localStorage.getItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS)
+  if (rawBudgets) {
+    try {
+      const list = JSON.parse(rawBudgets)
+      if (Array.isArray(list)) {
+        const real = list.filter((b: FullBudget) => !isDemoOrTestBudget(b))
+        const removedCount = list.length - real.length
+        if (removedCount > 0) {
+          result.demoBudgetsRemoved = removedCount
+          result.cleanedDetails.push(
+            `${removedCount} orçamento(s) de demonstração/fictício(s) removido(s)`,
+          )
+          localStorage.setItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS, JSON.stringify(real))
+        }
+        real.forEach((b: FullBudget) => {
+          if (b.id) validBudgetIds.add(b.id)
+        })
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 2. Chaves obsoletas de versões antigas do schema ou dados temporários
+  const obsoleteKeys = [
+    'conce_demo_data',
+    'conce_demo_budgets',
+    'conce_mock_budgets',
+    'conce_sample_data',
+    'conce_test_data',
+    'conce_temp_budget',
+    'conce_legacy_data',
+  ]
+  obsoleteKeys.forEach((key) => {
+    if (localStorage.getItem(key) !== null) {
+      localStorage.removeItem(key)
+      result.obsoleteKeysRemoved++
+      result.cleanedDetails.push(`Chave obsoleta removida: ${key}`)
+    }
+  })
+
+  // 3. Limpeza de revisões órfãs ou de demo
   try {
-    const list = JSON.parse(raw)
-    if (Array.isArray(list)) {
-      const real = list.filter((b: FullBudget) => !isDemoOrTestBudget(b))
-      localStorage.setItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS, JSON.stringify(real))
+    const rawRevs = localStorage.getItem('conce_budget_revisions')
+    if (rawRevs) {
+      const revs = JSON.parse(rawRevs)
+      if (Array.isArray(revs)) {
+        const cleanRevs = revs.filter((r: any) => {
+          if (!r || !r.budgetId) return false
+          if (r.budgetId === 'budget-public-002') return false
+          // Se tiver orçamentos reais no sistema, garante que aponta para um deles
+          if (validBudgetIds.size > 0 && !validBudgetIds.has(r.budgetId)) return false
+          const authorLower = (r.author || '').toLowerCase()
+          const descLower = (r.description || '').toLowerCase()
+          if (descLower.includes('bloco pedagógico') || descLower.includes('escola técnica'))
+            return false
+          return true
+        })
+        const removed = revs.length - cleanRevs.length
+        if (removed > 0) {
+          result.orphanedRevisionsRemoved = removed
+          result.cleanedDetails.push(`${removed} revisão(ões) de versão órfã(s) removida(s)`)
+          localStorage.setItem('conce_budget_revisions', JSON.stringify(cleanRevs))
+        }
+      }
     }
   } catch {
     /* ignore */
   }
+
+  // 4. Limpeza de cotações órfãs ou de demo
+  try {
+    const rawQuotes = localStorage.getItem('conce_input_quotes')
+    if (rawQuotes) {
+      const quotes = JSON.parse(rawQuotes)
+      if (Array.isArray(quotes)) {
+        const cleanQuotes = quotes.filter((q: any) => {
+          if (!q || !q.budgetId) return false
+          if (q.budgetId === 'budget-public-002') return false
+          if (validBudgetIds.size > 0 && !validBudgetIds.has(q.budgetId)) return false
+          return true
+        })
+        const removed = quotes.length - cleanQuotes.length
+        if (removed > 0) {
+          result.orphanedQuotesRemoved = removed
+          result.cleanedDetails.push(`${removed} cotação(ões) órfã(s) removida(s)`)
+          localStorage.setItem('conce_input_quotes', JSON.stringify(cleanQuotes))
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // 5. Limpeza de logs de auditoria órfãos ou de demo
+  try {
+    const rawLogs = localStorage.getItem('conce_audit_logs')
+    if (rawLogs) {
+      const logs = JSON.parse(rawLogs)
+      if (Array.isArray(logs)) {
+        const cleanLogs = logs.filter((l: any) => {
+          if (!l) return false
+          if (l.budgetId === 'budget-public-002') return false
+          const titleLower = (l.title || '').toLowerCase()
+          const detailsLower = (l.details || '').toLowerCase()
+          if (
+            detailsLower.includes('bloco pedagógico') ||
+            detailsLower.includes('escola técnica') ||
+            titleLower.includes('escola técnica')
+          ) {
+            return false
+          }
+          if (validBudgetIds.size > 0 && l.budgetId && !validBudgetIds.has(l.budgetId)) {
+            return false
+          }
+          return true
+        })
+        const removed = logs.length - cleanLogs.length
+        if (removed > 0) {
+          result.orphanedLogsRemoved = removed
+          result.cleanedDetails.push(`${removed} registro(s) de auditoria órfão(s) removido(s)`)
+          localStorage.setItem('conce_audit_logs', JSON.stringify(cleanLogs))
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // 6. Limpeza de lixeira de insumos órfãos apontando para orçamentos inexistentes
+  try {
+    const rawTrash = localStorage.getItem(STORAGE_KEYS_BUDGETS.REMOVED_COMPOSITION_INPUTS)
+    if (rawTrash) {
+      const trash = JSON.parse(rawTrash)
+      if (Array.isArray(trash)) {
+        const cleanTrash = trash.filter((item: any) => {
+          if (!item || !item.compositionKey) return false
+          const key = String(item.compositionKey)
+          if (key.includes(':')) {
+            const budgetId = key.split(':')[0]
+            if (budgetId === 'budget-public-002') return false
+            if (validBudgetIds.size > 0 && !validBudgetIds.has(budgetId)) return false
+          }
+          return true
+        })
+        const removed = trash.length - cleanTrash.length
+        if (removed > 0) {
+          result.orphanedTrashRemoved = removed
+          result.cleanedDetails.push(`${removed} insumo(s) órfão(s) na lixeira removido(s)`)
+          localStorage.setItem(
+            STORAGE_KEYS_BUDGETS.REMOVED_COMPOSITION_INPUTS,
+            JSON.stringify(cleanTrash),
+          )
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // Se o active_budget_id apontar para um orçamento demo que foi removido, limpa
+  const activeId = localStorage.getItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
+  if (activeId && validBudgetIds.size > 0 && !validBudgetIds.has(activeId)) {
+    localStorage.removeItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
+    result.obsoleteKeysRemoved++
+  }
+
+  result.totalItemsCleaned =
+    result.demoBudgetsRemoved +
+    result.obsoleteKeysRemoved +
+    result.orphanedRevisionsRemoved +
+    result.orphanedQuotesRemoved +
+    result.orphanedLogsRemoved +
+    result.orphanedTrashRemoved
+
+  return result
+}
+
+/**
+ * Reset completo e destrutivo de todos os dados locais do aplicativo CONCE em localStorage.
+ * Uso consciente sob dupla confirmação na tela de configurações.
+ */
+export function resetAllLocalConceData(): void {
+  if (typeof window === 'undefined') return
+  const keysToRemove = [
+    STORAGE_KEYS_BUDGETS.FULL_BUDGETS,
+    STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID,
+    STORAGE_KEYS_BUDGETS.COMPOSITIONS_LIBRARY,
+    STORAGE_KEYS_BUDGETS.REMOVED_COMPOSITION_INPUTS,
+    'conce_demo_data',
+    'conce_budget_revisions',
+    'conce_input_quotes',
+    'conce_audit_logs',
+    'conce_sinapi_catalog_custom',
+    'conce_sinapi_import_metadata',
+    'conce_sinapi_api_key',
+    'conce_autosinapi_base_url',
+    'conce_autosinapi_api_key',
+  ]
+  keysToRemove.forEach((k) => {
+    localStorage.removeItem(k)
+  })
 }
 
 export function createCanonicalDemoBudget(): FullBudget {
@@ -354,32 +570,125 @@ function sanitizeBudgetDescriptions(budget: FullBudget): FullBudget {
 }
 
 export function isDemoOrTestBudget(budget: FullBudget): boolean {
-  // Orçamentos reais sagrados:
+  if (!budget) return true
+
+  const id = (budget.id || '').toLowerCase()
+  const code = (budget.code || '').toLowerCase()
+  const title = (budget.title || '').toLowerCase()
   const clientName = (budget.client?.name || '').toLowerCase()
   const workName = (budget.work?.name || '').toLowerCase()
   const address = (budget.work?.address || '').toLowerCase()
 
-  if (
+  // REGRA DE OURO — Orçamentos REAIS sagrados do usuário:
+  // "Andreia", "Jader", "Rua Tomaz Gonzaga 610", "Apto 1803" NUNCA devem ser apagados ou classificados como demo
+  const isRealUserBudget =
     clientName.includes('andreia') ||
     clientName.includes('jader') ||
     address.includes('tomaz gonzaga') ||
-    budget.id === 'budget-conce-001'
-  ) {
+    address.includes('tomaz') ||
+    (workName.includes('apto 1803') && !workName.includes('demo') && !workName.includes('fict')) ||
+    (title.includes('apto 1803') && !title.includes('demo') && !title.includes('fict'))
+
+  if (isRealUserBudget) {
     return false
   }
 
-  // Exemplos fictícios de teste / demonstração conhecidos
+  // Se o ID for exatamente o do seed canônico antigo ('budget-conce-001')
+  // mas o cliente NÃO for Andreia/Jader, é resíduo de demonstração antigo alterado
   if (
-    budget.id === 'budget-public-002' ||
-    budget.code === 'ORC-PUB-2025-014' ||
-    clientName.includes('secretaria de obras e serviços públicos') ||
-    workName.includes('escola técnica estadual') ||
-    workName.includes('bloco pedagógico') ||
-    clientName.includes('incorporadora horizonte') ||
-    clientName.includes('família albuquerque') ||
-    clientName.includes('grupo vértice') ||
-    clientName.includes('secretaria mun. de obras') ||
-    clientName.includes('condomínio altos do morumbi')
+    id === 'budget-conce-001' &&
+    !clientName.includes('andreia') &&
+    !clientName.includes('jader')
+  ) {
+    return true
+  }
+
+  // 1. IDs explícitos de demonstração/teste
+  if (
+    id.startsWith('demo-') ||
+    id.startsWith('seed-') ||
+    id.startsWith('test-') ||
+    id === 'budget-public-002' ||
+    id === 'orc-demo-001'
+  ) {
+    return true
+  }
+
+  // 2. Códigos identificados como demo
+  if (
+    code.startsWith('demo') ||
+    code.startsWith('orc-demo') ||
+    code.startsWith('orc-test') ||
+    code === 'orc-pub-2025-014'
+  ) {
+    return true
+  }
+
+  // 3. Nomes de clientes fictícios usados no seed do sistema
+  const demoClients = [
+    'incorporadora horizonte',
+    'família albuquerque',
+    'familia albuquerque',
+    'grupo vértice',
+    'grupo vertice',
+    'secretaria mun. de obras',
+    'secretaria de obras e serviços públicos',
+    'condomínio altos do morumbi',
+    'condominio altos do morumbi',
+    'dra. camila vasconcelos',
+    'tech park empreendimentos',
+    'hospital santa mônica',
+    'hospital santa monica',
+    'colégio renascença',
+    'colegio renascenca',
+    'cliente demonstração',
+    'cliente demonstracao',
+    'cliente fictício',
+    'cliente ficticio',
+    'cliente teste',
+  ]
+  if (demoClients.some((dc) => clientName.includes(dc))) {
+    return true
+  }
+
+  // 4. Nomes de obras fictícias conhecidas
+  const demoWorks = [
+    'escola técnica estadual',
+    'bloco pedagógico',
+    'residência jardins',
+    'residencia jardins',
+    'edifício centro',
+    'edificio centro',
+    'reforma comercial paulista',
+    'obra pública — escola',
+    'obra publica — escola',
+    'obra pública - escola',
+    'cond. bosque',
+    'reforma cobertura duplex',
+    'construção galpão logístico',
+    'construcao galpao logistico',
+    'reforço estrutural torre norte',
+    'reforco estrutural torre norte',
+    'retrofit fachada ventilada',
+    'obra fictícia',
+    'obra ficticia',
+    'obra teste',
+    'obra demonstrativa',
+    'obra de demonstração',
+  ]
+  if (demoWorks.some((dw) => workName.includes(dw) || title.includes(dw))) {
+    return true
+  }
+
+  // 5. Flags no título ou descrição
+  if (
+    title.includes('[demo]') ||
+    title.includes('(demo)') ||
+    title.includes('demonstração') ||
+    title.includes('demonstrativo') ||
+    title.includes('exemplo fictício') ||
+    workName.includes('[demo]') ||
+    workName.includes('(demo)')
   ) {
     return true
   }
@@ -392,7 +701,7 @@ export function isDemoOrTestBudget(budget: FullBudget): boolean {
  */
 export function getStoredFullBudgets(): FullBudget[] {
   if (typeof window === 'undefined') {
-    return [createCanonicalDemoBudget()]
+    return []
   }
 
   const raw = localStorage.getItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS)
@@ -400,7 +709,7 @@ export function getStoredFullBudgets(): FullBudget[] {
     try {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Filtrar e remover orçamentos de teste fictícios (ex: budget-public-002),
+        // Filtrar e remover orçamentos de teste fictícios (ex: budget-public-002, obras demo),
         // preservando os orçamentos reais do usuário ("Andreia", "Jader", "Rua Tomaz Gonzaga 610").
         const realBudgets = parsed.filter((b: FullBudget) => !isDemoOrTestBudget(b))
 
@@ -409,10 +718,8 @@ export function getStoredFullBudgets(): FullBudget[] {
           hasFixed = true
         }
 
-        const listToProcess = realBudgets.length > 0 ? realBudgets : [createCanonicalDemoBudget()]
-        if (realBudgets.length === 0) {
-          hasFixed = true
-        }
+        // Se após filtrar orçamentos demo a lista for vazia, NÃO injeta mais dados de demonstração
+        const listToProcess = realBudgets
 
         const sanitized = listToProcess.map((b: FullBudget) => {
           const regime =
@@ -700,9 +1007,9 @@ export function getStoredFullBudgets(): FullBudget[] {
     }
   }
 
-  const initial = [createCanonicalDemoBudget()]
-  localStorage.setItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS, JSON.stringify(initial))
-  return initial
+  // Primeiro acesso ou storage vazio: NÃO semear orçamento fictício.
+  // Retorna lista vazia para exibição do estado vazio de alta qualidade.
+  return []
 }
 
 /**

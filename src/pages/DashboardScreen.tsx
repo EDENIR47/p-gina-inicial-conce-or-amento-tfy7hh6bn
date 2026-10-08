@@ -66,6 +66,15 @@ export const DashboardScreen: React.FC = () => {
     setDashboardData(data)
   }
 
+  // Listener para evento customizado de orçamento atualizado ou limpo
+  useEffect(() => {
+    const handleUpdated = () => {
+      reloadBudgets()
+    }
+    window.addEventListener('conce_budget_updated', handleUpdated)
+    return () => window.removeEventListener('conce_budget_updated', handleUpdated)
+  }, [])
+
   useEffect(() => {
     // 1. Limpa resíduos de dados de teste/demonstração fictícios em localStorage
     clearDemoData()

@@ -48,6 +48,7 @@ import { PdfExportModal, PdfExportMode } from '@/components/budget/PdfExportModa
 import { MemorialDescritivoModal } from '@/components/budget/MemorialDescritivoModal'
 import { RevisionsModal } from '@/components/budget/RevisionsModal'
 import { AuditTrailModal } from '@/components/budget/AuditTrailModal'
+import { StorageCleanModal } from '@/components/budget/StorageCleanModal'
 import { AbcCurveScreen } from '@/pages/AbcCurveScreen'
 import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
 import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
@@ -121,6 +122,7 @@ export const BudgetsScreen: React.FC = () => {
   const [isMemorialModalOpen, setIsMemorialModalOpen] = useState(false)
   const [isRevisionsModalOpen, setIsRevisionsModalOpen] = useState(false)
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
+  const [isCleanModalOpen, setIsCleanModalOpen] = useState(false)
 
   // Modo de exibição na tela de orçamentos: 'cards' ou 'gerenciar'
   const [viewMode, setViewMode] = useState<'cards' | 'gerenciar'>('cards')
@@ -139,19 +141,32 @@ export const BudgetsScreen: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000)
   }
 
-  // Criação de novo orçamento em branco
+  // Criação de novo orçamento em branco (sem herdar itens de demonstração)
   const handleCreateNewBudget = () => {
     const newId = `budget-${Date.now()}`
     const codeNum = budgetsList.length + 1
-    const baseBudget = createCanonicalDemoBudget()
+    const todayStr = new Date().toISOString().split('T')[0]
+
     const newBudget: FullBudget = {
-      ...baseBudget,
       id: newId,
       code: `ORC-2025-${String(codeNum).padStart(3, '0')}`,
-      title: 'Novo Projeto de Engenharia',
+      title: 'Novo Orçamento de Engenharia',
       status: 'em_andamento',
-      createdAt: new Date().toISOString().split('T')[0],
+      createdAt: todayStr,
       updatedAt: new Date().toISOString(),
+      author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      paymentTerms:
+        '30% de entrada; 30% na entrega dos projetos base; 20% após montagem das estruturas metálicas; saldo após vistoria de entrega.',
+      validityDays: 5,
+      validityDaysType: 'uteis',
+      executionDeadline:
+        'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA',
+      technicalResponsibilityText:
+        '• Emissão de Anotação de Responsabilidade Técnica (ART) junto ao CREA/RS sob responsabilidade do RT Eng. Edenir Souza da Rosa (CREA/RS-252397). Garantia técnica quinquenal conforme preconiza o Artigo 618 do Código Civil Brasileiro.',
+      technicalObligationsText:
+        '• Emissão obrigatória da Anotação de Responsabilidade Técnica (ART) vinculada ao CREA/RS sob responsabilidade do RT Eng. Edenir Souza da Rosa - CREA/RS-252397.\n• Garantia legal de 5 (cinco) anos para estabilidade e solidez da obra, conforme previsto no Artigo 618 do Código Civil Brasileiro.\n• Atendimento irrestrito às normas técnicas da ABNT e NRs de Segurança e Saúde no Trabalho da Construção Civil.',
+      commercialNotes:
+        'Preços com impostos inclusos (Simples Nacional). Emissão de ART vinculada ao CREA/RS-252397.',
       client: {
         name: '',
         document: '',
@@ -162,32 +177,48 @@ export const BudgetsScreen: React.FC = () => {
         state: 'RS',
       },
       work: {
-        name: 'Novo Projeto de Engenharia',
+        name: '',
         address: '',
         city: 'Porto Alegre',
         state: 'RS',
         description: 'Construção civil conforme projetos e especificações técnicas.',
         deadlineMonths: 6,
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: todayStr,
       },
       chargesConfig: {
-        ...baseBudget.chargesConfig,
         uf: 'RS',
+        isRelieved: false,
         taxRegime: 'simples_nacional',
+        simplesCollectionOption: 'cpp_inclusa_das',
         simplesDasRate: 11.0,
-        customGroupA: 0,
-        customGroupB: 0,
-        customGroupC: 0,
-        customGroupD: 0,
+        customGroupA: 0.0,
+        customGroupB: 0.0,
+        customGroupC: 0.0,
+        customGroupD: 0.0,
         isExplicitZero: true,
       },
       bdiConfig: {
-        ...baseBudget.bdiConfig,
+        administrationCentral: 4.5,
+        risk: 1.25,
+        insuranceAndGuarantee: 0.85,
+        financialExpenses: 1.15,
+        profit: 7.8,
         taxes: {
-          ...baseBudget.bdiConfig.taxes,
-          simplesDas: 11.0,
+          iss: 4.0,
+          pis: 0.65,
+          cofins: 3.0,
+          inssOrCprb: 0.0,
           totalTaxes: 11.0,
+          simplesDas: 11.0,
         },
+        calculatedBdi: calculateTcuBdi({
+          administrationCentral: 4.5,
+          risk: 1.25,
+          insuranceAndGuarantee: 0.85,
+          financialExpenses: 1.15,
+          profit: 7.8,
+          taxesTotal: 11.0,
+        }).bdiPercent,
       },
       publicWork: {
         enabled: false,
@@ -196,6 +227,7 @@ export const BudgetsScreen: React.FC = () => {
         agency: '',
         modality: 'Concorrência',
         sinapiReferenceMonth: '04/2025',
+        sicroReferenceMonth: '03/2025',
         hasDisallowanceClause: false,
       },
       stages: [],
@@ -1072,6 +1104,16 @@ export const BudgetsScreen: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2.5">
               <button
                 type="button"
+                onClick={() => setIsCleanModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] text-xs sm:text-sm font-semibold transition-all border border-[#171A1F]/10 cursor-pointer"
+                title="Limpeza profunda de dados de demonstração e registros órfãos"
+              >
+                <Sparkles className="w-4 h-4 text-[#FF6B1F]" />
+                <span>Limpar Demo</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setIsAiModalOpen(true)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs sm:text-sm font-bold transition-all shadow-md hover:-translate-y-0.5 active:scale-95 cursor-pointer border border-white/20"
                 title="Criar proposta estruturada por inteligência artificial"
@@ -1090,7 +1132,6 @@ export const BudgetsScreen: React.FC = () => {
               </button>
             </div>
           </div>
-
           {/* Seletor de visualização: Grade de Propostas vs. Aba Gerenciar Orçamentos */}
           <div className="flex items-center justify-between border-b border-[#171A1F]/15 pb-2">
             <div className="flex items-center gap-2">
@@ -1132,7 +1173,6 @@ export const BudgetsScreen: React.FC = () => {
               Gerencie, edite ou exclua orçamentos diretamente
             </span>
           </div>
-
           {/* MODO 1: CARDS DETALHADOS DE ORÇAMENTO */}
           {viewMode === 'cards' && (
             <>
@@ -1166,31 +1206,41 @@ export const BudgetsScreen: React.FC = () => {
 
               {/* Cards dos Orçamentos */}
               {filteredBudgets.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-[#171A1F]/20 space-y-3">
-                  <FileSpreadsheet className="w-12 h-12 text-[#171A1F]/30 mx-auto" />
-                  <h4 className="text-base font-bold text-[#171A1F]">
-                    Nenhum orçamento encontrado
-                  </h4>
-                  <p className="text-xs text-[#171A1F]/60 max-w-sm mx-auto">
-                    Crie um novo orçamento técnico ou descreva o projeto para o agente de
-                    inteligência artificial.
-                  </p>
-                  <div className="flex items-center justify-center gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsAiModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B1F] text-white text-xs font-bold shadow-md hover:bg-[#FF6B1F]/90"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>✨ Gerar com IA</span>
-                    </button>
+                <div className="bg-white rounded-3xl p-8 sm:p-14 text-center border border-[#171A1F]/10 shadow-sm space-y-5 animate-fade-in">
+                  <div className="w-20 h-20 rounded-2xl bg-[#294C87]/10 text-[#294C87] flex items-center justify-center mx-auto border border-[#294C87]/20 shadow-inner">
+                    <FileSpreadsheet className="w-10 h-10 text-[#294C87]" />
+                  </div>
+
+                  <div className="space-y-2 max-w-md mx-auto">
+                    <h4 className="text-xl sm:text-2xl font-extrabold text-[#171A1F] tracking-tight">
+                      {budgetsList.length === 0
+                        ? 'Nenhum orçamento ainda'
+                        : 'Nenhum orçamento encontrado'}
+                    </h4>
+                    <p className="text-xs sm:text-sm text-[#171A1F]/70 leading-relaxed font-normal">
+                      {budgetsList.length === 0
+                        ? 'Seu ambiente está pronto e limpo, sem obras fictícias. Comece criando o seu primeiro orçamento de engenharia com custos reais, BDI TCU e encargos oficiais.'
+                        : 'Nenhum resultado corresponde aos filtros selecionados. Tente ajustar o termo de busca ou o filtro de status.'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                     <button
                       type="button"
                       onClick={handleCreateNewBudget}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#294C87] text-white text-xs font-bold"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#294C87] hover:bg-[#1f3b6c] text-white text-xs sm:text-sm font-bold shadow-md hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Criar Manualmente</span>
+                      <Plus className="w-4 h-4 text-[#FF6B1F]" />
+                      <span>Criar Primeiro Orçamento</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsAiModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs sm:text-sm font-bold shadow-md hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer border border-white/20"
+                    >
+                      <Sparkles className="w-4 h-4 animate-pulse" />
+                      <span>✨ Gerar Proposta com IA</span>
                     </button>
                   </div>
                 </div>
@@ -1408,7 +1458,6 @@ export const BudgetsScreen: React.FC = () => {
               )}
             </>
           )}
-
           {/* MODO 2: ABA GERENCIAR ORÇAMENTOS (TABELA DETALHADA COM EDIÇÃO E EXCLUSÃO) */}
           {viewMode === 'gerenciar' && (
             <div className="bg-white rounded-[16px] p-6 shadow-[0_4px_20px_rgba(23,26,31,0.06)] border border-[#171A1F]/10 space-y-4 animate-fade-in">
@@ -1562,19 +1611,31 @@ export const BudgetsScreen: React.FC = () => {
               </div>
             </div>
           )}
-
           {/* Modal de geração por IA */}
           <AiBudgetModal
             isOpen={isAiModalOpen}
             onClose={() => setIsAiModalOpen(false)}
-            onBudgetCreated={(created) => {
-              const updated = getStoredFullBudgets()
+            onBudgetCreated={(createdBudget: FullBudget) => {
+              const updated = [createdBudget, ...budgetsList]
               setBudgetsList(updated)
-              setActiveBudget(created)
+              setActiveBudget(createdBudget)
               setEditorTab('arvore')
-              showToast(`Orçamento ${created.code} gerado com sucesso por IA!`)
+              showToast(`Orçamento ${createdBudget.code} gerado com sucesso!`)
             }}
           />
+          {/* Modal de Limpeza de Dados de Demonstração */}
+          <StorageCleanModal
+            isOpen={isCleanModalOpen}
+            onClose={() => setIsCleanModalOpen(false)}
+            onCleanSuccess={() => {
+              const current = getStoredFullBudgets()
+              setBudgetsList(current)
+              if (activeBudget && !current.some((b) => b.id === activeBudget.id)) {
+                setActiveBudget(current[0] || null)
+              }
+              showToast('Varredura e limpeza concluídas com sucesso!')
+            }}
+          />{' '}
         </div>
       )}
 
