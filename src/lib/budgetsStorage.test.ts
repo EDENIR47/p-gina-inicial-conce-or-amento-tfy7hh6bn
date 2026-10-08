@@ -167,6 +167,81 @@ describe('budgetsStorage — Limpeza de demonstração e primeiro acesso', () =>
     expect(loaded[0].work.address).toContain('Rua Tomaz Gonzaga, 610')
   })
 
+  it('(d) nenhum resíduo demo sobrevive e dados reais preservam detalhes originais', () => {
+    const realOther: FullBudget = {
+      id: 'orc-real-jader-002',
+      code: 'ORC-2025-055',
+      title: 'Obra Residencial Tomaz Gonzaga',
+      status: 'aprovado',
+      author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      createdAt: '2025-04-12',
+      updatedAt: '2025-04-12T12:00:00Z',
+      client: {
+        name: 'Jader da Costa',
+        document: '',
+        email: '',
+        phone: '',
+        address: 'Rua Tomaz Gonzaga',
+        city: 'Porto Alegre',
+        state: 'RS',
+      },
+      work: {
+        name: 'Apartamento 1803',
+        address: 'Rua Tomaz Gonzaga, 610',
+        city: 'Porto Alegre',
+        state: 'RS',
+        description: 'Reforma e execução',
+        startDate: '2025-05-01',
+        deadlineMonths: 4,
+      },
+      chargesConfig: {
+        uf: 'RS',
+        isRelieved: false,
+        taxRegime: 'simples_nacional',
+        simplesDasRate: 11.0,
+        customGroupA: 0,
+        customGroupB: 0,
+        customGroupC: 0,
+        customGroupD: 0,
+        isExplicitZero: true,
+      },
+      bdiConfig: {
+        administrationCentral: 4.5,
+        risk: 1.25,
+        insuranceAndGuarantee: 0.85,
+        financialExpenses: 1.15,
+        profit: 7.8,
+        taxes: {
+          iss: 4.0,
+          pis: 0.65,
+          cofins: 3.0,
+          inssOrCprb: 0.0,
+          totalTaxes: 11.0,
+          simplesDas: 11.0,
+        },
+        calculatedBdi: 28.5,
+      },
+      publicWork: {
+        enabled: false,
+        tenderNumber: '',
+        contractNumber: '',
+        agency: '',
+        modality: 'Concorrência',
+        sinapiReferenceMonth: '04/2025',
+        hasDisallowanceClause: false,
+      },
+      stages: [],
+    }
+
+    localStorage.setItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS, JSON.stringify([realOther]))
+
+    const list = getStoredFullBudgets()
+    expect(list.length).toBe(1)
+    expect(list[0].id).toBe('orc-real-jader-002')
+    expect(list[0].client.name).toBe('Jader da Costa')
+    expect(list[0].work.address).toBe('Rua Tomaz Gonzaga, 610')
+  })
+
   it('(c) retrocompatibilidade: um localStorage com orçamento real antigo carrega intacto com DAS 11%', () => {
     const legacyRealBudget: FullBudget = {
       id: 'budget-conce-001',

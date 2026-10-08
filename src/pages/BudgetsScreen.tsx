@@ -1207,37 +1207,42 @@ export const BudgetsScreen: React.FC = () => {
               {/* Cards dos Orçamentos */}
               {filteredBudgets.length === 0 ? (
                 <div className="bg-white rounded-3xl p-8 sm:p-14 text-center border border-[#171A1F]/10 shadow-sm space-y-5 animate-fade-in">
-                  <div className="w-20 h-20 rounded-2xl bg-[#294C87]/10 text-[#294C87] flex items-center justify-center mx-auto border border-[#294C87]/20 shadow-inner">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#294C87]/15 to-[#FF6B1F]/10 text-[#294C87] flex items-center justify-center mx-auto border border-[#294C87]/20 shadow-inner">
                     <FileSpreadsheet className="w-10 h-10 text-[#294C87]" />
                   </div>
 
-                  <div className="space-y-2 max-w-md mx-auto">
-                    <h4 className="text-xl sm:text-2xl font-extrabold text-[#171A1F] tracking-tight">
+                  <div className="space-y-2 max-w-lg mx-auto">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#3E8E5A]/10 text-[#3E8E5A] text-xs font-bold uppercase tracking-wider mb-1">
+                      <Sparkles className="w-3.5 h-3.5 text-[#3E8E5A]" />
+                      <span>Ambiente Limpo e Seguro</span>
+                    </div>
+
+                    <h4 className="text-xl sm:text-2xl font-extrabold text-[#171A1F] tracking-tight font-heading">
                       {budgetsList.length === 0
-                        ? 'Nenhum orçamento ainda'
+                        ? 'Nenhum orçamento cadastrado'
                         : 'Nenhum orçamento encontrado'}
                     </h4>
                     <p className="text-xs sm:text-sm text-[#171A1F]/70 leading-relaxed font-normal">
                       {budgetsList.length === 0
-                        ? 'Seu ambiente está pronto e limpo, sem obras fictícias. Comece criando o seu primeiro orçamento de engenharia com custos reais, BDI TCU e encargos oficiais.'
+                        ? 'Seu sistema está pronto, livre de obras fictícias ou resíduos de demonstração. Crie sua primeira proposta técnica e comercial com BDI TCU oficial e composições integradas.'
                         : 'Nenhum resultado corresponde aos filtros selecionados. Tente ajustar o termo de busca ou o filtro de status.'}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
                     <button
                       type="button"
                       onClick={handleCreateNewBudget}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#294C87] hover:bg-[#1f3b6c] text-white text-xs sm:text-sm font-bold shadow-md hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#294C87] hover:bg-[#1f3b6c] text-white text-xs sm:text-sm font-bold shadow-md hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer font-heading"
                     >
                       <Plus className="w-4 h-4 text-[#FF6B1F]" />
-                      <span>Criar Primeiro Orçamento</span>
+                      <span>Criar Orçamento</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setIsAiModalOpen(true)}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs sm:text-sm font-bold shadow-md hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer border border-white/20"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs sm:text-sm font-bold shadow-md hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer border border-white/20 font-heading"
                     >
                       <Sparkles className="w-4 h-4 animate-pulse" />
                       <span>✨ Gerar Proposta com IA</span>
@@ -1473,142 +1478,169 @@ export const BudgetsScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* Tabela de Gerenciamento */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-[#171A1F]/10 text-[11px] font-bold uppercase tracking-wider text-[#171A1F]/60 bg-[#171A1F]/[0.02]">
-                      <th className="py-3 px-3">Código</th>
-                      <th className="py-3 px-3">Obra / Endereço</th>
-                      <th className="py-3 px-3">Cliente</th>
-                      <th className="py-3 px-3 text-center">Criação</th>
-                      <th className="py-3 px-3 text-right">Valor Total</th>
-                      <th className="py-3 px-3 text-center">Status</th>
-                      <th className="py-3 px-3 text-center">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#171A1F]/5">
-                    {budgetsList.map((b) => {
-                      const summary = calculateFullBudget(b)
-                      const statusBadges: Record<string, { label: string; class: string }> = {
-                        em_andamento: {
-                          label: 'Em Andamento',
-                          class: 'bg-[#294C87]/15 text-[#294C87]',
-                        },
-                        aprovado: {
-                          label: 'Aprovado',
-                          class: 'bg-[#3E8E5A]/15 text-[#3E8E5A]',
-                        },
-                        em_analise: {
-                          label: 'Em Análise',
-                          class: 'bg-[#171A1F]/15 text-[#171A1F]',
-                        },
-                        vencido: {
-                          label: 'Vencido',
-                          class: 'bg-[#C4453C]/15 text-[#C4453C]',
-                        },
-                      }
-                      const badge = statusBadges[b.status] || statusBadges.em_andamento
+              {/* Estado Vazio na Aba Gerenciar se não houver orçamentos */}
+              {budgetsList.length === 0 ? (
+                <div className="py-12 px-6 text-center space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-[#294C87]/10 text-[#294C87] flex items-center justify-center mx-auto border border-[#294C87]/20">
+                    <Layers className="w-8 h-8 text-[#FF6B1F]" />
+                  </div>
+                  <div className="space-y-1 max-w-md mx-auto">
+                    <h4 className="text-base sm:text-lg font-bold text-[#171A1F]">
+                      Nenhum orçamento cadastrado
+                    </h4>
+                    <p className="text-xs text-[#171A1F]/70">
+                      Não há propostas ativas no momento. Comece criando um novo orçamento.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCreateNewBudget}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#294C87] hover:bg-[#1f3b6c] text-white text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 text-[#FF6B1F]" />
+                    <span>Criar Orçamento</span>
+                  </button>
+                </div>
+              ) : (
+                /* Tabela de Gerenciamento */
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#171A1F]/10 text-[11px] font-bold uppercase tracking-wider text-[#171A1F]/60 bg-[#171A1F]/[0.02]">
+                        <th className="py-3 px-3">Código</th>
+                        <th className="py-3 px-3">Obra / Endereço</th>
+                        <th className="py-3 px-3">Cliente</th>
+                        <th className="py-3 px-3 text-center">Criação</th>
+                        <th className="py-3 px-3 text-right">Valor Total</th>
+                        <th className="py-3 px-3 text-center">Status</th>
+                        <th className="py-3 px-3 text-center">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#171A1F]/5">
+                      {budgetsList.map((b) => {
+                        const summary = calculateFullBudget(b)
+                        const statusBadges: Record<string, { label: string; class: string }> = {
+                          em_andamento: {
+                            label: 'Em Andamento',
+                            class: 'bg-[#294C87]/15 text-[#294C87]',
+                          },
+                          aprovado: {
+                            label: 'Aprovado',
+                            class: 'bg-[#3E8E5A]/15 text-[#3E8E5A]',
+                          },
+                          em_analise: {
+                            label: 'Em Análise',
+                            class: 'bg-[#171A1F]/15 text-[#171A1F]',
+                          },
+                          vencido: {
+                            label: 'Vencido',
+                            class: 'bg-[#C4453C]/15 text-[#C4453C]',
+                          },
+                        }
+                        const badge = statusBadges[b.status] || statusBadges.em_andamento
 
-                      return (
-                        <tr key={b.id} className="hover:bg-[#294C87]/[0.03] transition-colors">
-                          <td className="py-3 px-3 font-mono font-bold text-[#294C87]">{b.code}</td>
-                          <td className="py-3 px-3">
-                            <div className="font-bold text-xs text-[#171A1F]">
-                              {b.title || b.work?.name}
-                            </div>
-                            <div className="text-[11px] text-[#171A1F]/60 truncate max-w-xs">
-                              {b.work?.address || `${b.work?.city}/${b.work?.state}`}
-                            </div>
-                          </td>
-                          <td className="py-3 px-3 font-semibold text-[#171A1F]">
-                            {b.client?.name || 'Não informado'}
-                          </td>
-                          <td className="py-3 px-3 text-center text-[#171A1F]/70 text-[11px]">
-                            {b.createdAt ? b.createdAt.split('-').reverse().join('/') : '—'}
-                          </td>
-                          <td className="py-3 px-3 text-right font-bold text-sm text-[#FF6B1F]">
-                            {formatCurrencyBRL(summary.finalSalePrice)}
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badge.class}`}
-                            >
-                              {badge.label}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveBudget(b)
-                                  setIsMemorialModalOpen(true)
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white font-bold text-xs transition-colors cursor-pointer"
-                                title="Abrir Memorial Descritivo deste orçamento"
+                        return (
+                          <tr key={b.id} className="hover:bg-[#294C87]/[0.03] transition-colors">
+                            <td className="py-3 px-3 font-mono font-bold text-[#294C87]">
+                              {b.code}
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="font-bold text-xs text-[#171A1F]">
+                                {b.title || b.work?.name}
+                              </div>
+                              <div className="text-[11px] text-[#171A1F]/60 truncate max-w-xs">
+                                {b.work?.address || `${b.work?.city}/${b.work?.state}`}
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 font-semibold text-[#171A1F]">
+                              {b.client?.name || 'Não informado'}
+                            </td>
+                            <td className="py-3 px-3 text-center text-[#171A1F]/70 text-[11px]">
+                              {b.createdAt ? b.createdAt.split('-').reverse().join('/') : '—'}
+                            </td>
+                            <td className="py-3 px-3 text-right font-bold text-sm text-[#FF6B1F]">
+                              {formatCurrencyBRL(summary.finalSalePrice)}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badge.class}`}
                               >
-                                <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
-                                <span>Memorial</span>
-                              </button>
+                                {badge.label}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveBudget(b)
+                                    setIsMemorialModalOpen(true)
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                                  title="Abrir Memorial Descritivo deste orçamento"
+                                >
+                                  <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                                  <span>Memorial</span>
+                                </button>
 
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  ensureInitialRevision(b)
-                                  setActiveBudget(b)
-                                  setIsRevisionsModalOpen(true)
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-400/40 font-bold text-xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                title="Histórico de Revisões e Restauração de Versões Anteriores"
-                                aria-label={`Histórico e restaurador de revisões do orçamento ${b.code}`}
-                              >
-                                <History
-                                  className="w-3.5 h-3.5 text-[#FF6B1F]"
-                                  aria-hidden="true"
-                                />
-                                <span>Revisões</span>
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    ensureInitialRevision(b)
+                                    setActiveBudget(b)
+                                    setIsRevisionsModalOpen(true)
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-400/40 font-bold text-xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                  title="Histórico de Revisões e Restauração de Versões Anteriores"
+                                  aria-label={`Histórico e restaurador de revisões do orçamento ${b.code}`}
+                                >
+                                  <History
+                                    className="w-3.5 h-3.5 text-[#FF6B1F]"
+                                    aria-hidden="true"
+                                  />
+                                  <span>Revisões</span>
+                                </button>
 
-                              <button
-                                type="button"
-                                onClick={() => setEditingBudgetModal(b)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white font-bold text-xs transition-colors cursor-pointer"
-                                title="Editar dados deste orçamento"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                                <span>Editar</span>
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingBudgetModal(b)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                                  title="Editar dados deste orçamento"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                  <span>Editar</span>
+                                </button>
 
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveBudget(b)
-                                  setEditorTab('arvore')
-                                }}
-                                className="p-1.5 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/15 text-[#171A1F] transition-colors cursor-pointer"
-                                title="Abrir editor completo de serviços e insumos"
-                              >
-                                <Layers className="w-4 h-4 text-[#294C87]" />
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveBudget(b)
+                                    setEditorTab('arvore')
+                                  }}
+                                  className="p-1.5 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/15 text-[#171A1F] transition-colors cursor-pointer"
+                                  title="Abrir editor completo de serviços e insumos"
+                                >
+                                  <Layers className="w-4 h-4 text-[#294C87]" />
+                                </button>
 
-                              <button
-                                type="button"
-                                onClick={() => setDeletingBudgetModal(b)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-xs transition-colors cursor-pointer"
-                                title="Excluir este orçamento definitivamente"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>Excluir</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingBudgetModal(b)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                                  title="Excluir este orçamento definitivamente"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Excluir</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
           {/* Modal de geração por IA */}

@@ -586,15 +586,20 @@ export function isDemoOrTestBudget(budget: FullBudget): boolean {
     clientName.includes('jader') ||
     address.includes('tomaz gonzaga') ||
     address.includes('tomaz') ||
-    (workName.includes('apto 1803') && !workName.includes('demo') && !workName.includes('fict')) ||
-    (title.includes('apto 1803') && !title.includes('demo') && !title.includes('fict'))
+    (workName.includes('apto 1803') &&
+      !workName.includes('demo') &&
+      !workName.includes('fict') &&
+      !id.startsWith('seed-')) ||
+    (title.includes('apto 1803') &&
+      !title.includes('demo') &&
+      !title.includes('fict') &&
+      !id.startsWith('seed-'))
 
   if (isRealUserBudget) {
     return false
   }
 
-  // Se o ID for exatamente o do seed canônico antigo ('budget-conce-001')
-  // mas o cliente NÃO for Andreia/Jader, é resíduo de demonstração antigo alterado
+  // Se o ID for o antigo id de seed estático 'budget-conce-001' e não contiver o cliente real, é demo:
   if (
     id === 'budget-conce-001' &&
     !clientName.includes('andreia') &&
@@ -765,47 +770,9 @@ export function getStoredFullBudgets(): FullBudget[] {
             }
           }
 
-          // 1.1 Garantir valores padrão para novos campos de proposta comercial e sanitização solicitada
-          // Se for o orçamento ativo padrão (budget-conce-001 ou ORC-2025-001) e ainda estiver com dados legados de demonstração, sincroniza com os dados exatos pedidos pelo Eng. Edenir:
-          if (
-            (updatedBudget.id === 'budget-conce-001' || updatedBudget.code === 'ORC-2025-001') &&
-            (!updatedBudget.client?.name ||
-              updatedBudget.client.name.includes('Horizonte') ||
-              updatedBudget.client.name.includes('Dr. Roberto') ||
-              !updatedBudget.client.name.includes('Andreia de Oliveira da Costa'))
-          ) {
-            hasFixed = true
-            updatedBudget = {
-              ...updatedBudget,
-              title: 'Reforma e Estrutura Residencial — Apto 1803',
-              client: {
-                ...updatedBudget.client,
-                name: 'Andreia de Oliveira da Costa e Jader da Costa',
-                document: '',
-                email: '',
-                phone: '',
-                address: '',
-                city: 'Porto Alegre',
-                state: 'RS',
-              },
-              work: {
-                ...updatedBudget.work,
-                name: 'Reforma e Estrutura Residencial — Apto 1803',
-                address: 'Rua Tomaz Gonzaga, 610, Apartamento 1803',
-                city: 'Porto Alegre',
-                state: 'RS',
-                deadlineMonths: 6,
-                executionDeadline:
-                  'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA',
-              },
-              executionDeadline:
-                'PRAZO DE EXECUÇÃO: PROJETOS 15 DIAS UTEIS APOS ACEITE DA PROPOSTA E ASSINATURA DO CONTRATO, E DA EXECUÇÃO É UM ITEM DO ESCOPO DE GESTÃO POIS ESSE PRAZO DEPENDE DA CONTRATAÇÃO DA EMPREZA PARA PRODUZIR E MONTAR A ESTRUTURA METÁLICA',
-              paymentTerms:
-                '30% de entrada; 30% na entrega dos projetos base; 20% após montagem das estruturas metálicas; saldo após vistoria de entrega.',
-              validityDays: 5,
-              validityDaysType: 'uteis',
-            }
-          }
+          // 1.1 Não misturar orçamentos de demonstração antigos com nomes de clientes reais.
+          // Se o orçamento for legado de demonstração ou estiver marcado como demo, ele já é
+          // filtrado por isDemoOrTestBudget. Orçamentos reais existentes preservam seus dados cadastrais intactos.
 
           // 1.2 Garantir alíquota DAS padrão de 11% e tributos sincronizados para propostas reais no Simples Nacional
           // Respeita a regra de ouro do usuário ("Alíquota DAS padrão da CONCE é 11%"): novos e existentes no Simples
