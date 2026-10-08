@@ -710,7 +710,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Bloco de Assinaturas Formais */}
-            <div className="pt-2.5 print:pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 print:gap-3 text-center text-xs">
+            <div className="print-signatures-block pt-8 sm:pt-10 print:pt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 print:gap-3 text-center text-xs print:page-break-inside-avoid print-break-avoid">
               <div className="space-y-0.5">
                 <div className="w-44 mx-auto border-t-2 border-[#171A1F]" />
                 <p className="font-bold text-xs text-[#171A1F]">{cleanAuthor}</p>
@@ -1953,7 +1953,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             </div>
 
             {/* Campos Oficiais de Assinatura */}
-            <div className="pt-5 print:pt-4 grid grid-cols-1 sm:grid-cols-2 gap-6 print:gap-4 text-center text-xs">
+            <div className="print-signatures-block pt-10 sm:pt-12 print:pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 print:gap-4 text-center text-xs print:page-break-inside-avoid print-break-avoid">
               <div className="space-y-1">
                 <div className="w-52 mx-auto border-t-2 border-[#171A1F]" />
                 <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanAuthor}</p>

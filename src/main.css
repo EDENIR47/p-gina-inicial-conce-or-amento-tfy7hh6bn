@@ -457,6 +457,14 @@
       break-inside: avoid !important;
     }
 
+    /* Bloco de assinaturas formais: respiro reforçado da última linha de texto e proteção contra quebra órfã */
+    .print-signatures-block {
+      margin-top: 18pt !important;
+      padding-top: 14pt !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
     /* Tabelas em impressão: cabeçalhos repetidos e sem linhas cortadas ao meio */
     table {
       page-break-inside: auto !important;
