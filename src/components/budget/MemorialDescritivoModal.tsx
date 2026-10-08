@@ -13,7 +13,8 @@
  * - Zero menção a preços/valores/BDI — estritamente técnico e institucional
  */
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   X,
   Printer,
@@ -85,16 +86,42 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
     }),
   )
 
-  // Atualizar quando o orçamento ativo mudar
+  // Referência do ID do orçamento para sincronizar APENAS quando o ID mudar de fato
+  const currentBudgetIdRef = useRef<string>(budget.id)
+
+  // Atualizar quando o orçamento ativo mudar DE FATO (budget.id diferente)
+  // NUNCA descartar edições locais quando budget mudar de referência após salvar ou ao alternar toggles
   useEffect(() => {
-    setMemorialData(
-      buildMemorialDocumentData(budget, {
-        useSavedIfAvailable: hasSavedVersion,
-        includeStagePhotos: includePhotos,
-        includeSummary: includeSummary,
-      }),
-    )
-  }, [budget, hasSavedVersion, includePhotos, includeSummary])
+    if (currentBudgetIdRef.current !== budget.id) {
+      currentBudgetIdRef.current = budget.id
+      setIncludePhotos(budget.savedMemorial?.includeStagePhotos ?? false)
+      setIncludeSummary(budget.savedMemorial?.includeSummary ?? true)
+      setMemorialData(
+        buildMemorialDocumentData(budget, {
+          useSavedIfAvailable: hasSavedVersion,
+          includeStagePhotos: budget.savedMemorial?.includeStagePhotos ?? false,
+          includeSummary: budget.savedMemorial?.includeSummary ?? true,
+        }),
+      )
+    }
+  }, [budget.id, hasSavedVersion])
+
+  // Sincronizar toggles com memorialData sem recriar ou descartar as especificações técnicas
+  const handleToggleIncludeSummary = (checked: boolean) => {
+    setIncludeSummary(checked)
+    setMemorialData((prev) => ({
+      ...prev,
+      includeSummary: checked,
+    }))
+  }
+
+  const handleToggleIncludePhotos = (checked: boolean) => {
+    setIncludePhotos(checked)
+    setMemorialData((prev) => ({
+      ...prev,
+      includeStagePhotos: checked,
+    }))
+  }
 
   // Toast temporário
   const showToast = (msg: string) => {
@@ -158,13 +185,20 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
   }
 
   // Usar memorial salvo (se existir)
+  // Recarrega diretamente as especificações de budget.savedMemorial com pareamento resiliente
   const handleRestoreSaved = () => {
     if (!hasSavedVersion) return
     const restored = buildMemorialDocumentData(budget, {
       useSavedIfAvailable: true,
-      includeStagePhotos: includePhotos,
-      includeSummary: includeSummary,
+      includeStagePhotos: budget.savedMemorial?.includeStagePhotos ?? includePhotos,
+      includeSummary: budget.savedMemorial?.includeSummary ?? includeSummary,
     })
+    if (budget.savedMemorial?.includeStagePhotos !== undefined) {
+      setIncludePhotos(budget.savedMemorial.includeStagePhotos)
+    }
+    if (budget.savedMemorial?.includeSummary !== undefined) {
+      setIncludeSummary(budget.savedMemorial.includeSummary)
+    }
     setMemorialData(restored)
     showToast('Versão salva do memorial restaurada com sucesso!')
   }
@@ -210,18 +244,24 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
   }
 
   // Disparar impressão / PDF nativo
+  // Define temporariamente document.title para o navegador sugerir o nome do arquivo PDF correto ao salvar
   const handlePrint = () => {
+    const originalTitle = document.title
+    const safeBudgetCode = (budget.code || 'ORC-CONCE').replace(/[^a-zA-Z0-9_-]/g, '_')
+    document.title = `Memorial-Descritivo-${safeBudgetCode}`
+
     document.body.classList.add('conce-printing')
     window.print()
     setTimeout(() => {
       document.body.classList.remove('conce-printing')
+      document.title = originalTitle
     }, 500)
   }
 
   // Data formatada para rodapés e cabeçalhos
   const currentDateFormatted = formatCurrentDatePTBR()
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
@@ -339,7 +379,7 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
             <input
               type="checkbox"
               checked={includeSummary}
-              onChange={(e) => setIncludeSummary(e.target.checked)}
+              onChange={(e) => handleToggleIncludeSummary(e.target.checked)}
               className="w-4 h-4 rounded text-[#FF6B1F] focus:ring-[#FF6B1F] border-[#171A1F]/30"
             />
             <span className="flex items-center gap-1.5">
@@ -352,7 +392,7 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
             <input
               type="checkbox"
               checked={includePhotos}
-              onChange={(e) => setIncludePhotos(e.target.checked)}
+              onChange={(e) => handleToggleIncludePhotos(e.target.checked)}
               className="w-4 h-4 rounded text-[#FF6B1F] focus:ring-[#FF6B1F] border-[#171A1F]/30"
             />
             <span className="flex items-center gap-1.5">
@@ -700,4 +740,13 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
       </div>
     </div>
   )
+
+  // Renderizar o modal diretamente como filho de document.body via Portal
+  // Evita que as regras body.conce-printing / body:has(.conce-memorial-modal-overlay) que ocultam #root
+  // façam a folha de impressão / PDF sair vazia.
+  if (typeof document !== 'undefined') {
+    return createPortal(modalContent, document.body)
+  }
+
+  return modalContent
 }

@@ -245,18 +245,36 @@ export function buildMemorialDocumentData(
 
   // Se o usuário solicitou usar o salvo e ele existe
   if (useSaved && saved && saved.stages && saved.stages.length > 0) {
-    const savedStagesMap = new Map(saved.stages.map((st) => [st.stageId, st]))
+    const savedStagesList = saved.stages
 
     const stages: MemorialStageItem[] = (budget.stages || [])
       .filter((st) => (st.services || []).length > 0)
-      .map((st) => {
-        const savedSt = savedStagesMap.get(st.id)
-        const savedServicesMap = new Map(
-          (savedSt?.services || []).map((srv) => [srv.serviceId, srv]),
-        )
+      .map((st, stageIndex) => {
+        // Pareamento resiliente da etapa:
+        // 1. Por stageId (se st.id e stageId baterem e não forem vazios)
+        // 2. Por código (stage.code === savedStage.stageCode)
+        // 3. Por índice de ordem na lista de etapas
+        const savedSt =
+          (st.id && savedStagesList.find((s) => s.stageId === st.id)) ||
+          (st.code &&
+            savedStagesList.find((s) => s.stageCode && s.stageCode.trim() === st.code.trim())) ||
+          (stageIndex < savedStagesList.length ? savedStagesList[stageIndex] : undefined)
 
-        const services: MemorialServiceItem[] = (st.services || []).map((srv) => {
-          const savedSrv = savedServicesMap.get(srv.id)
+        const savedServicesList = savedSt?.services || []
+
+        const services: MemorialServiceItem[] = (st.services || []).map((srv, srvIndex) => {
+          // Pareamento resiliente do serviço:
+          // 1. Por serviceId (se srv.id e serviceId baterem e não forem vazios)
+          // 2. Por código (service.code === savedService.serviceCode)
+          // 3. Por índice posicional dentro da etapa
+          const savedSrv =
+            (srv.id && savedServicesList.find((s) => s.serviceId === srv.id)) ||
+            (srv.code &&
+              savedServicesList.find(
+                (s) => s.serviceCode && s.serviceCode.trim() === srv.code.trim(),
+              )) ||
+            (srvIndex < savedServicesList.length ? savedServicesList[srvIndex] : undefined)
+
           const techSpec =
             savedSrv?.technicalSpecification?.trim() ||
             generateServiceTechnicalSpecification(srv, st)

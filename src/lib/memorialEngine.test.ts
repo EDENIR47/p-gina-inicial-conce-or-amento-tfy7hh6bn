@@ -199,4 +199,99 @@ describe('memorialEngine', () => {
     expect(intro).toContain('ABNT')
     expect(intro).toContain('Andreia de Oliveira da Costa')
   })
+
+  it('restaura memorial salvo com pareamento resiliente por ID, código e índice de ordem', () => {
+    const budgetWithSavedMemorial: FullBudget = {
+      ...mockBudget,
+      savedMemorial: {
+        generatedAt: '2025-04-10T10:00:00.000Z',
+        updatedAt: '2025-04-10T11:00:00.000Z',
+        generalIntroduction: 'Introdução personalizada salva pelo engenheiro.',
+        includeStagePhotos: true,
+        includeSummary: true,
+        stages: [
+          {
+            stageId: 'stg-1',
+            stageCode: '01',
+            stageName: 'REVESTIMENTOS INTERNOS',
+            notes: 'Nota salva da etapa',
+            photoUrl: null,
+            services: [
+              {
+                serviceId: 'srv-1',
+                serviceCode: '01.01',
+                serviceDescription: 'Assentamento de porcelanato polido 90x90 em piso',
+                unit: 'm²',
+                quantity: 150,
+                technicalSpecification:
+                  'Especificação técnica customizada salva pelo usuário para o porcelanato.',
+              },
+            ],
+          },
+        ],
+      },
+    }
+
+    // 1. Pareamento exato por ID
+    const docExact = buildMemorialDocumentData(budgetWithSavedMemorial, {
+      useSavedIfAvailable: true,
+    })
+    expect(docExact.generalIntroduction).toBe('Introdução personalizada salva pelo engenheiro.')
+    expect(docExact.stages[0].services[0].technicalSpecification).toBe(
+      'Especificação técnica customizada salva pelo usuário para o porcelanato.',
+    )
+    expect(docExact.stages[0].services[0].isCustomized).toBe(true)
+
+    // 2. Pareamento resiliente quando ID do serviço é regenerado ou diferente, mas código ou posição batem
+    const budgetWithDifferentIds: FullBudget = {
+      ...budgetWithSavedMemorial,
+      stages: [
+        {
+          ...mockStage,
+          id: 'new-stg-uuid-999',
+          code: '01', // mesmo código
+          services: [
+            {
+              ...mockServiceWithComposition,
+              id: 'new-srv-uuid-888', // id diferente
+              code: '01.01', // mesmo código
+            },
+          ],
+        },
+      ],
+    }
+
+    const docFallbackCode = buildMemorialDocumentData(budgetWithDifferentIds, {
+      useSavedIfAvailable: true,
+    })
+    expect(docFallbackCode.stages[0].services[0].technicalSpecification).toBe(
+      'Especificação técnica customizada salva pelo usuário para o porcelanato.',
+    )
+
+    // 3. Pareamento resiliente quando até os códigos diferem, pareia por índice de ordem
+    const budgetWithNoCodes: FullBudget = {
+      ...budgetWithSavedMemorial,
+      stages: [
+        {
+          ...mockStage,
+          id: 'diff-stg-id',
+          code: '',
+          services: [
+            {
+              ...mockServiceWithComposition,
+              id: 'diff-srv-id',
+              code: '',
+            },
+          ],
+        },
+      ],
+    }
+
+    const docFallbackIndex = buildMemorialDocumentData(budgetWithNoCodes, {
+      useSavedIfAvailable: true,
+    })
+    expect(docFallbackIndex.stages[0].services[0].technicalSpecification).toBe(
+      'Especificação técnica customizada salva pelo usuário para o porcelanato.',
+    )
+  })
 })
