@@ -45,6 +45,7 @@ import { SocialChargesSelector } from '@/components/budget/SocialChargesSelector
 import { BdiEditor } from '@/components/budget/BdiEditor'
 import { BudgetTotalsBar } from '@/components/budget/BudgetTotalsBar'
 import { PdfExportModal, PdfExportMode } from '@/components/budget/PdfExportModal'
+import { MemorialDescritivoModal } from '@/components/budget/MemorialDescritivoModal'
 import { RevisionsModal } from '@/components/budget/RevisionsModal'
 import { AuditTrailModal } from '@/components/budget/AuditTrailModal'
 import { AbcCurveScreen } from '@/pages/AbcCurveScreen'
@@ -117,6 +118,7 @@ export const BudgetsScreen: React.FC = () => {
   // Modais de Inteligência e Exportação
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
   const [pdfInitialMode, setPdfInitialMode] = useState<PdfExportMode>('valor_final')
+  const [isMemorialModalOpen, setIsMemorialModalOpen] = useState(false)
   const [isRevisionsModalOpen, setIsRevisionsModalOpen] = useState(false)
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
 
@@ -598,6 +600,18 @@ export const BudgetsScreen: React.FC = () => {
                     </strong>
                   </span>
 
+                  {/* Botão de Memorial Descritivo no topo */}
+                  <button
+                    type="button"
+                    onClick={() => setIsMemorialModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white border border-[#294C87]/30 text-[11px] font-bold transition-all shadow-xs focus:outline-none focus:ring-2 focus:ring-[#294C87] cursor-pointer"
+                    title="Gerar Memorial Descritivo Técnico Automático da Obra"
+                    aria-label="Abrir memorial descritivo automático da obra"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-[#FF6B1F] shrink-0" aria-hidden="true" />
+                    <span>Memorial Descritivo</span>
+                  </button>
+
                   {/* Acesso rápido ao Restaurador de Revisões no topo do orçamento */}
                   <button
                     type="button"
@@ -718,6 +732,7 @@ export const BudgetsScreen: React.FC = () => {
               setIsPdfModalOpen(true)
             }}
             onOpenExcelExport={() => exportBudgetSpreadsheet(activeBudget, 'completo')}
+            onOpenMemorialModal={() => setIsMemorialModalOpen(true)}
             onOpenRevisionsModal={() => {
               ensureInitialRevision(activeBudget)
               setIsRevisionsModalOpen(true)
@@ -1311,6 +1326,19 @@ export const BudgetsScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => {
                                   setActiveBudget(b)
+                                  setIsMemorialModalOpen(true)
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white text-xs font-bold transition-colors cursor-pointer"
+                                title="Abrir Memorial Descritivo Automático de Obra"
+                              >
+                                <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                                <span className="hidden sm:inline">Memorial</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveBudget(b)
                                   setPdfInitialMode('valor_final')
                                   setIsPdfModalOpen(true)
                                 }}
@@ -1465,6 +1493,19 @@ export const BudgetsScreen: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => {
+                                  setActiveBudget(b)
+                                  setIsMemorialModalOpen(true)
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                                title="Abrir Memorial Descritivo deste orçamento"
+                              >
+                                <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
+                                <span>Memorial</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
                                   ensureInitialRevision(b)
                                   setActiveBudget(b)
                                   setIsRevisionsModalOpen(true)
@@ -1569,6 +1610,33 @@ export const BudgetsScreen: React.FC = () => {
           isOpen={isPdfModalOpen}
           onClose={() => setIsPdfModalOpen(false)}
           initialMode={pdfInitialMode}
+        />
+      )}
+
+      {/* Modal do Memorial Descritivo Automático de Obras CONCE */}
+      {isMemorialModalOpen && activeBudget && (
+        <MemorialDescritivoModal
+          key={`memorial-${activeBudget.id}`}
+          budget={activeBudget}
+          isOpen={isMemorialModalOpen}
+          onClose={() => setIsMemorialModalOpen(false)}
+          onSaveMemorialToBudget={(updatedWithMemorial) => {
+            setActiveBudget(updatedWithMemorial)
+            saveSingleBudget(updatedWithMemorial)
+            setBudgetsList(getStoredFullBudgets())
+            logAuditEvent({
+              budgetId: updatedWithMemorial.id,
+              action: 'edicao_memorial',
+              title: 'Memorial Descritivo Salvo no Orçamento',
+              details: `Memorial descritivo técnico com ${updatedWithMemorial.savedMemorial?.stages.length || 0} etapas salvo no orçamento.`,
+              userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+              metadata: {
+                field: 'savedMemorial',
+                signedBy: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+              },
+            })
+            showToast('Memorial descritivo salvo no orçamento com sucesso!')
+          }}
         />
       )}
     </div>

@@ -300,11 +300,12 @@
       print-color-adjust: exact !important;
     }
 
-    /* 2. Quando o modal de impressão estiver ativo (.conce-printing no body ou .conce-pdf-modal-overlay presente),
+    /* 2. Quando o modal de impressão estiver ativo (.conce-printing no body, .conce-pdf-modal-overlay ou .conce-memorial-modal-overlay presente),
        ocultar completamente toda a árvore da aplicação (#root) para garantir que NENHUMA página da tela
        de orçamentos ou do app seja impressa antes da proposta oficial. */
     body.conce-printing #root,
-    body:has(.conce-pdf-modal-overlay) #root {
+    body:has(.conce-pdf-modal-overlay) #root,
+    body:has(.conce-memorial-modal-overlay) #root {
       display: none !important;
       visibility: hidden !important;
       height: 0 !important;
@@ -342,7 +343,8 @@
     }
 
     /* Contêiner modal deve perder backdrop, posição fixa e rolagem na impressão */
-    .conce-pdf-modal-overlay {
+    .conce-pdf-modal-overlay,
+    .conce-memorial-modal-overlay {
       position: static !important;
       inset: auto !important;
       z-index: auto !important;
@@ -361,8 +363,9 @@
       display: block !important;
     }
 
-    /* Ocultar quaisquer irmãos de #conce-printable-proposal dentro do modal na impressão */
-    .conce-pdf-modal-overlay > *:not(#conce-printable-proposal) {
+    /* Ocultar quaisquer irmãos de #conce-printable-proposal ou #conce-printable-memorial dentro do modal na impressão */
+    .conce-pdf-modal-overlay > *:not(#conce-printable-proposal),
+    .conce-memorial-modal-overlay > *:not(#conce-printable-memorial) {
       display: none !important;
       visibility: hidden !important;
       height: 0 !important;
@@ -374,7 +377,8 @@
     /* Com @page margin: 30mm 8mm 20mm 8mm, as margens físicas do navegador garantem os respiros
        de 3cm no topo e 2cm na base em TODAS as páginas (inclusive após quebras automáticas).
        O padding interno de 30mm/20mm foi removido do contêiner, mantendo padding zero na impressão. */
-    #conce-printable-proposal {
+    #conce-printable-proposal,
+    #conce-printable-memorial {
       position: static !important;
       display: block !important;
       width: 100% !important;

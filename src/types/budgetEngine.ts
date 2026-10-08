@@ -199,6 +199,28 @@ export interface FullBudget {
   notes?: string // Alias/compatibilidade para notas gerais do orçamento
   technicalResponsibilityText?: string // Texto editável de "Garantia e Responsabilidade Técnica" (nível proposta)
   technicalObligationsText?: string // Texto editável de "Garantia e Obrigações Técnicas" (nível proposta)
+  savedMemorial?: {
+    generatedAt: string
+    updatedAt: string
+    generalIntroduction?: string
+    includeStagePhotos?: boolean
+    includeSummary?: boolean
+    stages: Array<{
+      stageId: string
+      stageCode: string
+      stageName: string
+      notes?: string
+      photoUrl?: string | null
+      services: Array<{
+        serviceId: string
+        serviceCode: string
+        serviceDescription: string
+        unit: string
+        quantity: number
+        technicalSpecification: string
+      }>
+    }>
+  }
   stages: BudgetStage[]
   chargesConfig: {
     uf: string

@@ -37,6 +37,7 @@ interface BudgetTotalsBarProps {
   validationErrors?: Record<string, string>
   onOpenPdfModal?: () => void
   onOpenExcelExport?: () => void
+  onOpenMemorialModal?: () => void
   onOpenRevisionsModal?: () => void
   onOpenAuditModal?: () => void
 }
@@ -49,6 +50,7 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
   validationErrors = {},
   onOpenPdfModal,
   onOpenExcelExport,
+  onOpenMemorialModal,
   onOpenRevisionsModal,
   onOpenAuditModal,
 }) => {
@@ -130,6 +132,18 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-green-400" />
               <span>Excel</span>
+            </button>
+          )}
+
+          {onOpenMemorialModal && (
+            <button
+              type="button"
+              onClick={onOpenMemorialModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="Abrir Memorial Descritivo Automático da Obra"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
+              <span>Memorial Descritivo</span>
             </button>
           )}
 

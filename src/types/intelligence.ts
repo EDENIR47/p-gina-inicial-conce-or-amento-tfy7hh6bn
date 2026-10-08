@@ -144,6 +144,7 @@ export type AuditActionType =
   | 'revisao_restaurada'
   | 'exportacao_pdf'
   | 'exportacao_excel'
+  | 'edicao_memorial'
 
 export interface AuditLogEntry {
   id: string
