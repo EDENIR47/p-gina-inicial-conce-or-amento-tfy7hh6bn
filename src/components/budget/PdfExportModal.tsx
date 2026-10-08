@@ -616,17 +616,16 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                           </tr>
                         )),
                       )}
-                    </tbody>
-                    <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs border-t-2 border-[#171A1F]">
-                      <tr>
-                        <td className="py-2 px-3 uppercase text-right tracking-wider text-[10.5px] font-bold">
+                      {/* Total Geral na última linha do tbody para renderizar uma única vez e nunca repetir na quebra de página da impressão */}
+                      <tr className="bg-[#171A1F] text-white font-extrabold text-xs border-t-2 border-[#171A1F] print-break-avoid">
+                        <td className="py-2 px-3 uppercase text-right tracking-wider text-[10.5px] font-bold text-white">
                           TOTAL GERAL:
                         </td>
                         <td className="py-2 px-4 text-right font-mono text-xs sm:text-sm font-bold text-white">
                           {formatCurrencyBRL(summary.finalSalePrice)}
                         </td>
                       </tr>
-                    </tfoot>
+                    </tbody>
                   </table>
                 </div>
               </div>
@@ -1090,10 +1089,9 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                       </tr>
                     )
                   })}
-                </tbody>
-                <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs">
-                  <tr>
-                    <td className="py-2 px-3 uppercase text-right" colSpan={3}>
+                  {/* Total Global na última linha do tbody para renderizar uma única vez e nunca repetir na quebra de página da impressão */}
+                  <tr className="bg-[#171A1F] text-white font-extrabold text-xs border-t-2 border-[#171A1F] print-break-avoid">
+                    <td className="py-2 px-3 uppercase text-right text-white font-bold" colSpan={3}>
                       TOTAL GLOBAL DA OBRA:
                     </td>
                     <td className="py-2 px-3 text-right font-mono text-sm sm:text-base font-bold text-white">
@@ -1101,7 +1099,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     </td>
                     <td className="py-2 px-3 text-right font-mono text-white/80">100%</td>
                   </tr>
-                </tfoot>
+                </tbody>
               </table>
             </div>
 
@@ -1381,10 +1379,12 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         </React.Fragment>
                       )
                     })}
-                  </tbody>
-                  <tfoot className="bg-[#171A1F] text-white font-extrabold text-xs">
-                    <tr>
-                      <td className="py-2 px-2.5 uppercase text-right" colSpan={6}>
+                    {/* Valor Total Geral na última linha do tbody para renderizar uma única vez e nunca repetir na quebra de página da impressão */}
+                    <tr className="bg-[#171A1F] text-white font-extrabold text-xs border-t-2 border-[#171A1F] print-break-avoid">
+                      <td
+                        className="py-2 px-2.5 uppercase text-right text-white font-bold"
+                        colSpan={6}
+                      >
                         VALOR TOTAL GERAL DA PROPOSTA (PREÇO DE VENDA COM BDI):
                       </td>
                       <td className="py-2 px-2.5 text-right font-mono text-xs sm:text-sm font-bold text-white">
@@ -1394,7 +1394,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         100%
                       </td>
                     </tr>
-                  </tfoot>
+                  </tbody>
                 </table>
               </div>
             </section>

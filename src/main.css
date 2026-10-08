@@ -480,6 +480,11 @@
       display: table-header-group !important;
     }
 
+    /* Evitar que tfoot seja repetido em cada página caso alguma tabela use tfoot */
+    tfoot {
+      display: table-row-group !important;
+    }
+
     tr {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
