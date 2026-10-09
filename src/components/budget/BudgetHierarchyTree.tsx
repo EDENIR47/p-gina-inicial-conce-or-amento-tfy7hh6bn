@@ -44,7 +44,9 @@ import {
   calculateStageDirectCost,
   getBudgetLaborMultiplier,
   getServiceEffectiveUnitCost,
+  resequenceBudgetStages,
 } from '@/lib/budgetEngine'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 import { formatCurrencyBRL, getSourceBadgeInfo } from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
 import {
@@ -184,9 +186,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       setExpandedStages((prev) => ({ ...prev, [savedStage.id]: true }))
     }
 
+    const resequenced = resequenceBudgetStages(newStages)
     const updatedBudget: FullBudget = {
       ...budget,
-      stages: newStages,
+      stages: resequenced,
       updatedAt: new Date().toISOString(),
     }
     saveSingleBudget(updatedBudget)
@@ -228,9 +231,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       metadata: { stageId, stageCode: stage?.code, servicesCount },
     })
 
+    const resequenced = resequenceBudgetStages(newStages)
     const updatedBudget: FullBudget = {
       ...budget,
-      stages: newStages,
+      stages: resequenced,
       updatedAt: new Date().toISOString(),
     }
     saveSingleBudget(updatedBudget)
@@ -270,9 +274,56 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     }
     const newStages = [...budget.stages, duplicatedStage]
     setExpandedStages((prev) => ({ ...prev, [duplicatedStage.id]: true }))
+    const resequenced = resequenceBudgetStages(newStages)
     const updatedBudget: FullBudget = {
       ...budget,
-      stages: newStages,
+      stages: resequenced,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
+  }
+
+  // Reordenação de Etapas (mover para cima / mover para baixo)
+  const handleMoveStage = (stageIndex: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? stageIndex - 1 : stageIndex + 1
+    if (targetIndex < 0 || targetIndex >= budget.stages.length) return
+
+    const newStages = [...budget.stages]
+    const temp = newStages[stageIndex]
+    newStages[stageIndex] = newStages[targetIndex]
+    newStages[targetIndex] = temp
+
+    const resequenced = resequenceBudgetStages(newStages)
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: resequenced,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
+  }
+
+  // Reordenação de Serviços dentro da etapa
+  const handleMoveService = (stageId: string, srvIndex: number, direction: 'up' | 'down') => {
+    const stage = budget.stages.find((s) => s.id === stageId)
+    if (!stage || !stage.services) return
+    const targetIndex = direction === 'up' ? srvIndex - 1 : srvIndex + 1
+    if (targetIndex < 0 || targetIndex >= stage.services.length) return
+
+    const newStages = budget.stages.map((st) => {
+      if (st.id !== stageId) return st
+      const newServices = [...st.services]
+      const temp = newServices[srvIndex]
+      newServices[srvIndex] = newServices[targetIndex]
+      newServices[targetIndex] = temp
+      return { ...st, services: newServices }
+    })
+
+    const resequenced = resequenceBudgetStages(newStages)
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: resequenced,
       updatedAt: new Date().toISOString(),
     }
     saveSingleBudget(updatedBudget)
@@ -347,9 +398,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       })
     }
 
+    const resequenced = resequenceBudgetStages(newStages)
     const updatedBudget: FullBudget = {
       ...budget,
-      stages: newStages,
+      stages: resequenced,
       updatedAt: new Date().toISOString(),
     }
     saveSingleBudget(updatedBudget)
@@ -427,9 +479,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       metadata: { stageId, serviceId, serviceCode },
     })
 
+    const resequenced = resequenceBudgetStages(newStages)
     const updatedBudget: FullBudget = {
       ...budget,
-      stages: newStages,
+      stages: resequenced,
       updatedAt: new Date().toISOString(),
     }
     saveSingleBudget(updatedBudget)
@@ -468,9 +521,10 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       return { ...st, services: [...st.services, duplicatedService] }
     })
     setExpandedServices((prev) => ({ ...prev, [duplicatedService.id]: true }))
+    const resequenced = resequenceBudgetStages(newStages)
     const updatedBudget: FullBudget = {
       ...budget,
-      stages: newStages,
+      stages: resequenced,
       updatedAt: new Date().toISOString(),
     }
     saveSingleBudget(updatedBudget)
@@ -1187,10 +1241,11 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          {budget.stages.map((stage) => {
+          {budget.stages.map((stage, stageIdx) => {
             const isStageOpen = !!expandedStages[stage.id]
             const stageDirectCost = calculateStageDirectCost(stage, laborMultiplier)
             const servicesCount = stage.services?.length || 0
+            const displayStageCode = String(stageIdx + 1).padStart(2, '0')
 
             // Cálculo do subtotal da etapa com BDI para exibição lado a lado rotulada
             const stageWithBdi = Number(
@@ -1230,7 +1285,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                     </button>
 
                     <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-[#294C87] text-white tracking-wider">
-                      ETAPA {stage.code}
+                      ETAPA {displayStageCode}
                     </span>
 
                     <div className="min-w-0 flex-1">
@@ -1305,19 +1360,40 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1">
+                      {/* Botões de Reordenação de Etapa */}
+                      <button
+                        type="button"
+                        onClick={() => handleMoveStage(stageIdx, 'up')}
+                        disabled={disabled || stageIdx === 0}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer disabled:cursor-not-allowed"
+                        title="Mover etapa para cima"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleMoveStage(stageIdx, 'down')}
+                        disabled={disabled || stageIdx === budget.stages.length - 1}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer disabled:cursor-not-allowed"
+                        title="Mover etapa para baixo"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
+
                       <button
                         type="button"
                         onClick={() =>
                           setServiceModalState({
                             isOpen: true,
                             stageId: stage.id,
-                            stageCode: stage.code,
+                            stageCode: displayStageCode,
                             service: null,
                           })
                         }
                         disabled={disabled}
                         className="px-2.5 py-1.5 rounded-lg bg-[#FF6B1F] hover:bg-[#FF6B1F]/90 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
-                        title={`Adicionar novo serviço na Etapa ${stage.code}`}
+                        title={`Adicionar novo serviço na Etapa ${displayStageCode}`}
                       >
                         <Plus className="w-4 h-4" />
                         <span className="text-xs">＋ Adicionar Serviço</span>
@@ -1371,7 +1447,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                             setServiceModalState({
                               isOpen: true,
                               stageId: stage.id,
-                              stageCode: stage.code,
+                              stageCode: displayStageCode,
                               service: null,
                             })
                           }
@@ -1382,8 +1458,9 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                         </button>
                       </div>
                     ) : (
-                      stage.services.map((service) => {
+                      stage.services.map((service, srvIdx) => {
                         const isServiceOpen = !!expandedServices[service.id]
+                        const displayServiceCode = `${displayStageCode}.${String(srvIdx + 1).padStart(2, '0')}`
                         const comp = service.composition
                         const unitCost = getServiceEffectiveUnitCost(service, laborMultiplier)
                         const serviceDirectTotal = calculateServiceDirectCost(
@@ -1437,7 +1514,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                   </button>
 
                                   <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#171A1F]/5 text-[#171A1F] border border-[#171A1F]/10 shrink-0 mt-0.5">
-                                    {service.code}
+                                    {displayServiceCode}
                                   </span>
 
                                   <div className="min-w-0 flex-1">
@@ -1493,8 +1570,29 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                   </div>
                                 </div>
 
-                                {/* Ações do Serviço (Duplicar, Editar, Excluir) */}
+                                {/* Ações do Serviço (Mover, Duplicar, Editar, Excluir) */}
                                 <div className="flex items-center gap-1 shrink-0 ml-2">
+                                  {/* Botões de Reordenação de Serviço */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveService(stage.id, srvIdx, 'up')}
+                                    disabled={disabled || srvIdx === 0}
+                                    className="p-1.5 rounded-md text-[#171A1F]/60 hover:text-[#171A1F] hover:bg-[#171A1F]/5 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                    title="Mover serviço para cima"
+                                  >
+                                    <ArrowUp className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveService(stage.id, srvIdx, 'down')}
+                                    disabled={disabled || srvIdx === stage.services.length - 1}
+                                    className="p-1.5 rounded-md text-[#171A1F]/60 hover:text-[#171A1F] hover:bg-[#171A1F]/5 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                    title="Mover serviço para baixo"
+                                  >
+                                    <ArrowDown className="w-3.5 h-3.5" />
+                                  </button>
+
                                   <button
                                     type="button"
                                     onClick={() => handleDuplicateService(stage.id, service)}
@@ -1511,7 +1609,7 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                       setServiceModalState({
                                         isOpen: true,
                                         stageId: stage.id,
-                                        stageCode: stage.code,
+                                        stageCode: displayStageCode,
                                         service,
                                       })
                                     }

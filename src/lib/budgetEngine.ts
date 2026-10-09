@@ -399,6 +399,94 @@ export function getBudgetLaborMultiplier(budget: FullBudget): number {
   return 1 + rate / 100
 }
 
+/**
+ * Determina se o código ou a fonte da composição corresponde a um item SINAPI real,
+ * cujo código de catálogo jamais deve ser sobrescrito pelo prefixo auto-gerado "CPU-${serviceCode}".
+ */
+export function isRealSinapiComposition(composition?: BudgetComposition | null): boolean {
+  if (!composition) return false
+  const rawCode = (composition.code || '').trim().toUpperCase()
+  const source = composition.source ? String(composition.source).trim().toUpperCase() : ''
+
+  // Se a fonte explicitamente for SINAPI e não for um código genérico auto-gerado
+  if (source === 'SINAPI') {
+    // Códigos auto-gerados como CPU-01.01 ou vazios não são SINAPI reais
+    if (!rawCode || rawCode.startsWith('CPU-') || rawCode.startsWith('CPU_')) {
+      return false
+    }
+    return true
+  }
+
+  // Se o código começa com SINAPI- seguido de dígitos (ex.: SINAPI-87529, SINAPI-88309)
+  if (/^SINAPI-\d+$/i.test(rawCode) || /^\d{4,6}$/.test(rawCode)) {
+    return true
+  }
+
+  return false
+}
+
+/**
+ * Re-sequencia estritamente as etapas e serviços de um orçamento (função pura).
+ * - Etapas recebem order: 1..n e code: "01", "02", ...
+ * - Serviços de cada etapa recebem order: 1..n e code: "${stageCode}.01", "${stageCode}.02", ...
+ * - CPU auto-gerada/customizada (code vazio, prefixo CPU-/CPU_, ou source ausente/CONCE)
+ *   recebe code: "CPU-${serviceCode}".
+ * - Código de CPU SINAPI real NUNCA é reescrito.
+ */
+export function resequenceBudgetStages(stages: BudgetStage[]): BudgetStage[] {
+  if (!Array.isArray(stages)) return []
+
+  return stages.map((stage, stageIdx) => {
+    const stageOrder = stageIdx + 1
+    const stageCode = String(stageOrder).padStart(2, '0')
+
+    const resequencedServices: BudgetService[] = (stage.services || []).map((service, srvIdx) => {
+      const srvOrder = srvIdx + 1
+      const srvCode = `${stageCode}.${String(srvOrder).padStart(2, '0')}`
+
+      let updatedComposition = service.composition
+
+      if (updatedComposition) {
+        const rawCompCode = (updatedComposition.code || '').trim()
+        const compSource = updatedComposition.source
+          ? String(updatedComposition.source).trim().toUpperCase()
+          : ''
+
+        // CPU auto-gerada/customizada: code vazio, prefixo CPU-/CPU_, ou source ausente/CONCE
+        const isAutoCpu =
+          !rawCompCode ||
+          rawCompCode.toUpperCase().startsWith('CPU-') ||
+          rawCompCode.toUpperCase().startsWith('CPU_') ||
+          !compSource ||
+          compSource === 'CONCE' ||
+          compSource === 'PROPRIO'
+
+        // Se NÃO for SINAPI real e cair na regra de CPU auto-gerada/customizada, atualiza para CPU-${srvCode}
+        if (isAutoCpu && !isRealSinapiComposition(updatedComposition)) {
+          updatedComposition = {
+            ...updatedComposition,
+            code: `CPU-${srvCode}`,
+          }
+        }
+      }
+
+      return {
+        ...service,
+        order: srvOrder,
+        code: srvCode,
+        composition: updatedComposition,
+      }
+    })
+
+    return {
+      ...stage,
+      order: stageOrder,
+      code: stageCode,
+      services: resequencedServices,
+    }
+  })
+}
+
 export function calculateFullBudget(budget: FullBudget): CalculationSummary {
   // Determina o regime tributário efetivo
   const taxRegime =
