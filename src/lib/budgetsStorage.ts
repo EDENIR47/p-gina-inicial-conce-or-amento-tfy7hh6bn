@@ -515,6 +515,7 @@ export function createCanonicalDemoBudget(): FullBudget {
  * 1. "encarregado de obra" ou "encarregado obra" -> "encarregado da obra"
  * 2. "caçamba de entulho" -> "caçamba de entulhos"
  * 3. "sacos de ráfia" -> "saco de ráfia" (singular)
+ * 4. "carointeiro"/"caroinnteiro" (e flexões -a/-os/-as) -> "carpinteiro" (ou carpinteira/carpinteiros/carpinteiras)
  * Case-insensitive, tolerando acentuação e preservando casing natural aproximado.
  */
 export function normalizeInputDescription(desc?: string | null): string {
@@ -549,6 +550,18 @@ export function normalizeInputDescription(desc?: string | null): string {
     if (isUpper) return 'SACO DE RÁFIA'
     if (isTitle) return 'Saco de ráfia'
     return 'saco de ráfia'
+  })
+
+  // 4. "carointeiro"/"caroinnteiro" -> "carpinteiro" (preservando gênero/número -o, -a, -os, -as e casing)
+  result = result.replace(/\bcaroin+teir([oa]s?)\b/gi, (match, suffix: string) => {
+    const s = suffix.toLowerCase()
+    const isUpper = match === match.toUpperCase()
+    const isTitle = /^[A-Z]/.test(match)
+
+    const correctLower = `carpinteir${s}`
+    if (isUpper) return correctLower.toUpperCase()
+    if (isTitle) return correctLower.charAt(0).toUpperCase() + correctLower.slice(1)
+    return correctLower
   })
 
   return result
@@ -1081,15 +1094,16 @@ export function saveFullBudgets(budgets: FullBudget[]): void {
  */
 export function saveSingleBudget(budget: FullBudget): void {
   const current = getStoredFullBudgets()
-  const idx = current.findIndex((b) => b.id === budget.id)
-  budget.updatedAt = new Date().toISOString()
+  const sanitizedBudget = sanitizeBudgetDescriptions(budget)
+  const idx = current.findIndex((b) => b.id === sanitizedBudget.id)
+  sanitizedBudget.updatedAt = new Date().toISOString()
 
   let updated: FullBudget[]
   if (idx >= 0) {
     updated = [...current]
-    updated[idx] = budget
+    updated[idx] = sanitizedBudget
   } else {
-    updated = [budget, ...current]
+    updated = [sanitizedBudget, ...current]
   }
 
   saveFullBudgets(updated)

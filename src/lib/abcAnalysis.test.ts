@@ -82,6 +82,32 @@ export function runAbcTests(): { passed: boolean; details: string[] } {
     'normalizeInputDescription: "Sacos de rafia" -> "Saco de ráfia"',
   )
 
+  // TESTE 1.1b: Testes de normalização de "carointeiro"/"caroinnteiro" -> "carpinteiro" (normalizeInputDescription)
+  assert(
+    normalizeInputDescription('carointeiro') === 'carpinteiro',
+    'normalizeInputDescription: "carointeiro" -> "carpinteiro"',
+  )
+  assert(
+    normalizeInputDescription('CAROINTEIRO') === 'CARPINTEIRO',
+    'normalizeInputDescription: "CAROINTEIRO" -> "CARPINTEIRO"',
+  )
+  assert(
+    normalizeInputDescription('caroinnteiro') === 'carpinteiro',
+    'normalizeInputDescription: "caroinnteiro" -> "carpinteiro"',
+  )
+  assert(
+    normalizeInputDescription('Carointeira') === 'Carpinteira',
+    'normalizeInputDescription: "Carointeira" -> "Carpinteira"',
+  )
+  assert(
+    normalizeInputDescription('Carointeiros de formas') === 'Carpinteiros de formas',
+    'normalizeInputDescription: "Carointeiros de formas" -> "Carpinteiros de formas"',
+  )
+  assert(
+    normalizeInputDescription('ajudante de carointeiro') === 'ajudante de carpinteiro',
+    'normalizeInputDescription: "ajudante de carointeiro" -> "ajudante de carpinteiro"',
+  )
+
   // TESTE 1.2: Testes de chave normalizada unificada da Curva ABC (normalizeDescription)
   assert(
     normalizeDescription('sacos de ráfia') === normalizeDescription('saco de ráfia'),
@@ -94,6 +120,22 @@ export function runAbcTests(): { passed: boolean; details: string[] } {
   assert(
     normalizeDescription('Caçamba de entulho') === normalizeDescription('caçamba de entulhos'),
     'normalizeDescription: "Caçamba de entulho" e "caçamba de entulhos" geram a mesma chave normalizada ("CACAMBA DE ENTULHOS")',
+  )
+  assert(
+    normalizeDescription('carointeiro') === normalizeDescription('carpinteiro'),
+    'normalizeDescription: "carointeiro" e "carpinteiro" geram a mesma chave normalizada ("CARPINTEIRO")',
+  )
+  assert(
+    normalizeDescription('CAROINTEIRO') === normalizeDescription('carpinteiro'),
+    'normalizeDescription: "CAROINTEIRO" e "carpinteiro" geram a mesma chave normalizada ("CARPINTEIRO")',
+  )
+  assert(
+    normalizeDescription('caroinnteiro') === normalizeDescription('carpinteiro'),
+    'normalizeDescription: "caroinnteiro" e "carpinteiro" geram a mesma chave normalizada ("CARPINTEIRO")',
+  )
+  assert(
+    normalizeDescription('Carointeira') === normalizeDescription('carpinteira'),
+    'normalizeDescription: "Carointeira" e "carpinteira" geram a mesma chave normalizada ("CARPINTEIRA")',
   )
 
   // MOCK DE ORÇAMENTO PARA TESTES 2, 3, 4, 5, 6
@@ -480,6 +522,136 @@ export function runAbcTests(): { passed: boolean; details: string[] } {
     assert(
       Math.abs(encarregadoItems[0].totalQuantity - 20) < 0.001,
       `Curva ABC: soma total da quantidade de encarregado da obra = 20h (obtido: ${encarregadoItems[0].totalQuantity})`,
+    )
+  }
+
+  // TESTE 8: Agrupamento conjunto na Curva ABC de "CAROINTEIRO" com "CARPINTEIRO" e variantes
+  const mockBudgetCarpinteiro: FullBudget = {
+    ...mockBudget,
+    id: 'orc-test-carpinteiro-abc',
+    stages: [
+      {
+        id: 'stg-carp-1',
+        order: 1,
+        code: '01',
+        name: 'Estruturas de Madeira e Fôrmas',
+        services: [
+          {
+            id: 'srv-carp-1',
+            order: 1,
+            code: '01.01',
+            description: 'Montagem de fôrmas com carointeiro',
+            unit: 'm²',
+            quantity: 10,
+            composition: {
+              id: 'comp-carp-1',
+              code: 'COMP-CARP-1',
+              description: 'Fôrmas de madeira',
+              specialty: 'Estruturas',
+              unit: 'm²',
+              version: 'v1.0',
+              source: 'CONCE',
+              inputs: [
+                {
+                  id: 'inp-c1',
+                  code: 'S/COD',
+                  description: 'CAROINTEIRO', // Variação 1 em MAIÚSCULAS
+                  unit: 'h',
+                  category: 'mao_de_obra',
+                  coefficient: 1.5, // 1.5 * 10 = 15 h
+                  unitCost: 28.0,
+                },
+              ],
+            },
+          },
+          {
+            id: 'srv-carp-2',
+            order: 2,
+            code: '01.02',
+            description: 'Execução de escoramento com carpinteiro oficial',
+            unit: 'm²',
+            quantity: 20,
+            composition: {
+              id: 'comp-carp-2',
+              code: 'COMP-CARP-2',
+              description: 'Escoramento',
+              specialty: 'Estruturas',
+              unit: 'm²',
+              version: 'v1.0',
+              source: 'CONCE',
+              inputs: [
+                {
+                  id: 'inp-c2',
+                  code: 'SINAPI-88262',
+                  description: 'Carpinteiro', // Variação 2 correta com código SINAPI
+                  unit: 'h',
+                  category: 'mao_de_obra',
+                  coefficient: 1.0, // 1.0 * 20 = 20 h
+                  unitCost: 28.0,
+                },
+              ],
+            },
+          },
+          {
+            id: 'srv-carp-3',
+            order: 3,
+            code: '01.03',
+            description: 'Fabricação de painéis com caroinnteiro',
+            unit: 'm²',
+            quantity: 5,
+            composition: {
+              id: 'comp-carp-3',
+              code: 'COMP-CARP-3',
+              description: 'Painéis de madeira',
+              specialty: 'Estruturas',
+              unit: 'm²',
+              version: 'v1.0',
+              source: 'CONCE',
+              inputs: [
+                {
+                  id: 'inp-c3',
+                  code: 'S/COD',
+                  description: 'caroinnteiro', // Variação 3 com duplo n
+                  unit: 'h',
+                  category: 'mao_de_obra',
+                  coefficient: 2.0, // 2.0 * 5 = 10 h
+                  unitCost: 28.0,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  }
+
+  const abcCarp = computeAbcCurve(mockBudgetCarpinteiro, {
+    mode: 'insumos',
+    valueBasis: 'venda_bdi',
+  })
+  const carpinteiroRows = abcCarp.allItems.filter(
+    (it) => normalizeDescription(it.description) === 'CARPINTEIRO',
+  )
+
+  assert(
+    carpinteiroRows.length === 1,
+    'Curva ABC: "CAROINTEIRO", "Carpinteiro" e "caroinnteiro" fundidos em exatamente UMA única linha',
+  )
+
+  if (carpinteiroRows.length === 1) {
+    const r = carpinteiroRows[0]
+    // 15h + 20h + 10h = 45h
+    assert(
+      Math.abs(r.totalQuantity - 45) < 0.001,
+      `Curva ABC: soma total quantitativa de carpinteiro = 45h (obtido: ${r.totalQuantity})`,
+    )
+    assert(
+      r.code === 'SINAPI-88262',
+      'Curva ABC: código oficial SINAPI-88262 foi preservado sobre códigos genéricos S/COD',
+    )
+    assert(
+      r.servicesCount === 3,
+      `Curva ABC: auditoria registra as 3 ocorrências nos serviços (obtido: ${r.servicesCount})`,
     )
   }
 

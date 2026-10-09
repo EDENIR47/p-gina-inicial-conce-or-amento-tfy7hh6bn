@@ -6,6 +6,8 @@ import {
   createCanonicalDemoBudget,
   resetAllLocalConceData,
   copyStageToBudget,
+  normalizeInputDescription,
+  saveSingleBudget,
   STORAGE_KEYS_BUDGETS,
 } from './budgetsStorage'
 import { FullBudget, BudgetStage } from '@/types/budgetEngine'
@@ -625,5 +627,153 @@ describe('budgetsStorage — Limpeza de demonstração e primeiro acesso', () =>
     // O orçamento de origem NÃO teve suas etapas alteradas
     const storedSource = storedBudgets.find((b) => b.id === sourceBudget.id)
     expect(storedSource?.stages.length).toBe(1)
+  })
+
+  it('(e) normalização de "carointeiro"/"caroinnteiro" e variantes para "carpinteiro"', () => {
+    // 1. Minúsculo padrão
+    expect(normalizeInputDescription('carointeiro')).toBe('carpinteiro')
+    // 2. Maiúsculo
+    expect(normalizeInputDescription('CAROINTEIRO')).toBe('CARPINTEIRO')
+    // 3. Duplo n
+    expect(normalizeInputDescription('caroinnteiro')).toBe('carpinteiro')
+    // 4. Feminino singular com title case
+    expect(normalizeInputDescription('Carointeira')).toBe('Carpinteira')
+    // 5. Plural masculino
+    expect(normalizeInputDescription('carointeiros')).toBe('carpinteiros')
+    // 6. Plural feminino maiúsculo
+    expect(normalizeInputDescription('CAROINTEIRAS')).toBe('CARPINTEIRAS')
+    // 7. Frase composta
+    expect(
+      normalizeInputDescription('Serviço de carointeiro de formas com encargos complementares'),
+    ).toBe('Serviço de carpinteiro de formas com encargos complementares')
+    expect(normalizeInputDescription('CAROINTEIRO DE FORMAS E ESQUADRIAS')).toBe(
+      'CARPINTEIRO DE FORMAS E ESQUADRIAS',
+    )
+  })
+
+  it('(f) sanitização na carga e na gravação (saveSingleBudget) converte "CAROINTEIRO" para "CARPINTEIRO"', () => {
+    const rawBudgetWithTypo: FullBudget = {
+      id: 'orc-carointeiro-test',
+      code: 'ORC-2025-077',
+      title: 'Obra com CAROINTEIRO',
+      status: 'em_andamento',
+      author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      createdAt: '2025-04-15',
+      updatedAt: '2025-04-15T10:00:00Z',
+      client: {
+        name: 'Cliente com Carointeiro',
+        document: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: 'Porto Alegre',
+        state: 'RS',
+      },
+      work: {
+        name: 'Obra Carointeiro',
+        address: 'Rua das Fôrmas',
+        city: 'Porto Alegre',
+        state: 'RS',
+        description: 'Reforma',
+        startDate: '2025-05-01',
+        deadlineMonths: 3,
+      },
+      chargesConfig: {
+        uf: 'RS',
+        isRelieved: false,
+        taxRegime: 'sem_desoneracao',
+        simplesDasRate: 0,
+        customGroupA: 0,
+        customGroupB: 0,
+        customGroupC: 0,
+        customGroupD: 0,
+        isExplicitZero: false,
+      },
+      bdiConfig: {
+        administrationCentral: 4.5,
+        risk: 1.25,
+        insuranceAndGuarantee: 0.85,
+        financialExpenses: 1.15,
+        profit: 7.8,
+        taxes: {
+          iss: 4.0,
+          pis: 0.65,
+          cofins: 3.0,
+          inssOrCprb: 0.0,
+          totalTaxes: 7.65,
+          simplesDas: 0,
+        },
+        calculatedBdi: 28.5,
+      },
+      publicWork: {
+        enabled: false,
+        tenderNumber: '',
+        contractNumber: '',
+        agency: '',
+        modality: 'Concorrência',
+        sinapiReferenceMonth: '04/2025',
+        hasDisallowanceClause: false,
+      },
+      stages: [
+        {
+          id: 'stg-1',
+          code: '01',
+          order: 1,
+          name: 'Fôrmas e Estruturas',
+          services: [
+            {
+              id: 'srv-1',
+              code: '01.01',
+              order: 1,
+              description: 'Serviço executado por carointeiro de formas',
+              quantity: 10,
+              unit: 'm²',
+              composition: {
+                id: 'comp-1',
+                code: 'CPU-01',
+                description: 'Fôrma de madeira com caroinnteiro',
+                unit: 'm²',
+                version: 'v1.0',
+                specialty: 'Estruturas',
+                source: 'CONCE',
+                inputs: [
+                  {
+                    id: 'inp-1',
+                    code: 'S/COD',
+                    description: 'CAROINTEIRO COM ENCARGOS',
+                    unit: 'h',
+                    category: 'mao_de_obra',
+                    coefficient: 1.5,
+                    unitCost: 25.0,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    }
+
+    // 1. Gravação via saveSingleBudget sanitiza ativamente antes de persistir
+    saveSingleBudget(rawBudgetWithTypo)
+
+    const rawInStorage = JSON.parse(localStorage.getItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS) || '[]')
+    expect(rawInStorage.length).toBe(1)
+    const stored = rawInStorage[0]
+    expect(stored.stages[0].services[0].description).toBe(
+      'Serviço executado por carpinteiro de formas',
+    )
+    expect(stored.stages[0].services[0].composition.description).toBe(
+      'Fôrma de madeira com carpinteiro',
+    )
+    expect(stored.stages[0].services[0].composition.inputs[0].description).toBe(
+      'CARPINTEIRO COM ENCARGOS',
+    )
+
+    // 2. Leitura com getStoredFullBudgets sanitiza na carga (mesmo se o storage tivesse resíduo)
+    const loaded = getStoredFullBudgets()
+    expect(loaded[0].stages[0].services[0].description).toBe(
+      'Serviço executado por carpinteiro de formas',
+    )
   })
 })

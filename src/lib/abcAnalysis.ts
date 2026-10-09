@@ -65,6 +65,8 @@ export function normalizeDescription(desc?: string | null): string {
   cleaned = cleaned.replace(/\bENCARREGAD[OA]S? (?:DE )?OBRA\b/g, 'ENCARREGADO DA OBRA')
   // 3. "CACAMBA DE ENTULHO" -> "CACAMBA DE ENTULHOS"
   cleaned = cleaned.replace(/\bCACAMBAS? DE ENTULHO\b/g, 'CACAMBA DE ENTULHOS')
+  // 4. "CAROINTEIRO"/"CAROINNTEIRO" (e flexões -a/-os/-as) -> "CARPINTEIRO" (ou CARPINTEIRA/CARPINTEIROS/CARPINTEIRAS)
+  cleaned = cleaned.replace(/\bCAROIN+TEIR([OA]S?)\b/g, 'CARPINTEIR$1')
 
   return cleaned
 }
