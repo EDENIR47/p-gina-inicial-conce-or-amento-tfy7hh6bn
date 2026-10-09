@@ -184,7 +184,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       setExpandedStages((prev) => ({ ...prev, [savedStage.id]: true }))
     }
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   const confirmDeleteStage = (stage: BudgetStage) => {
@@ -222,7 +228,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       metadata: { stageId, stageCode: stage?.code, servicesCount },
     })
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   const handleDuplicateStage = (stage: BudgetStage) => {
@@ -258,7 +270,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     }
     const newStages = [...budget.stages, duplicatedStage]
     setExpandedStages((prev) => ({ ...prev, [duplicatedStage.id]: true }))
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   // Ações em Serviços
@@ -329,7 +347,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       })
     }
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   // Handler para adicionar serviço a partir do botão global
@@ -403,7 +427,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       metadata: { stageId, serviceId, serviceCode },
     })
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   const handleDuplicateService = (stageId: string, service: BudgetService) => {
@@ -438,7 +468,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       return { ...st, services: [...st.services, duplicatedService] }
     })
     setExpandedServices((prev) => ({ ...prev, [duplicatedService.id]: true }))
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   // Ações em Insumos (Nível 4)
@@ -806,7 +842,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       })
     }
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   // Edição rápida de unidade do insumo inline com auditoria
@@ -849,7 +891,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       })
     }
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   // Edição rápida de coeficiente ou custo do insumo inline com rastreamento de fonte "Usuário"
@@ -957,7 +1005,13 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
       })
     }
 
-    onChange({ ...budget, stages: newStages })
+    const updatedBudget: FullBudget = {
+      ...budget,
+      stages: newStages,
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updatedBudget)
+    onChange(updatedBudget)
   }
 
   // Edição inline de Preço Unitário do Serviço com auditoria e recálculo imediato
