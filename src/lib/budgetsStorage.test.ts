@@ -340,12 +340,29 @@ describe('budgetsStorage — Limpeza de demonstração e primeiro acesso', () =>
     expect(isDemoOrTestBudget(demo1)).toBe(true)
 
     const demo2: any = {
-      id: 'xyz-888',
-      code: 'ORC-002',
-      client: { name: 'Incorporadora Horizonte' },
+      id: 'budget-public-002',
+      code: 'ORC-PUB-2025-014',
+      client: { name: 'Prefeitura' },
       work: { name: 'Edifício Centro' },
     }
     expect(isDemoOrTestBudget(demo2)).toBe(true)
+
+    // Obras fictícias expandidas e clientes de demonstração adicionais
+    const demo3: any = {
+      id: 'orc-15',
+      code: 'ORC-0015/2025',
+      client: { name: 'Cliente Desconhecido' },
+      work: { name: 'Reforma Comercial Paulista' },
+    }
+    expect(isDemoOrTestBudget(demo3)).toBe(true)
+
+    const demo4: any = {
+      id: 'custom-id-99',
+      code: 'ORC-X-99',
+      client: { name: 'Eng. Marcelo Peixoto' },
+      work: { name: 'Construção Galpão Logístico #2' },
+    }
+    expect(isDemoOrTestBudget(demo4)).toBe(true)
   })
 
   it('resetAllLocalConceData limpa as chaves locais do CONCE', () => {

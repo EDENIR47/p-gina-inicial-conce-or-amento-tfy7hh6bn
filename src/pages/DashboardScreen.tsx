@@ -41,8 +41,21 @@ import { useNavigate, Link } from 'react-router-dom'
 
 export const DashboardScreen: React.FC = () => {
   const navigate = useNavigate()
-  const [dashboardData, setDashboardData] = useState<ConceDemoData | null>(null)
-  const [fullBudgets, setFullBudgets] = useState<FullBudget[]>([])
+
+  // Síncrono no primeiro render: expurgo de dados demo e leitura imediata dos orçamentos reais
+  // Evita flash de tela ou atraso de useEffect que mantinha dados fictícios visíveis
+  const [fullBudgets, setFullBudgets] = useState<FullBudget[]>(() => {
+    clearDemoData()
+    purgeTestBudgetsFromStorage()
+    purgeTestIntelligenceData()
+    return getStoredFullBudgets()
+  })
+
+  const [dashboardData, setDashboardData] = useState<ConceDemoData | null>(() => {
+    const realBudgets = getStoredFullBudgets()
+    return computeDashboardFromRealBudgets(realBudgets)
+  })
+
   const [activeTab, setActiveTab] = useState<'visao_geral' | 'gerenciar'>('visao_geral')
 
   // Modais de Edição e Exclusão
@@ -60,6 +73,9 @@ export const DashboardScreen: React.FC = () => {
 
   // Recarrega todos os dados e recalcula instantaneamente os indicadores a partir dos orçamentos restantes
   const reloadBudgets = () => {
+    clearDemoData()
+    purgeTestBudgetsFromStorage()
+    purgeTestIntelligenceData()
     const realBudgets = getStoredFullBudgets()
     setFullBudgets(realBudgets)
     const data = computeDashboardFromRealBudgets(realBudgets)
@@ -81,7 +97,7 @@ export const DashboardScreen: React.FC = () => {
     purgeTestBudgetsFromStorage()
     purgeTestIntelligenceData()
 
-    // 2. Calcula os indicadores do Dashboard exclusivamente a partir dos orçamentos reais
+    // 2. Garante recálculo dos indicadores do Dashboard exclusivamente a partir dos orçamentos reais
     reloadBudgets()
   }, [])
 

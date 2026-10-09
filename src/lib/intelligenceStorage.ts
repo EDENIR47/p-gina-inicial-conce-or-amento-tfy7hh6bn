@@ -58,7 +58,22 @@ export function purgeTestIntelligenceData(): void {
     if (rawRevs) {
       const list: BudgetRevision[] = JSON.parse(rawRevs)
       if (Array.isArray(list)) {
-        const clean = list.filter((r) => r.budgetId !== 'budget-public-002')
+        const clean = list.filter((r) => {
+          if (!r || !r.budgetId) return false
+          const bid = String(r.budgetId).toLowerCase()
+          if (
+            bid === 'budget-public-002' ||
+            bid.startsWith('demo-') ||
+            bid.startsWith('seed-') ||
+            bid.startsWith('test-') ||
+            bid.startsWith('orc-')
+          ) {
+            return false
+          }
+          const desc = (r.description || '').toLowerCase()
+          if (desc.includes('escola técnica') || desc.includes('bloco pedagógico')) return false
+          return true
+        })
         localStorage.setItem(STORAGE_KEYS_INTELLIGENCE.REVISIONS, JSON.stringify(clean))
       }
     }
@@ -68,7 +83,20 @@ export function purgeTestIntelligenceData(): void {
     if (rawQuotes) {
       const list: InputQuoteComparison[] = JSON.parse(rawQuotes)
       if (Array.isArray(list)) {
-        const clean = list.filter((q) => q.budgetId !== 'budget-public-002')
+        const clean = list.filter((q) => {
+          if (!q || !q.budgetId) return false
+          const bid = String(q.budgetId).toLowerCase()
+          if (
+            bid === 'budget-public-002' ||
+            bid.startsWith('demo-') ||
+            bid.startsWith('seed-') ||
+            bid.startsWith('test-') ||
+            bid.startsWith('orc-')
+          ) {
+            return false
+          }
+          return true
+        })
         localStorage.setItem(STORAGE_KEYS_INTELLIGENCE.QUOTES, JSON.stringify(clean))
       }
     }

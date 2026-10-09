@@ -544,19 +544,10 @@ export function computeDashboardFromRealBudgets(budgets: FullBudget[]): ConceDem
 }
 
 export function getOrCreateDemoData(): ConceDemoData | null {
-  if (typeof window === 'undefined') {
-    return null
+  // Desativado por completo: nenhum dado fictício de demonstração pode ser criado ou retornado
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(STORAGE_KEYS.DEMO_DATA)
   }
-
-  const raw = localStorage.getItem(STORAGE_KEYS.DEMO_DATA)
-  if (raw) {
-    try {
-      return JSON.parse(raw) as ConceDemoData
-    } catch {
-      // JSON corrompido
-    }
-  }
-
   return null
 }
 
@@ -566,6 +557,17 @@ export function getOrCreateDemoData(): ConceDemoData | null {
 export function clearDemoData(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(STORAGE_KEYS.DEMO_DATA)
+  // Remove variações de chaves de demonstração/mock legadas
+  const demoKeys = [
+    'conce_demo_data',
+    'conce_demo_budgets',
+    'conce_mock_budgets',
+    'conce_sample_data',
+    'conce_test_data',
+    'conce_dashboard_demo',
+    'conce_fake_data',
+  ]
+  demoKeys.forEach((k) => localStorage.removeItem(k))
 }
 
 /**

@@ -78,7 +78,7 @@ export function purgeTestBudgetsFromStorage(): CleanupResult {
     }
   }
 
-  // 2. Chaves obsoletas de versões antigas do schema ou dados temporários
+  // 2. Chaves obsoletas de versões antigas do schema ou dados temporários/demonstrativos
   const obsoleteKeys = [
     'conce_demo_data',
     'conce_demo_budgets',
@@ -87,6 +87,8 @@ export function purgeTestBudgetsFromStorage(): CleanupResult {
     'conce_test_data',
     'conce_temp_budget',
     'conce_legacy_data',
+    'conce_dashboard_demo',
+    'conce_fake_data',
   ]
   obsoleteKeys.forEach((key) => {
     if (localStorage.getItem(key) !== null) {
@@ -95,6 +97,29 @@ export function purgeTestBudgetsFromStorage(): CleanupResult {
       result.cleanedDetails.push(`Chave obsoleta removida: ${key}`)
     }
   })
+
+  // Também varre todas as chaves do localStorage para detectar qualquer chave que comece com 'conce_demo' ou 'conce_mock' ou 'conce_test'
+  try {
+    const allKeys: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k) allKeys.push(k)
+    }
+    allKeys.forEach((k) => {
+      if (
+        k.startsWith('conce_demo') ||
+        k.startsWith('conce_mock') ||
+        k.startsWith('conce_test_') ||
+        k.startsWith('conce_sample')
+      ) {
+        localStorage.removeItem(k)
+        result.obsoleteKeysRemoved++
+        result.cleanedDetails.push(`Chave demo removida: ${k}`)
+      }
+    })
+  } catch {
+    /* ignore */
+  }
 
   // 3. Limpeza de revisões órfãs ou de demo
   try {
@@ -195,7 +220,15 @@ export function purgeTestBudgetsFromStorage(): CleanupResult {
           const key = String(item.compositionKey)
           if (key.includes(':')) {
             const budgetId = key.split(':')[0]
-            if (budgetId === 'budget-public-002') return false
+            if (
+              budgetId === 'budget-public-002' ||
+              budgetId.startsWith('demo-') ||
+              budgetId.startsWith('seed-') ||
+              budgetId.startsWith('test-') ||
+              budgetId.startsWith('orc-')
+            ) {
+              return false
+            }
             if (validBudgetIds.size > 0 && !validBudgetIds.has(budgetId)) return false
           }
           return true
@@ -215,9 +248,17 @@ export function purgeTestBudgetsFromStorage(): CleanupResult {
     /* ignore */
   }
 
-  // Se o active_budget_id apontar para um orçamento demo que foi removido, limpa
+  // Se o active_budget_id apontar para um orçamento demo ou inexistente, limpa
   const activeId = localStorage.getItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
-  if (activeId && validBudgetIds.size > 0 && !validBudgetIds.has(activeId)) {
+  if (
+    activeId &&
+    (activeId === 'budget-public-002' ||
+      activeId.startsWith('demo-') ||
+      activeId.startsWith('seed-') ||
+      activeId.startsWith('test-') ||
+      activeId.startsWith('orc-') ||
+      (validBudgetIds.size > 0 && !validBudgetIds.has(activeId)))
+  ) {
     localStorage.removeItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
     result.obsoleteKeysRemoved++
   }
@@ -608,13 +649,16 @@ export function isDemoOrTestBudget(budget: FullBudget): boolean {
     return true
   }
 
-  // 1. IDs explícitos de demonstração/teste
+  // 1. IDs explícitos de demonstração/teste ou gerados por sementes
   if (
     id.startsWith('demo-') ||
     id.startsWith('seed-') ||
     id.startsWith('test-') ||
+    id.startsWith('orc-') ||
     id === 'budget-public-002' ||
-    id === 'orc-demo-001'
+    id === 'orc-demo-001' ||
+    id === 'budget-demo-001' ||
+    id === 'budget-test-001'
   ) {
     return true
   }
@@ -624,7 +668,8 @@ export function isDemoOrTestBudget(budget: FullBudget): boolean {
     code.startsWith('demo') ||
     code.startsWith('orc-demo') ||
     code.startsWith('orc-test') ||
-    code === 'orc-pub-2025-014'
+    code === 'orc-pub-2025-014' ||
+    /^orc-\d{4}\/2025$/i.test(code)
   ) {
     return true
   }
@@ -636,11 +681,18 @@ export function isDemoOrTestBudget(budget: FullBudget): boolean {
     'familia albuquerque',
     'grupo vértice',
     'grupo vertice',
+    'grupo vertice sp',
+    'grupo vértice sp',
     'secretaria mun. de obras',
+    'secretaria mun de obras',
+    'secretaria municipal de obras',
     'secretaria de obras e serviços públicos',
     'condomínio altos do morumbi',
     'condominio altos do morumbi',
     'dra. camila vasconcelos',
+    'eng. marcelo peixoto',
+    'marcelo peixoto',
+    'camila vasconcelos',
     'tech park empreendimentos',
     'hospital santa mônica',
     'hospital santa monica',
@@ -651,6 +703,8 @@ export function isDemoOrTestBudget(budget: FullBudget): boolean {
     'cliente fictício',
     'cliente ficticio',
     'cliente teste',
+    'cliente de teste',
+    'cliente modelo',
   ]
   if (demoClients.some((dc) => clientName.includes(dc))) {
     return true
@@ -659,27 +713,51 @@ export function isDemoOrTestBudget(budget: FullBudget): boolean {
   // 4. Nomes de obras fictícias conhecidas
   const demoWorks = [
     'escola técnica estadual',
+    'escola tecnica estadual',
+    'escola técnica',
+    'escola tecnica',
     'bloco pedagógico',
+    'bloco pedagogico',
     'residência jardins',
     'residencia jardins',
+    'res. jardins',
     'edifício centro',
     'edificio centro',
+    'ed. centro',
     'reforma comercial paulista',
+    'ref. paulista',
     'obra pública — escola',
     'obra publica — escola',
     'obra pública - escola',
+    'obra publica - escola',
+    'escola pública',
+    'escola publica',
     'cond. bosque',
+    'condomínio bosque',
+    'condominio bosque',
     'reforma cobertura duplex',
     'construção galpão logístico',
     'construcao galpao logistico',
     'reforço estrutural torre norte',
     'reforco estrutural torre norte',
     'retrofit fachada ventilada',
+    'instalações hidrossanitárias',
+    'instalacoes hidrossanitarias',
+    'pavimentação e drenagem',
+    'pavimentacao e drenagem',
+    'adequação de acessibilidade',
+    'adequacao de acessibilidade',
+    'acabamento fino residencial',
+    'construção de espaço gourmet',
+    'construcao de espaco gourmet',
+    'implantação de subestação',
+    'implantacao de subestacao',
     'obra fictícia',
     'obra ficticia',
     'obra teste',
     'obra demonstrativa',
     'obra de demonstração',
+    'obra modelo',
   ]
   if (demoWorks.some((dw) => workName.includes(dw) || title.includes(dw))) {
     return true

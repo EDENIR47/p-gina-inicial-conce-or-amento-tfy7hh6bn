@@ -20,9 +20,13 @@ import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
 const App = () => {
   useEffect(() => {
     // Executa a purga de resíduos fictícios no bootstrap da aplicação
-    clearDemoData()
-    purgeTestBudgetsFromStorage()
-    purgeTestIntelligenceData()
+    try {
+      clearDemoData()
+      purgeTestBudgetsFromStorage()
+      purgeTestIntelligenceData()
+    } catch (e) {
+      console.error('Falha no expurgo:', e)
+    }
   }, [])
 
   return (
