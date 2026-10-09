@@ -10,6 +10,7 @@ import { getStoredCompositions } from '@/lib/budgetsStorage'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
+import { areUnitsEquivalent } from '@/lib/measurementUnits'
 
 interface CompositionPickerModalProps {
   isOpen: boolean
@@ -105,8 +106,9 @@ export const CompositionPickerModal: React.FC<CompositionPickerModalProps> = ({
           ) : (
             filtered.map((comp) => {
               const unitCost = calculateCompositionUnitCost(comp)
-              const hasUnitMismatch =
-                targetUnit && targetUnit.trim().toLowerCase() !== comp.unit.trim().toLowerCase()
+              const hasUnitMismatch = Boolean(
+                targetUnit && !areUnitsEquivalent(targetUnit, comp.unit),
+              )
 
               return (
                 <div

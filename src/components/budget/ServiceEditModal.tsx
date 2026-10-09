@@ -22,6 +22,7 @@ import { CompositionPickerModal } from './CompositionPickerModal'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
 import { UnitSelect } from './UnitSelect'
+import { areUnitsEquivalent } from '@/lib/measurementUnits'
 import pb from '@/lib/pocketbase/client'
 
 interface ServiceEditModalProps {
@@ -417,8 +418,8 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
     unitPrice.trim() !== '' ? Math.max(0, parseFloat(unitPrice) || 0) : compCalculatedCost
   const totalDirectCost = effectiveUnitCost * quantity
 
-  // Validação: alerta se unidade do serviço for incompatível com a composição
-  const unitMismatch = unit.trim().toLowerCase() !== composition.unit.trim().toLowerCase()
+  // Validação: alerta apenas se a unidade do serviço for genuinamente incompatível após normalização semântica
+  const unitMismatch = !areUnitsEquivalent(unit, composition.unit)
 
   return (
     <>

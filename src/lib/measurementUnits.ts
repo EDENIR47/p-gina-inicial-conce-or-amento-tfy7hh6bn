@@ -231,6 +231,214 @@ export function getGroupedMeasurementUnits(): UnitCategoryGroup[] {
 }
 
 /**
+ * Normaliza uma string de unidade para uma chave canônica determinística para comparações.
+ *
+ * Transforma:
+ * - trim e colapso de espaços em branco múltiplos
+ * - minúsculas
+ * - remoção de acentos / diacríticos (ex.: mês -> mes)
+ * - conversão de sobrescritos e expoentes (m², m^2, m2 -> m2; m³, m^3, m3 -> m3)
+ * - remoção de pontos de abreviação (unid. -> unid, un. -> un)
+ * - mapeamento de sinônimos técnicos e variações SINAPI / SICRO / TCPO / CONCE para a forma canônica
+ *
+ * Retorna string vazia se rawUnit for nulo, indefinido ou vazio após trim.
+ */
+export function canonicalizeUnit(rawUnit?: string | null): string {
+  if (!rawUnit) return ''
+  const trimmed = String(rawUnit).trim().replace(/\s+/g, ' ')
+  if (!trimmed) return ''
+
+  // Casos especiais sensíveis a maiúsculas/minúsculas antes de lowercase:
+  // "ml" (mililitro) vs "ML" / "M.L." (metro linear em tabelas legadas)
+  // Se for explicitamente "ML" em caixa alta com significado de metro linear, ou "ml"
+  // Na engenharia civil brasileira, "ml" minúsculo no catálogo de unidades do sistema é mililitro (volume).
+  // Porém se for "M.L." ou "ML" em tabelas antigas, costumava ser metro linear. No sistema STANDARD_MEASUREMENT_UNITS
+  // temos symbol: 'ml' na categoria 'volume' e 'm' na categoria 'comprimento'.
+  // Preservamos 'ml' como mililitro de forma segura.
+
+  let str = trimmed.toLowerCase()
+
+  // Remove pontos (ex.: unid., und., kg., un., vb., cx., sc.)
+  str = str.replace(/\./g, '')
+
+  // Remove acentuação / diacríticos usando unicode normalization
+  // Ex: mês -> mes, diária -> diaria
+  str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+  // Normaliza expoentes e sobrescritos para dígitos planos
+  // ² (\u00B2) -> 2, ³ (\u00B3) -> 3, ^2 -> 2, ^3 -> 3
+  str = str.replace(/²/g, '2').replace(/³/g, '3')
+  str = str.replace(/\^2/g, '2').replace(/\^3/g, '3')
+
+  // Remove espaços remanescentes (ex: "m 2" -> "m2")
+  str = str.replace(/\s+/g, '')
+
+  // Mapeamento direto de sinônimos conhecidos da engenharia civil brasileira
+  const SYNONYMS_MAP: Record<string, string> = {
+    // Unidade / Peça / Item
+    un: 'un',
+    und: 'un',
+    unid: 'un',
+    unidade: 'un',
+    unidades: 'un',
+    pc: 'un',
+    pca: 'un',
+    peca: 'un',
+    pecas: 'un',
+    item: 'un',
+    itens: 'un',
+
+    // Área
+    m2: 'm2',
+    m2c: 'm2',
+    metroquadrado: 'm2',
+    metrosquadrados: 'm2',
+    mq: 'm2',
+    ha: 'ha',
+    hectare: 'ha',
+    hectares: 'ha',
+
+    // Volume
+    m3: 'm3',
+    metrocubico: 'm3',
+    metroscubicos: 'm3',
+    mc: 'm3',
+    l: 'l',
+    lt: 'l',
+    lts: 'l',
+    litro: 'l',
+    litros: 'l',
+    ml: 'ml',
+    mililitro: 'ml',
+    mililitros: 'ml',
+
+    // Comprimento
+    m: 'm',
+    metro: 'm',
+    metros: 'm',
+    linear: 'm',
+    metrolinear: 'm',
+    km: 'km',
+    quilometro: 'km',
+    quilometros: 'km',
+    cm: 'cm',
+    centimetro: 'cm',
+    centimetros: 'cm',
+    mm: 'mm',
+    milimetro: 'mm',
+    milimetros: 'mm',
+
+    // Massa / Peso
+    kg: 'kg',
+    kilo: 'kg',
+    kilos: 'kg',
+    quilograma: 'kg',
+    quilogramas: 'kg',
+    quilo: 'kg',
+    quilos: 'kg',
+    kgs: 'kg',
+    g: 'g',
+    grama: 'g',
+    gramas: 'g',
+    t: 't',
+    ton: 't',
+    tonelada: 't',
+    toneladas: 't',
+
+    // Conjuntos / Embalagens
+    cj: 'cj',
+    conj: 'cj',
+    conjunto: 'cj',
+    conjuntos: 'cj',
+    jg: 'jg',
+    jogo: 'jg',
+    jogos: 'jg',
+    pt: 'pt',
+    pto: 'pt',
+    ponto: 'pt',
+    pontos: 'pt',
+    par: 'par',
+    pares: 'par',
+    cx: 'cx',
+    cxa: 'cx',
+    caixa: 'cx',
+    caixas: 'cx',
+    sc: 'sc',
+    saco: 'sc',
+    sacos: 'sc',
+    gl: 'gl',
+    galao: 'gl',
+    galoes: 'gl',
+    bd: 'bd',
+    balde: 'bd',
+    baldes: 'bd',
+
+    // Tempo
+    h: 'h',
+    hr: 'h',
+    hrs: 'h',
+    hora: 'h',
+    horas: 'h',
+    ch: 'ch',
+    chp: 'ch',
+    chi: 'ch',
+    dia: 'dia',
+    dias: 'dia',
+    diaria: 'dia',
+    diarias: 'dia',
+    mes: 'mes',
+    meses: 'mes',
+    ano: 'ano',
+    anos: 'ano',
+
+    // Adimensional / Verba / Taxa
+    vb: 'vb',
+    vba: 'vb',
+    verba: 'vb',
+    verbas: 'vb',
+    glob: 'gl_serv', // distingue global de galão se necessário, ou unifica
+    global: 'gl_serv',
+    '%': '%',
+    pct: '%',
+    porcento: '%',
+    percentual: '%',
+  }
+
+  if (SYNONYMS_MAP[str]) {
+    return SYNONYMS_MAP[str]
+  }
+
+  return str
+}
+
+/**
+ * Compara duas unidades de medida verificando equivalência semântica.
+ * Retorna true se ambas representarem a mesma unidade física após normalização canônica.
+ *
+ * Exemplos:
+ * areUnitsEquivalent('m²', 'm2') -> true
+ * areUnitsEquivalent('M2', 'm²') -> true
+ * areUnitsEquivalent('m³', 'm3') -> true
+ * areUnitsEquivalent('unid.', 'un') -> true
+ * areUnitsEquivalent('UND', 'un') -> true
+ * areUnitsEquivalent('kg', 'kg') -> true
+ * areUnitsEquivalent('m', 'm²') -> false
+ * areUnitsEquivalent('kg', 'un') -> false
+ * areUnitsEquivalent('', 'un') -> false
+ */
+export function areUnitsEquivalent(unitA?: string | null, unitB?: string | null): boolean {
+  const canonA = canonicalizeUnit(unitA)
+  const canonB = canonicalizeUnit(unitB)
+
+  // Se qualquer uma das unidades for vazia/não definida, não há correspondência
+  if (!canonA || !canonB) {
+    return false
+  }
+
+  return canonA === canonB
+}
+
+/**
  * Normaliza uma string de unidade para exibição amigável,
  * mantendo compatibilidade com unidades já persistidas.
  */
@@ -246,18 +454,18 @@ export function normalizeUnit(rawUnit?: string): string {
   if (matched) return matched.symbol
 
   // Casos especiais comuns digitados pelo usuário
-  const lower = trimmed.toLowerCase()
-  if (lower === 'm2' || lower === 'm^2') return 'm²'
-  if (lower === 'm3' || lower === 'm^3') return 'm³'
-  if (lower === 'und' || lower === 'unid' || lower === 'unidade') return 'un'
-  if (lower === 'verba' || lower === 'verb') return 'vb'
-  if (lower === 'horas' || lower === 'hr' || lower === 'hrs') return 'h'
-  if (lower === 'mes' || lower === 'meses') return 'mês'
-  if (lower === 'kilo' || lower === 'quilo' || lower === 'kgs') return 'kg'
-  if (lower === 'ton' || lower === 'tonelada') return 't'
-  if (lower === 'litro' || lower === 'litros' || lower === 'lts') return 'L'
-  if (lower === 'metro' || lower === 'metros' || lower === 'ml')
-    return trimmed === 'ml' ? 'ml' : 'm'
+  const lower = trimmed.toLowerCase().replace(/\./g, '')
+  if (lower === 'm2' || lower === 'm^2' || lower === 'm²') return 'm²'
+  if (lower === 'm3' || lower === 'm^3' || lower === 'm³') return 'm³'
+  if (lower === 'und' || lower === 'unid' || lower === 'unidade' || lower === 'un') return 'un'
+  if (lower === 'verba' || lower === 'verb' || lower === 'vb') return 'vb'
+  if (lower === 'horas' || lower === 'hr' || lower === 'hrs' || lower === 'h') return 'h'
+  if (lower === 'mes' || lower === 'meses' || lower === 'mês') return 'mês'
+  if (lower === 'kilo' || lower === 'quilo' || lower === 'kgs' || lower === 'kg') return 'kg'
+  if (lower === 'ton' || lower === 'tonelada' || lower === 't') return 't'
+  if (lower === 'litro' || lower === 'litros' || lower === 'lts' || lower === 'l') return 'L'
+  if (lower === 'metro' || lower === 'metros' || lower === 'm') return 'm'
+  if (lower === 'ml') return 'ml'
 
   // Mantém retrocompatibilidade total com a unidade exata que veio do banco
   return trimmed

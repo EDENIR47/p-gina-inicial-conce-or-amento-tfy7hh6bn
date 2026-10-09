@@ -63,6 +63,7 @@ import { StageEditModal } from './StageEditModal'
 import { ServiceEditModal } from './ServiceEditModal'
 import { InputEditModal } from './InputEditModal'
 import { UnitSelect } from './UnitSelect'
+import { areUnitsEquivalent } from '@/lib/measurementUnits'
 import { CopyStageToBudgetModal } from './CopyStageToBudgetModal'
 import { getStoredFullBudgets, copyStageToBudget } from '@/lib/budgetsStorage'
 import { Share2 } from 'lucide-react'
@@ -1556,9 +1557,8 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                         const isManualPrice =
                           service.unitPrice !== undefined && service.unitPrice !== null
 
-                        // Validação de unidade incompatível
-                        const isUnitMismatch =
-                          service.unit.trim().toLowerCase() !== comp.unit.trim().toLowerCase()
+                        // Validação de unidade incompatível (apenas se for genuinamente incompatível após normalização)
+                        const isUnitMismatch = !areUnitsEquivalent(service.unit, comp.unit)
 
                         return (
                           <div
