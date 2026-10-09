@@ -63,6 +63,9 @@ import { StageEditModal } from './StageEditModal'
 import { ServiceEditModal } from './ServiceEditModal'
 import { InputEditModal } from './InputEditModal'
 import { UnitSelect } from './UnitSelect'
+import { CopyStageToBudgetModal } from './CopyStageToBudgetModal'
+import { getStoredFullBudgets, copyStageToBudget } from '@/lib/budgetsStorage'
+import { Share2 } from 'lucide-react'
 import {
   saveSingleBudget,
   recordRemovedCompositionInput,
@@ -77,12 +80,14 @@ import { useToast } from '@/hooks/use-toast'
 interface BudgetHierarchyTreeProps {
   budget: FullBudget
   onChange: (updatedBudget: FullBudget) => void
+  onBudgetListChanged?: () => void
   disabled?: boolean
 }
 
 export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
   budget,
   onChange,
+  onBudgetListChanged,
   disabled = false,
 }) => {
   // Controle de expansão/colapso da árvore
@@ -106,6 +111,12 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
 
   // Modais de Edição/Criação
   const [stageModalState, setStageModalState] = useState<{
+    isOpen: boolean
+    stage: BudgetStage | null
+  }>({ isOpen: false, stage: null })
+
+  // Modal para copiar etapa completa para outro orçamento
+  const [copyToBudgetModalState, setCopyToBudgetModalState] = useState<{
     isOpen: boolean
     stage: BudgetStage | null
   }>({ isOpen: false, stage: null })
@@ -282,6 +293,59 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
     }
     saveSingleBudget(updatedBudget)
     onChange(updatedBudget)
+  }
+
+  // Copiar etapa completa (com serviços, composições e insumos) para outro orçamento
+  const handleConfirmCopyStageToBudget = (targetBudgetId: string, stageToCopy: BudgetStage) => {
+    const result = copyStageToBudget(budget.id, targetBudgetId, stageToCopy)
+
+    if (!result.success || !result.targetBudget || !result.copiedStage) {
+      toast({
+        title: 'Erro na cópia da etapa',
+        description: result.error || 'Não foi possível copiar a etapa para o orçamento de destino.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const { targetBudget: updatedTargetBudget, copiedStage } = result
+
+    // Registra evento de auditoria no orçamento destino
+    const servicesCount = copiedStage.services?.length || 0
+    const targetLaborMultiplier = getBudgetLaborMultiplier(updatedTargetBudget)
+    const stageCost = calculateStageDirectCost(copiedStage, targetLaborMultiplier)
+
+    logAuditEvent({
+      budgetId: updatedTargetBudget.id,
+      action: 'adicao_item',
+      title: `Etapa Copiada de Outro Orçamento: ${copiedStage.name}`,
+      details: `Etapa "${copiedStage.name}" copiada com sucesso a partir da proposta ${budget.code || budget.id} ("${budget.title || budget.work?.name}"). Adicionados ${servicesCount} serviço(s). Subtotal estimado: ${formatCurrencyBRL(stageCost)}.`,
+      userName: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      oldValue: 0,
+      newValue: stageCost,
+      metadata: {
+        sourceBudgetId: budget.id,
+        sourceBudgetCode: budget.code,
+        sourceStageId: stageToCopy.id,
+        targetStageId: copiedStage.id,
+        servicesCount,
+      },
+    })
+
+    // Notifica tela pai sobre atualização da lista geral de orçamentos se o callback existir
+    if (onBudgetListChanged) {
+      onBudgetListChanged()
+    }
+
+    // Regra 7: Feedback claro via toast
+    const targetIdentifier = updatedTargetBudget.code
+      ? `${updatedTargetBudget.code} — ${updatedTargetBudget.title || updatedTargetBudget.work?.name}`
+      : updatedTargetBudget.title || updatedTargetBudget.work?.name || 'Orçamento Destino'
+
+    toast({
+      title: 'Etapa copiada com sucesso!',
+      description: `Etapa "${copiedStage.name}" adicionada ao fim do orçamento ${targetIdentifier}.`,
+    })
   }
 
   // Reordenação de Etapas (mover para cima / mover para baixo)
@@ -1403,10 +1467,20 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                         type="button"
                         onClick={() => handleDuplicateStage(stage)}
                         disabled={disabled}
-                        className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-                        title="Duplicar Etapa"
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
+                        title="Duplicar Etapa no Mesmo Orçamento"
                       >
                         <Copy className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCopyToBudgetModalState({ isOpen: true, stage })}
+                        disabled={disabled}
+                        className="p-1.5 rounded-lg hover:bg-[#FF6B1F]/20 text-[#FF6B1F] hover:text-[#FF6B1F] transition-colors cursor-pointer"
+                        title="Copiar Etapa Completa para Outro Orçamento"
+                      >
+                        <Share2 className="w-4 h-4" />
                       </button>
 
                       <button
@@ -2373,6 +2447,17 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de Cópia de Etapa Completa para Outro Orçamento */}
+      <CopyStageToBudgetModal
+        isOpen={copyToBudgetModalState.isOpen}
+        onClose={() => setCopyToBudgetModalState({ isOpen: false, stage: null })}
+        sourceStage={copyToBudgetModalState.stage}
+        currentBudgetId={budget.id}
+        availableBudgets={getStoredFullBudgets()}
+        onConfirmCopy={handleConfirmCopyStageToBudget}
+        disabled={disabled}
+      />
     </div>
   )
 }

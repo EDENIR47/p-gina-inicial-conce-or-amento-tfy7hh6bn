@@ -777,7 +777,11 @@ export const BudgetsScreen: React.FC = () => {
           {/* CONTEÚDO DA ABA SELECIONADA */}
           {editorTab === 'arvore' && (
             <div className="space-y-4 animate-fade-in">
-              <BudgetHierarchyTree budget={activeBudget} onChange={handleUpdateActiveBudget} />
+              <BudgetHierarchyTree
+                budget={activeBudget}
+                onChange={handleUpdateActiveBudget}
+                onBudgetListChanged={() => setBudgetsList(getStoredFullBudgets())}
+              />
             </div>
           )}
 

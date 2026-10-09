@@ -5,9 +5,10 @@ import {
   isDemoOrTestBudget,
   createCanonicalDemoBudget,
   resetAllLocalConceData,
+  copyStageToBudget,
   STORAGE_KEYS_BUDGETS,
 } from './budgetsStorage'
-import { FullBudget } from '@/types/budgetEngine'
+import { FullBudget, BudgetStage } from '@/types/budgetEngine'
 
 describe('budgetsStorage — Limpeza de demonstração e primeiro acesso', () => {
   beforeEach(() => {
@@ -375,5 +376,254 @@ describe('budgetsStorage — Limpeza de demonstração e primeiro acesso', () =>
     expect(localStorage.getItem(STORAGE_KEYS_BUDGETS.FULL_BUDGETS)).toBeNull()
     expect(localStorage.getItem('conce_demo_data')).toBeNull()
     expect(localStorage.getItem('conce_audit_logs')).toBeNull()
+  })
+
+  it('copyStageToBudget copia etapa com desacoplamento total de IDs, resequenciamento e auto-save no destino', () => {
+    const baseClient = {
+      name: 'Cliente Origem',
+      document: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: 'Porto Alegre',
+      state: 'RS',
+    }
+
+    const baseWork = {
+      name: 'Obra Origem',
+      address: '',
+      city: 'Porto Alegre',
+      state: 'RS',
+      description: '',
+      startDate: '2025-05-01',
+      deadlineMonths: 6,
+    }
+
+    const sourceBudget: FullBudget = {
+      id: 'orc-origem-001',
+      code: 'ORC-ORIGEM',
+      title: 'Obra Origem',
+      status: 'em_andamento',
+      author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      createdAt: '2025-04-10',
+      updatedAt: '2025-04-10T10:00:00Z',
+      client: { ...baseClient, name: 'Cliente Origem' },
+      work: { ...baseWork, name: 'Obra Origem' },
+      chargesConfig: {
+        uf: 'RS',
+        isRelieved: false,
+        taxRegime: 'simples_nacional',
+        simplesDasRate: 11.0,
+        customGroupA: 0,
+        customGroupB: 0,
+        customGroupC: 0,
+        customGroupD: 0,
+        isExplicitZero: true,
+      },
+      bdiConfig: {
+        administrationCentral: 4.5,
+        risk: 1.25,
+        insuranceAndGuarantee: 0.85,
+        financialExpenses: 1.15,
+        profit: 7.8,
+        taxes: {
+          iss: 0,
+          pis: 0,
+          cofins: 0,
+          inssOrCprb: 0,
+          totalTaxes: 11.0,
+          simplesDas: 11.0,
+        },
+        calculatedBdi: 28.5,
+      },
+      publicWork: {
+        enabled: false,
+        tenderNumber: '',
+        contractNumber: '',
+        agency: '',
+        modality: 'Concorrência',
+        sinapiReferenceMonth: '04/2025',
+        hasDisallowanceClause: false,
+      },
+      stages: [
+        {
+          id: 'stage-origem-1',
+          code: '01',
+          order: 1,
+          name: 'Demolições e Retiradas',
+          services: [
+            {
+              id: 'serv-origem-101',
+              code: '01.01',
+              order: 1,
+              description: 'Demolição de piso cerâmico existente',
+              quantity: 25.5,
+              unit: 'm²',
+              unitPrice: 35.0,
+              unitPriceSource: 'Usuário',
+              composition: {
+                id: 'comp-origem-101',
+                code: 'CPU-DEM-01',
+                description: 'Demolição de piso cerâmico',
+                unit: 'm²',
+                version: 'v1.0',
+                specialty: 'Demolição',
+                source: 'CONCE',
+                inputs: [
+                  {
+                    id: 'inp-origem-1001',
+                    code: 'SINAPI-88316',
+                    description: 'Servente com encargos complementares',
+                    category: 'mao_de_obra',
+                    coefficient: 0.8,
+                    unit: 'H',
+                    unitCost: 22.5,
+                    source: 'SINAPI',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    }
+
+    const targetBudget: FullBudget = {
+      id: 'orc-destino-002',
+      code: 'ORC-DESTINO',
+      title: 'Obra Destino',
+      status: 'em_andamento',
+      author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      createdAt: '2025-04-10',
+      updatedAt: '2025-04-10T10:00:00Z',
+      client: { ...baseClient, name: 'Cliente Destino' },
+      work: { ...baseWork, name: 'Obra Destino' },
+      chargesConfig: {
+        uf: 'RS',
+        isRelieved: false,
+        taxRegime: 'simples_nacional',
+        simplesDasRate: 11.0,
+        customGroupA: 0,
+        customGroupB: 0,
+        customGroupC: 0,
+        customGroupD: 0,
+        isExplicitZero: true,
+      },
+      bdiConfig: {
+        administrationCentral: 4.5,
+        risk: 1.25,
+        insuranceAndGuarantee: 0.85,
+        financialExpenses: 1.15,
+        profit: 7.8,
+        taxes: {
+          iss: 0,
+          pis: 0,
+          cofins: 0,
+          inssOrCprb: 0,
+          totalTaxes: 11.0,
+          simplesDas: 11.0,
+        },
+        calculatedBdi: 28.5,
+      },
+      publicWork: {
+        enabled: false,
+        tenderNumber: '',
+        contractNumber: '',
+        agency: '',
+        modality: 'Concorrência',
+        sinapiReferenceMonth: '04/2025',
+        hasDisallowanceClause: false,
+      },
+      stages: [
+        {
+          id: 'stage-destino-1',
+          code: '01',
+          order: 1,
+          name: 'Serviços Preliminares',
+          services: [
+            {
+              id: 'serv-destino-101',
+              code: '01.01',
+              order: 1,
+              description: 'Placa de obra em lona com estrutura de madeira',
+              quantity: 1,
+              unit: 'un',
+              unitPrice: 450.0,
+              composition: {
+                id: 'comp-destino-101',
+                code: 'CPU-PRE-01',
+                description: 'Placa de obra',
+                unit: 'un',
+                version: 'v1.0',
+                specialty: 'Preliminares',
+                source: 'CONCE',
+                inputs: [],
+              },
+            },
+          ],
+        },
+      ],
+    }
+
+    // Persiste os dois orçamentos no localStorage
+    localStorage.setItem(
+      STORAGE_KEYS_BUDGETS.FULL_BUDGETS,
+      JSON.stringify([sourceBudget, targetBudget]),
+    )
+
+    const stageToCopy = sourceBudget.stages[0]
+    const result = copyStageToBudget(sourceBudget.id, targetBudget.id, stageToCopy)
+
+    expect(result.success).toBe(true)
+    expect(result.targetBudget).toBeDefined()
+    expect(result.copiedStage).toBeDefined()
+
+    // 1. Orçamento de destino agora tem 2 etapas (não sobrescreveu a primeira)
+    const updatedTarget = result.targetBudget!
+    expect(updatedTarget.stages.length).toBe(2)
+    expect(updatedTarget.stages[0].id).toBe('stage-destino-1')
+    expect(updatedTarget.stages[0].code).toBe('01')
+
+    // 2. A etapa copiada entrou no fim e com numeração correta re-sequenciada
+    const copiedStageInDest = updatedTarget.stages[1]
+    expect(copiedStageInDest.code).toBe('02')
+    expect(copiedStageInDest.order).toBe(2)
+    expect(copiedStageInDest.name).toBe('Demolições e Retiradas')
+
+    // 3. Regra CRÍTICA de Desacoplamento de IDs:
+    // O ID da etapa copiada DEVE ser diferente do ID de origem
+    expect(copiedStageInDest.id).not.toBe(stageToCopy.id)
+
+    // O serviço copiado tem ID novo, código resequenciado (02.01) e preserva dados
+    expect(copiedStageInDest.services.length).toBe(1)
+    const copiedSrv = copiedStageInDest.services[0]
+    expect(copiedSrv.id).not.toBe(stageToCopy.services[0].id)
+    expect(copiedSrv.code).toBe('02.01')
+    expect(copiedSrv.order).toBe(1)
+    expect(copiedSrv.description).toBe('Demolição de piso cerâmico existente')
+    expect(copiedSrv.quantity).toBe(25.5)
+    expect(copiedSrv.unit).toBe('m²')
+    expect(copiedSrv.unitPrice).toBe(35.0)
+
+    // A composição copiada tem ID novo
+    expect(copiedSrv.composition.id).not.toBe(stageToCopy.services[0].composition.id)
+
+    // O insumo da composição copiada tem ID novo
+    expect(copiedSrv.composition.inputs.length).toBe(1)
+    const copiedInput = copiedSrv.composition.inputs[0]
+    expect(copiedInput.id).not.toBe(stageToCopy.services[0].composition.inputs[0].id)
+    expect(copiedInput.code).toBe('SINAPI-88316')
+    expect(copiedInput.coefficient).toBe(0.8)
+    expect(copiedInput.unitCost).toBe(22.5)
+
+    // 4. Verificação no localStorage: o orçamento destino foi salvo
+    const storedBudgets = getStoredFullBudgets()
+    const storedDest = storedBudgets.find((b) => b.id === targetBudget.id)
+    expect(storedDest).toBeDefined()
+    expect(storedDest?.stages.length).toBe(2)
+
+    // O orçamento de origem NÃO teve suas etapas alteradas
+    const storedSource = storedBudgets.find((b) => b.id === sourceBudget.id)
+    expect(storedSource?.stages.length).toBe(1)
   })
 })

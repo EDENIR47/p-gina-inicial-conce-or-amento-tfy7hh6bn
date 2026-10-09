@@ -3,9 +3,20 @@
  * Persistência e Sementes de Orçamentos Completos em localStorage
  */
 
-import { FullBudget, BudgetComposition, BudgetInput } from '@/types/budgetEngine'
+import {
+  FullBudget,
+  BudgetComposition,
+  BudgetInput,
+  BudgetStage,
+  BudgetService,
+} from '@/types/budgetEngine'
 import { CONCE_CANONICAL_COMPOSITIONS } from './compositionsData'
-import { DEFAULT_BDI_CONFIG, calculateCompositionUnitCost, calculateTcuBdi } from './budgetEngine'
+import {
+  DEFAULT_BDI_CONFIG,
+  calculateCompositionUnitCost,
+  calculateTcuBdi,
+  resequenceBudgetStages,
+} from './budgetEngine'
 import { BRAZIL_STATES_CHARGES } from './chargesData'
 
 export const STORAGE_KEYS_BUDGETS = {
@@ -1092,6 +1103,92 @@ export function deleteSingleBudget(id: string): FullBudget[] {
   const updated = current.filter((b) => b.id !== id)
   saveFullBudgets(updated)
   return updated
+}
+
+/**
+ * Copia uma etapa completa (com todos os serviços, composições e insumos) de um orçamento para outro diferente.
+ *
+ * Requisitos de integridade:
+ * 1. Desacoplamento total de IDs: novos IDs únicos gerados para a etapa, serviços, composições e insumos.
+ * 2. Re-sequenciamento obrigatório no destino (resequenceBudgetStages: 01, 02... e 01.01, 01.02...).
+ * 3. Preservação de valores calculados, quantitativos, unidades e descrições.
+ * 4. Auto-save imediato no orçamento de destino (nunca gravar o orçamento de origem).
+ * 5. Não sobrescreve etapas existentes no destino, anexa ao final.
+ */
+export function copyStageToBudget(
+  sourceBudgetId: string,
+  targetBudgetId: string,
+  sourceStage: BudgetStage,
+): { success: boolean; targetBudget?: FullBudget; copiedStage?: BudgetStage; error?: string } {
+  if (sourceBudgetId === targetBudgetId) {
+    return {
+      success: false,
+      error: 'O orçamento de destino deve ser diferente do orçamento de origem.',
+    }
+  }
+
+  const allBudgets = getStoredFullBudgets()
+  const targetBudget = allBudgets.find((b) => b.id === targetBudgetId)
+
+  if (!targetBudget) {
+    return {
+      success: false,
+      error: 'Orçamento de destino não encontrado.',
+    }
+  }
+
+  const timestamp = Date.now()
+  const newStageId = `stage-${timestamp}-${Math.random().toString(36).substring(2, 7)}`
+
+  // Desacoplamento total de IDs em cascata
+  const copiedServices: BudgetService[] = (sourceStage.services || []).map((srv, srvIdx) => {
+    const newServiceId = `serv-${timestamp}-${srvIdx}-${Math.random().toString(36).substring(2, 6)}`
+    const newCompositionId = `comp-${timestamp}-${srvIdx}-${Math.random().toString(36).substring(2, 7)}`
+
+    const copiedInputs: BudgetInput[] = (srv.composition?.inputs || []).map((inp, inpIdx) => ({
+      ...inp,
+      id: `inp-${timestamp}-${srvIdx}-${inpIdx}-${Math.random().toString(36).substring(2, 6)}`,
+    }))
+
+    return {
+      ...JSON.parse(JSON.stringify(srv)),
+      id: newServiceId,
+      composition: {
+        ...srv.composition,
+        id: newCompositionId,
+        inputs: copiedInputs,
+      },
+    }
+  })
+
+  const copiedStage: BudgetStage = {
+    ...JSON.parse(JSON.stringify(sourceStage)),
+    id: newStageId,
+    services: copiedServices,
+    order: (targetBudget.stages || []).length + 1,
+    code: String((targetBudget.stages || []).length + 1).padStart(2, '0'),
+  }
+
+  // Anexa ao final sem sobrescrever
+  const combinedStages = [...(targetBudget.stages || []), copiedStage]
+
+  // Re-sequenciamento obrigatório
+  const resequencedStages = resequenceBudgetStages(combinedStages)
+
+  const updatedTargetBudget: FullBudget = {
+    ...targetBudget,
+    stages: resequencedStages,
+    updatedAt: new Date().toISOString(),
+  }
+
+  // Auto-save no destino
+  saveSingleBudget(updatedTargetBudget)
+
+  return {
+    success: true,
+    targetBudget: updatedTargetBudget,
+    copiedStage: resequencedStages.find((s) => s.id === newStageId) || copiedStage,
+  }
 }
 
 /**
