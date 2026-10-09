@@ -86,14 +86,20 @@ export const BudgetsScreen: React.FC = () => {
   // Lista de todos os orçamentos persistidos
   const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
 
-  // Orçamento atualmente em edição (por padrão abre o primeiro orçamento se existir)
+  // Orçamento atualmente em edição (inicia SEMPRE null para abrir na Visão Geral / Lista de Orçamentos)
   const [activeBudget, setActiveBudget] = useState<FullBudget | null>(() => {
-    const stored = getStoredFullBudgets()
-    return stored.length > 0 ? stored[0] : null
+    const targetId = (location.state as any)?.openBudgetId
+    if (targetId) {
+      const stored = getStoredFullBudgets()
+      const found = stored.find((b) => b.id === targetId)
+      if (found) return found
+    }
+    return null
   })
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
 
-  // Ao navegar com state.openBudgetId, abre imediatamente o selecionado
+  // Ao navegar com state.openBudgetId, abre imediatamente o selecionado.
+  // Se navegar para /orcamentos sem openBudgetId, garante que volta para a Visão Geral (activeBudget = null)
   useEffect(() => {
     const targetId = (location.state as any)?.openBudgetId
     if (targetId) {
@@ -103,9 +109,13 @@ export const BudgetsScreen: React.FC = () => {
         setBudgetsList(all)
         setActiveBudget(found)
         setEditorTab('arvore')
+        return
       }
     }
-  }, [location.state])
+
+    // Navegação padrão (sem state.openBudgetId) abre SEMPRE na Visão Geral
+    setActiveBudget(null)
+  }, [location.key, location.state])
 
   // Aba ativa dentro do editor do orçamento: 'geral' | 'arvore' | 'encargos' | 'bdi' | 'abc'
   const [editorTab, setEditorTab] = useState<'geral' | 'arvore' | 'encargos' | 'bdi' | 'abc'>(
