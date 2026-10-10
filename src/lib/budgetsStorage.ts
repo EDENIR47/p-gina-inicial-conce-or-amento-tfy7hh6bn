@@ -259,7 +259,7 @@ export function purgeTestBudgetsFromStorage(): CleanupResult {
     /* ignore */
   }
 
-  // Se o active_budget_id apontar para um orçamento demo ou inexistente, limpa
+  // Se o active_budget_id apontar para um orçamento demo ou inexistente/órfão, limpa
   const activeId = localStorage.getItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
   if (
     activeId &&
@@ -268,7 +268,7 @@ export function purgeTestBudgetsFromStorage(): CleanupResult {
       activeId.startsWith('seed-') ||
       activeId.startsWith('test-') ||
       activeId.startsWith('orc-') ||
-      (validBudgetIds.size > 0 && !validBudgetIds.has(activeId)))
+      !validBudgetIds.has(activeId))
   ) {
     localStorage.removeItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
     result.obsoleteKeysRemoved++
@@ -1131,6 +1131,18 @@ export function deleteSingleBudget(id: string): FullBudget[] {
   const current = getStoredFullBudgets()
   const updated = current.filter((b) => b.id !== id)
   saveFullBudgets(updated)
+
+  // Remove a chave de seleção ativa se apontar para o orçamento apagado ou se for órfã
+  if (typeof window !== 'undefined') {
+    try {
+      const activeId = localStorage.getItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
+      if (activeId === id || (activeId && !updated.some((b) => b.id === activeId))) {
+        localStorage.removeItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 
   try {
     import('@/services/syncEngine')
