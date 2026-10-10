@@ -33,12 +33,18 @@ export default function Layout() {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
   const [isCleanModalOpen, setIsCleanModalOpen] = useState(false)
   const [isMigrationModalOpen, setIsMigrationModalOpen] = useState(false)
+  const [session, setSession] = useState(() => getAuthSession())
 
-  const session = getAuthSession()
+  // Mantém a sessão atualizada se mudar e valida se expirou
+  useEffect(() => {
+    setSession(getAuthSession())
+  }, [location.pathname])
 
   // Ao abrir o app: se autenticado no PocketBase, tenta puxar do cloud e sugerir migração se cloud vazio e houver locais
   useEffect(() => {
     if (isPbAuthenticated()) {
+      // Atualiza os dados de sessão do PocketBase
+      setSession(getAuthSession())
       syncEngine
         .pullFromCloud()
         .then((budgets) => {
@@ -305,13 +311,17 @@ export default function Layout() {
             {/* Usuário e Logout no Mobile */}
             <div className="pt-3 border-t border-white/10 flex items-center justify-between">
               <div className="text-xs text-white/80">
-                <div className="font-semibold text-white">Eng. Edenir Souza da Rosa</div>
-                <div className="text-[10px] text-[#FF6B1F]">engedenirsouza@gmail.com</div>
+                <div className="font-semibold text-white">
+                  {session?.name || 'Eng. Edenir Souza da Rosa'}
+                </div>
+                <div className="text-[10px] text-[#FF6B1F]">
+                  {session?.user || 'engedenirsouza@gmail.com'}
+                </div>
               </div>
 
               <button
                 onClick={handleLogout}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#FF6B1F] text-[#FF6B1F] text-xs font-semibold"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#FF6B1F] text-[#FF6B1F] text-xs font-semibold cursor-pointer active:scale-95"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sair</span>

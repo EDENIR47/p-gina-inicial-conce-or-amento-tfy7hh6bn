@@ -597,28 +597,31 @@ export function normalizeUserName(name?: string | null): string {
  */
 export function getAuthSession(): ConceAuthSession | null {
   if (typeof window === 'undefined') return null
+
+  // 1. Prioriza leitura direta de pb.authStore caso o token exista e seja válido
+  try {
+    const pbCookie = localStorage.getItem('pocketbase_auth')
+    if (pbCookie) {
+      const parsedCookie = JSON.parse(pbCookie)
+      if (parsedCookie?.token && parsedCookie?.record) {
+        const rec = parsedCookie.record
+        const session: ConceAuthSession = {
+          user: rec.email || 'engedenirsouza@gmail.com',
+          name: normalizeUserName(rec.name || 'Edenir'),
+          role: 'Engenheiro Civil & Orçamentista Responsável',
+          crea: 'CREA/RS-252397',
+          loggedIn: true,
+          loginTime: new Date().toISOString(),
+        }
+        return session
+      }
+    }
+  } catch {
+    // Ignora erro
+  }
+
   const raw = localStorage.getItem(STORAGE_KEYS.AUTH)
   if (!raw) {
-    // Verifica se há token válido no authStore do PocketBase
-    try {
-      const pbCookie = localStorage.getItem('pocketbase_auth')
-      if (pbCookie) {
-        const parsedCookie = JSON.parse(pbCookie)
-        if (parsedCookie?.token && parsedCookie?.record) {
-          const rec = parsedCookie.record
-          return {
-            user: rec.email || 'engedenirsouza@gmail.com',
-            name: normalizeUserName(rec.name || 'Edenir'),
-            role: 'Engenheiro Civil & Orçamentista Responsável',
-            crea: 'CREA/RS-252397',
-            loggedIn: true,
-            loginTime: new Date().toISOString(),
-          }
-        }
-      }
-    } catch {
-      // Ignora erro
-    }
     return null
   }
   try {
@@ -679,6 +682,16 @@ export function clearAuthSession(): void {
     localStorage.removeItem('pocketbase_auth')
   } catch {
     /* intentionally ignored */
+  }
+  try {
+    // Também limpa PocketBase SDK se disponível
+    import('@/lib/pocketbase/client')
+      .then(({ default: pb }) => {
+        pb.authStore.clear()
+      })
+      .catch(() => {})
+  } catch {
+    /* ignore */
   }
 }
 

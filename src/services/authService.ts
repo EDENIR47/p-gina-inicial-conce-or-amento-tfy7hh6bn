@@ -32,8 +32,6 @@ export function getCurrentPbUser(): AuthUser | null {
 export function getPbAuthSession(): ConceAuthSession | null {
   const user = getCurrentPbUser()
   if (!user) {
-    // Tenta ler sessão legada apenas se o authStore não estiver autenticado
-    // Se não tiver nada, retorna null
     return null
   }
 
@@ -44,6 +42,55 @@ export function getPbAuthSession(): ConceAuthSession | null {
     crea: 'CREA/RS-252397',
     loggedIn: true,
     loginTime: new Date().toISOString(),
+  }
+}
+
+/**
+ * Valida a sessão PocketBase persistida.
+ * Se houver token mas for inválido ou expirado (authRefresh falhar),
+ * limpa o authStore, limpa a sessão local e retorna false.
+ * Se o refresh for bem-sucedido, sincroniza o storage local e retorna true.
+ */
+export async function validateAndRefreshPbSession(): Promise<boolean> {
+  // Se não há token no PocketBase
+  if (!pb.authStore.isValid || !pb.authStore.token) {
+    // Verifica se há resíduo no localStorage legado sem token PocketBase correspondente
+    if (typeof window !== 'undefined') {
+      const pbCookie = localStorage.getItem('pocketbase_auth')
+      if (!pbCookie) {
+        logoutPb()
+        return false
+      }
+    }
+    return false
+  }
+
+  try {
+    const authData = await pb.collection('users').authRefresh()
+    if (authData?.record) {
+      const normName = normalizeUserName(
+        (authData.record as any)?.name || 'Eng. Edenir Souza da Rosa',
+      )
+      const session: ConceAuthSession = {
+        user: authData.record.email,
+        name: normName,
+        role: 'Engenheiro Civil & Orçamentista Responsável',
+        crea: 'CREA/RS-252397',
+        loggedIn: true,
+        loginTime: new Date().toISOString(),
+      }
+      try {
+        localStorage.setItem(LEGACY_AUTH_KEY, JSON.stringify(session))
+      } catch {
+        /* ignore */
+      }
+      return true
+    }
+    return true
+  } catch (err) {
+    console.warn('Sessão PocketBase inválida ou expirada. Limpando credenciais:', err)
+    logoutPb()
+    return false
   }
 }
 

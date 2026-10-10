@@ -35,6 +35,7 @@ import {
   saveSingleBudget,
   createCanonicalDemoBudget,
   purgeTestBudgetsFromStorage,
+  STORAGE_KEYS_BUDGETS,
 } from '@/lib/budgetsStorage'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
 import { calculateFullBudget, calculateTcuBdi } from '@/lib/budgetEngine'
@@ -86,34 +87,54 @@ export const BudgetsScreen: React.FC = () => {
   // Lista de todos os orçamentos persistidos
   const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
 
-  // Orçamento atualmente em edição (inicia SEMPRE null para abrir na Visão Geral / Lista de Orçamentos)
-  const [activeBudget, setActiveBudget] = useState<FullBudget | null>(() => {
-    const targetId = (location.state as any)?.openBudgetId
-    if (targetId) {
-      const stored = getStoredFullBudgets()
-      const found = stored.find((b) => b.id === targetId)
-      if (found) return found
-    }
-    return null
-  })
+  // Orçamento atualmente em edição:
+  // Na montagem do BudgetsScreen, o estado activeBudget deve iniciar SEMPRE null — a tela abre na Visão Geral (lista de orçamentos),
+  // vinda a navegação de onde vier (menu, F5 na URL base, volta de /composicoes, retorno do Dashboard).
+  const [activeBudget, setActiveBudget] = useState<FullBudget | null>(null)
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
 
-  // Ao navegar com state.openBudgetId, abre imediatamente o selecionado.
-  // Se navegar para /orcamentos sem openBudgetId, garante que volta para a Visão Geral (activeBudget = null)
+  // Limpeza de chaves órfãs residuais no localStorage e tratamento de deep link explícito via location.state.openBudgetId.
+  // Deep link para abrir um orçamento específico SÓ via ação EXPLÍCITA do usuário (ex.: botão "Abrir no editor" do Dashboard, clique num card).
+  // Se o orçamento solicitado por deep link não existir na lista carregada (local ou cloud), NÃO abrir nada: limpar a chave ativa e mostrar a Visão Geral.
   useEffect(() => {
     const targetId = (location.state as any)?.openBudgetId
+    const all = getStoredFullBudgets()
+    setBudgetsList(all)
+
     if (targetId) {
-      const all = getStoredFullBudgets()
       const found = all.find((b) => b.id === targetId)
       if (found) {
-        setBudgetsList(all)
         setActiveBudget(found)
         setEditorTab('arvore')
+        try {
+          localStorage.setItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID, found.id)
+        } catch {
+          /* ignore */
+        }
+        return
+      } else {
+        // Deep link apontou para ID inexistente/apagado:
+        // NÃO abrir nada, limpar a chave ativa do localStorage e permanecer na Visão Geral
+        try {
+          localStorage.removeItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
+        } catch {
+          /* ignore */
+        }
+        setActiveBudget(null)
         return
       }
     }
 
-    // Navegação padrão (sem state.openBudgetId) abre SEMPRE na Visão Geral
+    // Navegação padrão (sem state.openBudgetId explícito):
+    // Limpa chave residual para evitar auto-abertura fantasma e exibe SEMPRE a Visão Geral
+    try {
+      const storedActiveId = localStorage.getItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
+      if (storedActiveId && !all.some((b) => b.id === storedActiveId)) {
+        localStorage.removeItem(STORAGE_KEYS_BUDGETS.ACTIVE_BUDGET_ID)
+      }
+    } catch {
+      /* ignore */
+    }
     setActiveBudget(null)
   }, [location.key, location.state])
 
@@ -1677,7 +1698,7 @@ export const BudgetsScreen: React.FC = () => {
               const current = getStoredFullBudgets()
               setBudgetsList(current)
               if (activeBudget && !current.some((b) => b.id === activeBudget.id)) {
-                setActiveBudget(current[0] || null)
+                setActiveBudget(null)
               }
               showToast('Varredura e limpeza concluídas com sucesso!')
             }}

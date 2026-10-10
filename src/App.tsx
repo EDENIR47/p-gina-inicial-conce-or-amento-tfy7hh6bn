@@ -16,10 +16,12 @@ import QuotesScreen from './pages/QuotesScreen'
 import { clearDemoData } from '@/lib/mockData'
 import { purgeTestBudgetsFromStorage } from '@/lib/budgetsStorage'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
+import { validateAndRefreshPbSession } from '@/services/authService'
 
 const App = () => {
   useEffect(() => {
     // Executa a purga de resíduos fictícios no bootstrap da aplicação
+    // E valida o token de sessão PocketBase se existente
     try {
       clearDemoData()
       purgeTestBudgetsFromStorage()
@@ -27,6 +29,10 @@ const App = () => {
     } catch (e) {
       console.error('Falha no expurgo:', e)
     }
+
+    validateAndRefreshPbSession().catch((err) => {
+      console.warn('Erro ao verificar sessão PocketBase:', err)
+    })
   }, [])
 
   return (
