@@ -1090,7 +1090,9 @@ export function saveFullBudgets(budgets: FullBudget[]): void {
 }
 
 /**
- * Salva ou atualiza um orçamento específico
+ * Salva ou atualiza um orçamento específico:
+ * 1. Grava no cache local (localStorage) imediatamente.
+ * 2. Enfileira sincronização com o PocketBase (Skip Cloud) em segundo plano.
  */
 export function saveSingleBudget(budget: FullBudget): void {
   const current = getStoredFullBudgets()
@@ -1107,15 +1109,39 @@ export function saveSingleBudget(budget: FullBudget): void {
   }
 
   saveFullBudgets(updated)
+
+  // Dispara envio em background para o PocketBase
+  try {
+    import('@/services/syncEngine')
+      .then(({ syncEngine }) => {
+        syncEngine.enqueueBudgetSave(sanitizedBudget)
+      })
+      .catch(() => {})
+  } catch {
+    /* intentionally ignored */
+  }
 }
 
 /**
- * Exclui um orçamento pelo ID e retorna a lista atualizada
+ * Exclui um orçamento pelo ID e retorna a lista atualizada:
+ * 1. Remove do cache local.
+ * 2. Enfileira remoção no PocketBase.
  */
 export function deleteSingleBudget(id: string): FullBudget[] {
   const current = getStoredFullBudgets()
   const updated = current.filter((b) => b.id !== id)
   saveFullBudgets(updated)
+
+  try {
+    import('@/services/syncEngine')
+      .then(({ syncEngine }) => {
+        syncEngine.enqueueBudgetDelete(id)
+      })
+      .catch(() => {})
+  } catch {
+    /* intentionally ignored */
+  }
+
   return updated
 }
 

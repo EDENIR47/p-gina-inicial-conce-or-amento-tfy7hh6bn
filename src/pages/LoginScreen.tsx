@@ -14,19 +14,24 @@ import { ConceLogo, ConceWatermark } from '@/components/ConceLogo'
 import { setAuthSession, getAuthSession, isOnboardingDone, clearDemoData } from '@/lib/mockData'
 import { purgeTestBudgetsFromStorage } from '@/lib/budgetsStorage'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
+import { loginWithEmail, registerWithEmail } from '@/services/authService'
+import { UserPlus, LogIn } from 'lucide-react'
 
 export const LoginScreen: React.FC = () => {
   const navigate = useNavigate()
 
-  // Estados do formulário
+  // Modo: login ou cadastro
+  const [isRegisterMode, setIsRegisterMode] = useState(false)
+  const [name, setName] = useState('Eng. Edenir Souza da Rosa')
   const [email, setEmail] = useState('engedenirsouza@gmail.com')
   const [password, setPassword] = useState('conce123')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [errorField, setErrorField] = useState<'email' | 'password' | 'all' | null>(null)
+  const [errorField, setErrorField] = useState<'name' | 'email' | 'password' | 'all' | null>(null)
   const [isShaking, setIsShaking] = useState(false)
   const [welcomeToast, setWelcomeToast] = useState(false)
+  const [loggedUserName, setLoggedUserName] = useState('Edenir')
 
   // Se já estiver logado, redireciona adequadamente
   useEffect(() => {
@@ -50,13 +55,21 @@ export const LoginScreen: React.FC = () => {
     setTimeout(() => setIsShaking(false), 400)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
     setErrorField(null)
 
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedPass = password.trim()
+    const trimmedName = name.trim()
+
+    if (isRegisterMode && !trimmedName) {
+      setErrorMessage('Por favor, informe seu nome completo.')
+      setErrorField('name')
+      triggerShake()
+      return
+    }
 
     // Validações inline em português
     if (!trimmedEmail) {
@@ -73,56 +86,63 @@ export const LoginScreen: React.FC = () => {
       return
     }
 
-    // Credenciais de demonstração válidas
-    const validEmail = 'engedenirsouza@gmail.com'
-    const validPass = 'conce123'
+    if (trimmedPass.length < 8 && isRegisterMode) {
+      setErrorMessage('A senha deve ter no mínimo 8 caracteres.')
+      setErrorField('password')
+      triggerShake()
+      return
+    }
 
     setIsLoading(true)
 
-    // Simula verificação segura com feedback visual
-    setTimeout(() => {
-      if (trimmedEmail === validEmail && trimmedPass === validPass) {
-        // Garante limpeza antes de autenticar
-        clearDemoData()
-        purgeTestBudgetsFromStorage()
-        purgeTestIntelligenceData()
-
-        // Grava sessão no localStorage
-        setAuthSession({
-          user: validEmail,
-          name: 'Edenir',
-          role: 'Engenheiro Civil & Orçamentista Responsável',
-          crea: 'CREA/RS-252397',
-          loggedIn: true,
-          loginTime: new Date().toISOString(),
-        })
-
-        // Toast de boas-vindas "Bem-vindo(a), Edenir!"
-        setWelcomeToast(true)
-
-        setTimeout(() => {
-          setIsLoading(false)
-          // Se já completou onboarding vai pro Dashboard, senão vai pro Onboarding
-          if (isOnboardingDone()) {
-            navigate('/dashboard')
-          } else {
-            navigate('/onboarding')
-          }
-        }, 1100)
+    try {
+      let session: any
+      if (isRegisterMode) {
+        session = await registerWithEmail(trimmedEmail, trimmedPass, trimmedName)
       } else {
+        session = await loginWithEmail(trimmedEmail, trimmedPass)
+      }
+
+      // Garante limpeza antes de autenticar
+      clearDemoData()
+      purgeTestBudgetsFromStorage()
+      purgeTestIntelligenceData()
+
+      setAuthSession(session)
+      setLoggedUserName(session.name || 'Edenir')
+      setWelcomeToast(true)
+
+      setTimeout(() => {
         setIsLoading(false)
-        if (trimmedEmail !== validEmail) {
-          setErrorMessage(
-            'E-mail não cadastrado na base da CONCE. Use as credenciais de demonstração.',
-          )
+        if (isOnboardingDone()) {
+          navigate('/dashboard')
+        } else {
+          navigate('/onboarding')
+        }
+      }, 900)
+    } catch (err: any) {
+      setIsLoading(false)
+      const msg = err?.message || ''
+      if (isRegisterMode) {
+        if (msg.includes('email') || msg.includes('unique') || msg.includes('existing')) {
+          setErrorMessage('Este e-mail já está cadastrado. Alterne para o modo de login.')
           setErrorField('email')
         } else {
-          setErrorMessage('Senha incorreta. Tente novamente.')
-          setErrorField('password')
+          setErrorMessage('Falha ao criar conta. Verifique os dados e tente novamente.')
         }
-        triggerShake()
+      } else {
+        if (
+          msg.includes('400') ||
+          msg.includes('Failed to authenticate') ||
+          msg.includes('invalid')
+        ) {
+          setErrorMessage('E-mail ou senha incorretos na nuvem CONCE.')
+        } else {
+          setErrorMessage('Falha de conexão com a nuvem CONCE. Verifique sua rede.')
+        }
       }
-    }, 600)
+      triggerShake()
+    }
   }
 
   const fillDemoCredentials = () => {
@@ -153,11 +173,10 @@ export const LoginScreen: React.FC = () => {
         <div className="fixed top-6 z-50 animate-fade-in-down flex items-center gap-3 px-6 py-3 rounded-full bg-[#294C87] text-white shadow-2xl border border-white/20">
           <CheckCircle2 className="w-5 h-5 text-[#FF6B1F] animate-pulse" />
           <span className="text-sm sm:text-base font-semibold tracking-wide">
-            Bem-vindo(a), Edenir! Acessando sistema CONCE...
+            Bem-vindo(a), {loggedUserName}! Acessando sistema CONCE...
           </span>
         </div>
       )}
-
       {/* Container Centralizado */}
       <div className="relative z-10 w-full max-w-[460px] flex flex-col items-center">
         {/* Bloco de marca acima do card com o wordmark oficial e animação suave */}
@@ -179,13 +198,14 @@ export const LoginScreen: React.FC = () => {
         >
           <div className="mb-6 text-center">
             <h2 className="text-xl sm:text-2xl font-bold text-[#171A1F] tracking-tight">
-              Acesso ao Sistema
+              {isRegisterMode ? 'Criar Conta CONCE' : 'Acesso ao Sistema'}
             </h2>
             <p className="text-xs sm:text-sm text-[#171A1F]/70 mt-1">
-              Portal Gerencial de Orçamentos de Obra
+              {isRegisterMode
+                ? 'Cadastre sua conta para salvar orçamentos na nuvem'
+                : 'Portal Gerencial de Orçamentos de Obra (Skip Cloud)'}
             </p>
           </div>
-
           {/* Mensagem de Erro Inline Amigável */}
           {errorMessage && (
             <div className="mb-5 flex items-start gap-2.5 p-3 rounded-lg bg-[#C4453C]/10 border border-[#C4453C]/30 text-[#C4453C] text-xs sm:text-sm animate-fade-in">
@@ -195,6 +215,38 @@ export const LoginScreen: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Campo Nome (Apenas modo cadastro) */}
+            {isRegisterMode && (
+              <div className="space-y-1.5 text-left animate-fade-in">
+                <label
+                  htmlFor="conce-name"
+                  className="block text-xs font-semibold uppercase tracking-wider text-[#171A1F]"
+                >
+                  Nome Completo / Engenheiro(a)
+                </label>
+                <div className="relative">
+                  <input
+                    id="conce-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value)
+                      if (errorField === 'name' || errorField === 'all') {
+                        setErrorMessage(null)
+                        setErrorField(null)
+                      }
+                    }}
+                    placeholder="Eng. Edenir Souza da Rosa"
+                    className={`w-full px-4 py-2.5 bg-white text-sm text-[#171A1F] placeholder:text-[#171A1F]/35 rounded-[8px] border transition-all duration-150 outline-none ${
+                      errorField === 'name' || errorField === 'all'
+                        ? 'border-[#C4453C] ring-2 ring-[#C4453C]/20'
+                        : 'border-[#171A1F]/20 focus:border-[#294C87] focus:ring-2 focus:ring-[#294C87]/25'
+                    }`}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Campo E-mail */}
             <div className="space-y-1.5 text-left">
               <label
@@ -273,7 +325,7 @@ export const LoginScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Botão Entrar */}
+            {/* Botão Entrar ou Cadastrar */}
             <button
               type="submit"
               disabled={isLoading}
@@ -282,24 +334,51 @@ export const LoginScreen: React.FC = () => {
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Verificando credenciais...</span>
+                  <span>
+                    {isRegisterMode ? 'Criando conta na nuvem...' : 'Autenticando na nuvem...'}
+                  </span>
                 </>
               ) : (
                 <>
-                  <span>Entrar no Sistema</span>
+                  <span>{isRegisterMode ? 'Cadastrar e Acessar' : 'Entrar no Sistema'}</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 text-[#FF6B1F]" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Dica visível de credenciais de demonstração */}
+          {/* Alternar entre login e cadastro */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegisterMode(!isRegisterMode)
+                setErrorMessage(null)
+                setErrorField(null)
+              }}
+              className="text-xs text-[#294C87] hover:text-[#FF6B1F] font-semibold underline underline-offset-2 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+            >
+              {isRegisterMode ? (
+                <>
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Já tem uma conta? Fazer login</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Novo usuário? Cadastre sua conta</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Dica visível de credenciais autorizadas */}
           <div className="mt-6 pt-4 border-t border-[#171A1F]/10 text-center">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#294C87]/10 text-[#294C87] text-xs font-medium mb-2">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Ambiente de Demonstração</span>
+              <span>Nuvem Skip Cloud Conectada</span>
             </div>
-            <p className="text-xs text-[#171A1F]/70">Credenciais autorizadas para teste:</p>
+            <p className="text-xs text-[#171A1F]/70">Conta de engenheiro provisionada:</p>
             <div
               onClick={fillDemoCredentials}
               className="mt-1.5 p-2 rounded-md bg-[#171A1F]/5 hover:bg-[#171A1F]/10 border border-[#171A1F]/10 cursor-pointer transition-colors text-xs text-left font-mono flex flex-col gap-0.5"
@@ -315,7 +394,7 @@ export const LoginScreen: React.FC = () => {
               </div>
             </div>
             <p className="text-[11px] text-[#171A1F]/50 mt-1 italic">
-              Clique no quadro acima para autopreencher.
+              Clique no quadro para autopreencher as credenciais de acesso.
             </p>
           </div>
         </div>

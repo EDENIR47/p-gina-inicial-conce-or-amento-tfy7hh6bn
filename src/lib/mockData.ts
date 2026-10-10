@@ -598,7 +598,29 @@ export function normalizeUserName(name?: string | null): string {
 export function getAuthSession(): ConceAuthSession | null {
   if (typeof window === 'undefined') return null
   const raw = localStorage.getItem(STORAGE_KEYS.AUTH)
-  if (!raw) return null
+  if (!raw) {
+    // Verifica se há token válido no authStore do PocketBase
+    try {
+      const pbCookie = localStorage.getItem('pocketbase_auth')
+      if (pbCookie) {
+        const parsedCookie = JSON.parse(pbCookie)
+        if (parsedCookie?.token && parsedCookie?.record) {
+          const rec = parsedCookie.record
+          return {
+            user: rec.email || 'engedenirsouza@gmail.com',
+            name: normalizeUserName(rec.name || 'Edenir'),
+            role: 'Engenheiro Civil & Orçamentista Responsável',
+            crea: 'CREA/RS-252397',
+            loggedIn: true,
+            loginTime: new Date().toISOString(),
+          }
+        }
+      }
+    } catch {
+      // Ignora erro
+    }
+    return null
+  }
   try {
     const parsed = JSON.parse(raw) as ConceAuthSession
     if (!parsed || !parsed.loggedIn) return null
@@ -653,6 +675,11 @@ export function setAuthSession(session: ConceAuthSession): void {
  */
 export function clearAuthSession(): void {
   localStorage.removeItem(STORAGE_KEYS.AUTH)
+  try {
+    localStorage.removeItem('pocketbase_auth')
+  } catch {
+    /* intentionally ignored */
+  }
 }
 
 /**

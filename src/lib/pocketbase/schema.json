@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-09T20:50:19.049Z",
+  "generatedAt": "2026-10-10T15:07:59.557Z",
   "collections": [
     {
       "name": "users",
@@ -42,6 +42,393 @@
       "indexes": [
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "orcamentos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (user = @request.auth.id || shared_with ~ @request.auth.id)",
+        "view": "@request.auth.id != '' && (user = @request.auth.id || shared_with ~ @request.auth.id)",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && (user = @request.auth.id || shared_with ~ @request.auth.id)",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "code",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "client_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "client_document",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "work_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "work_address",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["em_andamento", "aprovado", "vencido", "em_analise"]
+        },
+        {
+          "name": "sale_value",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "direct_cost",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bdi_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tax_regime",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "simples_das_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "client_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "work_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bdi_config",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "charges_config",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "payload",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "local_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "shared_with",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_orcamentos_user ON orcamentos (user)",
+        "CREATE INDEX idx_orcamentos_code ON orcamentos (code)",
+        "CREATE INDEX idx_orcamentos_status ON orcamentos (status)",
+        "CREATE INDEX idx_orcamentos_local_id ON orcamentos (local_id)"
+      ]
+    },
+    {
+      "name": "fotos_etapa",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "orcamento",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "orcamentos"
+        },
+        {
+          "name": "orcamento_local_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "stage_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "file",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_fotos_user ON fotos_etapa (user)",
+        "CREATE INDEX idx_fotos_orcamento ON fotos_etapa (orcamento)",
+        "CREATE INDEX idx_fotos_stage ON fotos_etapa (stage_id)"
+      ]
+    },
+    {
+      "name": "cotacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "orcamento",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "orcamentos"
+        },
+        {
+          "name": "budgetId",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "inputCode",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "inputDescription",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quotes",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "chosenSupplierId",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "local_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cotacoes_user ON cotacoes (user)",
+        "CREATE INDEX idx_cotacoes_budget ON cotacoes (budgetId)"
+      ]
+    },
+    {
+      "name": "composicoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "specialty",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "unit",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "version",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "inputs",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "local_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_composicoes_user ON composicoes (user)",
+        "CREATE INDEX idx_composicoes_code ON composicoes (code)"
       ]
     }
   ]

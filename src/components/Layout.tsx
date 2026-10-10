@@ -17,7 +17,12 @@ import { ConceLogo } from '@/components/ConceLogo'
 import { getAuthSession, clearAuthSession } from '@/lib/mockData'
 import { AiBudgetModal } from '@/components/budget/AiBudgetModal'
 import { StorageCleanModal } from '@/components/budget/StorageCleanModal'
+import { InitialMigrationModal } from '@/components/budget/InitialMigrationModal'
+import { SyncStatusIndicator } from '@/components/budget/SyncStatusIndicator'
 import { FullBudget } from '@/types/budgetEngine'
+import { syncEngine } from '@/services/syncEngine'
+import { isPbAuthenticated } from '@/services/authService'
+import { getStoredFullBudgets, isDemoOrTestBudget } from '@/lib/budgetsStorage'
 
 export default function Layout() {
   const navigate = useNavigate()
@@ -27,8 +32,31 @@ export default function Layout() {
   const [logoutToast, setLogoutToast] = useState(false)
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
   const [isCleanModalOpen, setIsCleanModalOpen] = useState(false)
+  const [isMigrationModalOpen, setIsMigrationModalOpen] = useState(false)
 
   const session = getAuthSession()
+
+  // Ao abrir o app: se autenticado no PocketBase, tenta puxar do cloud e sugerir migração se cloud vazio e houver locais
+  useEffect(() => {
+    if (isPbAuthenticated()) {
+      syncEngine
+        .pullFromCloud()
+        .then((budgets) => {
+          // Se após o pull o cloud tiver dados ou o cache foi atualizado, notifica as telas
+          window.dispatchEvent(new CustomEvent('conce_budget_updated'))
+
+          // Se o usuário tiver orçamentos locais reais e ainda não migrou para o cloud
+          const localReal = getStoredFullBudgets().filter((b) => !isDemoOrTestBudget(b))
+          const hasPrompted = sessionStorage.getItem('conce_cloud_migration_prompted')
+          if (localReal.length > 0 && !hasPrompted) {
+            sessionStorage.setItem('conce_cloud_migration_prompted', 'true')
+            // Abre o modal de migração convidando o usuário
+            setIsMigrationModalOpen(true)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [])
 
   // Efeito frosted-glass / backdrop-blur ao rolar > 20px
   useEffect(() => {
@@ -51,6 +79,17 @@ export default function Layout() {
   const handleLogout = () => {
     // Exibe toast "Sessão encerrada. Até logo!"
     setLogoutToast(true)
+    try {
+      import('@/services/authService')
+        .then(({ logoutPb }) => {
+          logoutPb()
+        })
+        .catch(() => {
+          clearAuthSession()
+        })
+    } catch {
+      clearAuthSession()
+    }
     setTimeout(() => {
       clearAuthSession()
       setLogoutToast(false)
@@ -125,8 +164,11 @@ export default function Layout() {
             })}
           </nav>
 
-          {/* Lado Direito: Perfil e Botão Sair */}
+          {/* Lado Direito: Indicador Cloud, Perfil e Botão Sair */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Indicador de Status da Nuvem Skip Cloud */}
+            <SyncStatusIndicator onOpenMigration={() => setIsMigrationModalOpen(true)} />
+
             {/* Botão de Destaque ✨ Gerar com IA no Header Desktop */}
             <button
               type="button"
@@ -225,6 +267,26 @@ export default function Layout() {
               })}
             </div>
 
+            {/* Indicador e Ação Migrar no Mobile */}
+            <div className="mb-3 flex items-center justify-between px-2">
+              <SyncStatusIndicator
+                onOpenMigration={() => {
+                  setMobileMenuOpen(false)
+                  setIsMigrationModalOpen(true)
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  setIsMigrationModalOpen(true)
+                }}
+                className="text-xs text-[#FF6B1F] font-bold underline"
+              >
+                Migrar Nuvem
+              </button>
+            </div>
+
             {/* Ação Limpar Dados no Mobile */}
             <div className="mb-3">
               <button
@@ -263,6 +325,15 @@ export default function Layout() {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-12">
         <Outlet />
       </main>
+
+      {/* MODAL GLOBAL DE MIGRAÇÃO PARA O SKIP CLOUD */}
+      <InitialMigrationModal
+        isOpen={isMigrationModalOpen}
+        onClose={() => setIsMigrationModalOpen(false)}
+        onSuccess={() => {
+          window.dispatchEvent(new CustomEvent('conce_budget_updated'))
+        }}
+      />
 
       {/* MODAL GLOBAL DE GERAÇÃO POR PROMPT COM IA */}
       <AiBudgetModal
