@@ -587,10 +587,32 @@ export const AbcCurveScreen: React.FC<AbcCurveScreenProps> = ({ budget }) => {
                           )}
                         </td>
 
-                        {/* Categoria */}
+                        {/* Categoria com tag visual padronizada (verde esmeralda para Terceiros) */}
                         {analysisMode === 'insumos' && (
-                          <td className="py-3 px-3 uppercase text-[10px] font-semibold text-[#171A1F]/60">
-                            {item.category.replace('_', ' ')}
+                          <td className="py-3 px-3">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                item.category === 'servico_terceiro' || item.category === 'servico'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : item.category === 'mao_de_obra'
+                                    ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                                    : item.category === 'equipamento'
+                                      ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                      : item.category === 'material'
+                                        ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                        : 'bg-gray-100 text-gray-800 border border-gray-200'
+                              }`}
+                            >
+                              {item.category === 'servico_terceiro' || item.category === 'servico'
+                                ? 'Terceiros'
+                                : item.category === 'mao_de_obra'
+                                  ? 'Mão de Obra'
+                                  : item.category === 'equipamento'
+                                    ? 'Equipamento'
+                                    : item.category === 'material'
+                                      ? 'Material'
+                                      : 'Outros'}
+                            </span>
                           </td>
                         )}
 

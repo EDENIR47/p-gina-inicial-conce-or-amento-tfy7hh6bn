@@ -180,7 +180,8 @@ export function normalizeAutosinapiCategory(
     text.includes('SERVICO') ||
     text.includes('SERVIÇO') ||
     text.includes('TERCEIR') ||
-    text.includes('SUBEMPREIT')
+    text.includes('SUBEMPREIT') ||
+    /\bCACAMBAS?\b.*\bENTULHOS?\b|\bENTULHOS?\b.*\bCACAMBAS?\b/.test(text)
   ) {
     return 'servico_terceiro'
   }
@@ -217,11 +218,17 @@ export function mapAutosinapiItemToSinapi(
   let price =
     typeof rawPrice === 'number' ? rawPrice : parseFloat(String(rawPrice).replace(',', '.')) || 0
 
-  const category = normalizeAutosinapiCategory(
+  let category = normalizeAutosinapiCategory(
     raw.classificacao || raw.classification || raw.grupo || raw.group,
     raw.tipo || raw.type || raw.tipo_item,
     unit,
   )
+  if (
+    (category === 'material' || !category) &&
+    /\bCACAMBAS?\b.*\bENTULHOS?\b|\bENTULHOS?\b.*\bCACAMBAS?\b/i.test(description)
+  ) {
+    category = 'servico_terceiro'
+  }
 
   const specialty = String(
     raw.grupo ||
@@ -247,7 +254,17 @@ export function mapAutosinapiItemToSinapi(
           : `SINAPI-${childNumeric}`,
         description: String(child.descricao || 'Sub-insumo SINAPI').trim(),
         unit: childUnit,
-        category: normalizeAutosinapiCategory('', child.tipo_item, childUnit),
+        category: (() => {
+          const cat = normalizeAutosinapiCategory('', child.tipo_item, childUnit)
+          const childDesc = String(child.descricao || '').toUpperCase()
+          if (
+            (cat === 'material' || !cat) &&
+            /\bCACAMBAS?\b.*\bENTULHOS?\b|\bENTULHOS?\b.*\bCACAMBAS?\b/.test(childDesc)
+          ) {
+            return 'servico_terceiro'
+          }
+          return cat
+        })(),
         coefficient: childCoef,
         unitCost: childCost,
       }

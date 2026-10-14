@@ -99,7 +99,12 @@ export function normalizeCategory(tipo?: string, rawCategory?: string): InputCat
   ) {
     return 'equipamento'
   }
-  if (t.includes('SERVIC') || t.includes('SERVIÇ') || t.includes('TERCEIR')) {
+  if (
+    t.includes('SERVIC') ||
+    t.includes('SERVIÇ') ||
+    t.includes('TERCEIR') ||
+    /\bCACAMBAS?\b.*\bENTULHOS?\b|\bENTULHOS?\b.*\bCACAMBAS?\b/.test(t)
+  ) {
     return 'servico_terceiro'
   }
   if (t.includes('MATERIAL') || t.includes('INSUMO')) {
@@ -141,7 +146,13 @@ export function mapOrcamentadorItemToSinapi(
       Number(raw.preco_naodesonerado ?? raw.preco ?? raw.preco_desonerado ?? raw.valor_total) || 0
   }
 
-  const category = normalizeCategory(raw.tipo_insumo || raw.tipo, raw.categoria)
+  let category = normalizeCategory(raw.tipo_insumo || raw.tipo, raw.categoria)
+  if (
+    (category === 'material' || !category) &&
+    /\bCACAMBAS?\b.*\bENTULHOS?\b|\bENTULHOS?\b.*\bCACAMBAS?\b/i.test(description)
+  ) {
+    category = 'servico_terceiro'
+  }
   const specialty = String(
     raw.especialidade || (type === 'composicao' ? 'Composições Gerais' : 'Materiais & Insumos'),
   ).trim()

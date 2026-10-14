@@ -324,10 +324,21 @@ function collectInputsMode(
         const itemDirectCost = consumedQuantity * baseUnitCost * manualScaleFactor
         const itemSalePrice = itemDirectCost * bdiMult
 
+        // Detecção e garantia de caçamba de entulho sob servico_terceiro
+        let effectiveCategory = input.category
+        if (
+          (effectiveCategory === 'material' || !effectiveCategory) &&
+          /\bcacambas?\b.*\bentulhos?\b|\bentulhos?\b.*\bcacambas?\b/i.test(
+            input.description.normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+          )
+        ) {
+          effectiveCategory = 'servico_terceiro'
+        }
+
         rawList.push({
           code: input.code || 'S/COD',
           description: input.description,
-          category: input.category,
+          category: effectiveCategory,
           unit: input.unit || 'un',
           totalQuantity: consumedQuantity,
           directCost: itemDirectCost,

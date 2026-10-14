@@ -25,6 +25,7 @@ import {
   Award,
   Sparkles,
   History,
+  Eye,
 } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { AiBudgetModal } from '@/components/budget/AiBudgetModal'
@@ -47,6 +48,7 @@ import { BdiEditor } from '@/components/budget/BdiEditor'
 import { BudgetTotalsBar } from '@/components/budget/BudgetTotalsBar'
 import { PdfExportModal, PdfExportMode } from '@/components/budget/PdfExportModal'
 import { MemorialDescritivoModal } from '@/components/budget/MemorialDescritivoModal'
+import { CommercialProposalModal } from '@/components/budget/CommercialProposalModal'
 import { RevisionsModal } from '@/components/budget/RevisionsModal'
 import { AuditTrailModal } from '@/components/budget/AuditTrailModal'
 import { StorageCleanModal } from '@/components/budget/StorageCleanModal'
@@ -149,8 +151,9 @@ export const BudgetsScreen: React.FC = () => {
 
   // Modais de Inteligência e Exportação
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
-  const [pdfInitialMode, setPdfInitialMode] = useState<PdfExportMode>('valor_final')
+  const [pdfInitialMode, setPdfInitialMode] = useState<PdfExportMode>('simplificado')
   const [isMemorialModalOpen, setIsMemorialModalOpen] = useState(false)
+  const [isCommercialModalOpen, setIsCommercialModalOpen] = useState(false)
   const [isRevisionsModalOpen, setIsRevisionsModalOpen] = useState(false)
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
   const [isCleanModalOpen, setIsCleanModalOpen] = useState(false)
@@ -796,6 +799,7 @@ export const BudgetsScreen: React.FC = () => {
             }}
             onOpenExcelExport={() => exportBudgetSpreadsheet(activeBudget, 'completo')}
             onOpenMemorialModal={() => setIsMemorialModalOpen(true)}
+            onOpenCommercialModal={() => setIsCommercialModalOpen(true)}
             onOpenRevisionsModal={() => {
               ensureInitialRevision(activeBudget)
               setIsRevisionsModalOpen(true)
@@ -1416,6 +1420,19 @@ export const BudgetsScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => {
                                   setActiveBudget(b)
+                                  setIsCommercialModalOpen(true)
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs font-extrabold transition-all shadow-sm shadow-orange-500/20 border border-white/20 active:scale-95 cursor-pointer"
+                                title="Apresentação Comercial da Proposta (7 Lâminas Executivas de Alto Impacto)"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-white animate-pulse" />
+                                <span>Apresentação</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveBudget(b)
                                   setIsMemorialModalOpen(true)
                                 }}
                                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white text-xs font-bold transition-colors cursor-pointer"
@@ -1765,6 +1782,16 @@ export const BudgetsScreen: React.FC = () => {
             })
             showToast('Memorial descritivo salvo no orçamento com sucesso!')
           }}
+        />
+      )}
+
+      {/* Modal de Apresentação Comercial de Alto Impacto (7 Lâminas) */}
+      {isCommercialModalOpen && activeBudget && (
+        <CommercialProposalModal
+          key={`commercial-${activeBudget.id}`}
+          budget={activeBudget}
+          isOpen={isCommercialModalOpen}
+          onClose={() => setIsCommercialModalOpen(false)}
         />
       )}
     </div>

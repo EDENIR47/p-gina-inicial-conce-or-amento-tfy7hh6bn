@@ -518,6 +518,22 @@ export function createCanonicalDemoBudget(): FullBudget {
  * 4. "carointeiro"/"caroinnteiro" (e flexões -a/-os/-as) -> "carpinteiro" (ou carpinteira/carpinteiros/carpinteiras)
  * Case-insensitive, tolerando acentuação e preservando casing natural aproximado.
  */
+/**
+ * Detecta se uma descrição de insumo refere-se a caçamba de entulho(s)
+ * Normaliza sem acentos e minúsculo, buscando "cacamba" e "entulho" em qualquer ordem.
+ */
+export function isCacambaEntulhoDescription(desc?: string | null): boolean {
+  if (!desc) return false
+  const normalized = desc
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  // regex: "cacambas?" perto de "entulhos?" em qualquer ordem (ex: "cacamba de entulho", "cacambas de entulhos", "locacao de cacamba para entulho", "entulho em cacamba")
+  const cacambaNearEntulho = /\bcacambas?\b.*\bentulhos?\b|\bentulhos?\b.*\bcacambas?\b/i
+  return cacambaNearEntulho.test(normalized)
+}
+
 export function normalizeInputDescription(desc?: string | null): string {
   if (!desc) return ''
   let result = desc
@@ -532,8 +548,8 @@ export function normalizeInputDescription(desc?: string | null): string {
     return 'encarregado da obra'
   })
 
-  // 2. "caçamba(s) de entulho" -> "caçamba(s) de entulhos"
-  result = result.replace(/\bca[cç]ambas?\s+de\s+entulho\b/gi, (match) => {
+  // 2. "caçamba(s) de entulho" -> "caçamba(s) de entulhos" (com ou sem acento / plural)
+  result = result.replace(/\bca[cç]ambas?\s+(?:de\s+)?entulhos?\b/gi, (match) => {
     const isUpper = match === match.toUpperCase()
     const isPluralCacamba = /^ca[cç]ambas/i.test(match)
     const isTitle = /^[A-Z]/.test(match)
@@ -593,9 +609,21 @@ function sanitizeBudgetDescriptions(budget: FullBudget): FullBudget {
 
         const normInputs = (service.composition.inputs || []).map((inp) => {
           const normInpDesc = normalizeInputDescription(inp.description)
-          if (normInpDesc !== inp.description) {
+          let targetCategory = inp.category
+          if (
+            (inp.category === 'material' || !inp.category) &&
+            isCacambaEntulhoDescription(normInpDesc || inp.description)
+          ) {
+            targetCategory = 'servico_terceiro'
+          }
+
+          if (normInpDesc !== inp.description || targetCategory !== inp.category) {
             compChanged = true
-            return { ...inp, description: normInpDesc }
+            return {
+              ...inp,
+              description: normInpDesc,
+              category: targetCategory,
+            }
           }
           return inp
         })

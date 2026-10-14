@@ -2020,8 +2020,19 @@ export const BudgetHierarchyTree: React.FC<BudgetHierarchyTreeProps> = ({
                                               },
                                             }
 
+                                            const effectiveInpCategory =
+                                              inp.category === 'servico_terceiro' ||
+                                              ((inp.category === 'material' || !inp.category) &&
+                                                /\bcacambas?\b.*\bentulhos?\b|\bentulhos?\b.*\bcacambas?\b/i.test(
+                                                  (inp.description || '')
+                                                    .normalize('NFD')
+                                                    .replace(/[\u0300-\u036f]/g, ''),
+                                                ))
+                                                ? 'servico_terceiro'
+                                                : inp.category
+
                                             const badge =
-                                              categoryBadges[inp.category] ||
+                                              categoryBadges[effectiveInpCategory] ||
                                               categoryBadges.material
                                             const sourceInfo = getSourceBadgeInfo(
                                               inp.source,

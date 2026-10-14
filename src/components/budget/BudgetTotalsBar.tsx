@@ -40,6 +40,7 @@ interface BudgetTotalsBarProps {
   onOpenMemorialModal?: () => void
   onOpenRevisionsModal?: () => void
   onOpenAuditModal?: () => void
+  onOpenCommercialModal?: () => void
 }
 
 export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
@@ -51,6 +52,7 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
   onOpenPdfModal,
   onOpenExcelExport,
   onOpenMemorialModal,
+  onOpenCommercialModal,
   onOpenRevisionsModal,
   onOpenAuditModal,
 }) => {
@@ -144,6 +146,18 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
             >
               <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
               <span>Memorial Descritivo</span>
+            </button>
+          )}
+
+          {onOpenCommercialModal && (
+            <button
+              type="button"
+              onClick={onOpenCommercialModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs font-extrabold transition-all shadow-md shadow-orange-500/20 border border-white/25 active:scale-95 cursor-pointer"
+              title="Apresentação Comercial da Proposta (7 Lâminas Executivas para o Cliente)"
+            >
+              <Eye className="w-3.5 h-3.5 text-white animate-pulse" />
+              <span>Apresentação Comercial</span>
             </button>
           )}
 
