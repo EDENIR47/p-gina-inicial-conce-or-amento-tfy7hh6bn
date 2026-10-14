@@ -38,7 +38,11 @@ import {
   HardHat,
   Briefcase,
   ExternalLink,
+  FileCheck,
+  Paperclip,
 } from 'lucide-react'
+import { saveSingleBudget } from '@/lib/budgetsStorage'
+import { syncEngine } from '@/services/syncEngine'
 import { FullBudget } from '@/types/budgetEngine'
 import { calculateFullBudget } from '@/lib/budgetEngine'
 import { CONCE_COMPANY } from '@/lib/conceCompany'
@@ -57,17 +61,31 @@ export interface CommercialProposalModalProps {
   budget: FullBudget
   isOpen: boolean
   onClose: () => void
+  onAttachPresentationToBudget?: (updatedBudget: FullBudget) => void
 }
 
 export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = ({
   budget,
   isOpen,
   onClose,
+  onAttachPresentationToBudget,
 }) => {
   const [currentSlide, setCurrentSlide] = useState<number>(1)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
   const totalSlides = 7
 
   const summary = useMemo(() => calculateFullBudget(budget), [budget])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(budget.presentationDocument && budget.presentationDocument.version > 0)
+  }, [budget.presentationDocument])
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg)
+    setTimeout(() => {
+      setToastMessage(null)
+    }, 3500)
+  }
 
   // Isolar impressão
   useEffect(() => {
@@ -75,6 +93,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
     document.body.classList.add('conce-printing')
     return () => {
       document.body.classList.remove('conce-printing')
+      document.body.classList.remove('conce-printing-presentation')
     }
   }, [isOpen])
 
@@ -130,13 +149,107 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
     logAuditEvent({
       budgetId: budget.id,
       action: 'exportacao_pdf',
-      title: 'Apresentação Comercial Emitida em PDF',
-      details: `Caderno comercial de 7 lâminas da proposta ${cleanCode} gerado. Valor: ${formatCurrencyBRL(
+      title: 'Apresentação Comercial Impressa / Emitida em PDF',
+      details: `Caderno comercial de 7 lâminas da proposta ${cleanCode} impresso/gerado em folha A4. Valor: ${formatCurrencyBRL(
         summary.finalSalePrice,
       )}. Cliente: ${cleanClientName}.`,
       userName: CONCE_COMPANY.responsavelTecnicoCompleto,
     })
+    document.body.classList.add('conce-printing-presentation')
     window.print()
+  }
+
+  const handleAttachPresentation = () => {
+    const now = new Date().toISOString()
+    const nextVersion = (budget.presentationDocument?.version || 0) + 1
+
+    const presentationData = {
+      version: nextVersion,
+      attachedAt: budget.presentationDocument?.attachedAt || now,
+      updatedAt: now,
+      budgetCode: cleanCode,
+      budgetTitle: cleanTitle,
+      clientName: cleanClientName,
+      workName: cleanWorkName,
+      finalSalePrice: summary.finalSalePrice,
+      bdiRate: summary.bdiRate,
+      stagesCount: budget.stages.length,
+      servicesCount: summary.servicesCount,
+      slides: [
+        {
+          slideNumber: 1,
+          title: 'Capa Institucional',
+          subtitle: cleanTitle,
+          contentSummary: `Proposta comercial oficial ${cleanCode} para ${cleanClientName}. Local: ${cleanWorkAddress}.`,
+        },
+        {
+          slideNumber: 2,
+          title: 'Panorama Executivo da Obra',
+          subtitle: 'Visão Geral do Empreendimento',
+          contentSummary:
+            budget.work.description ||
+            `Execução técnica completa do escopo contratado para ${cleanWorkName}.`,
+        },
+        {
+          slideNumber: 3,
+          title: 'Escopo Didático por Etapas',
+          subtitle: `${budget.stages.length} Etapas Estruturadas`,
+          contentSummary: `${budget.stages.length} etapas e ${summary.servicesCount} serviços especificados.`,
+        },
+        {
+          slideNumber: 4,
+          title: 'Investimento & Transparência Fiscal',
+          subtitle: formatCurrencyBRL(summary.finalSalePrice),
+          contentSummary: `Valor total com BDI ${summary.bdiRate.toFixed(2)}% e DAS 11% inclusos.`,
+        },
+        {
+          slideNumber: 5,
+          title: 'Diferenciais de Engenharia CONCE',
+          subtitle: 'Engenharia de Precisão e Responsabilidade Técnica',
+          contentSummary: `ART CREA/RS, normas ABNT, parametrização SINAPI e garantia legal de 5 anos.`,
+        },
+        {
+          slideNumber: 6,
+          title: 'Condições Contratuais & Prazos',
+          subtitle: cleanDeadline,
+          contentSummary: `Condição de pagamento: ${cleanPaymentTerms}. Validade: ${cleanValidityDays} dias.`,
+        },
+        {
+          slideNumber: 7,
+          title: 'Encerramento & Aceite',
+          subtitle: 'Formalização e Início de Execução',
+          contentSummary: `Contatos da CONCE, assinatura do responsável técnico e campo para aceite formal do cliente.`,
+        },
+      ],
+    }
+
+    const updatedBudget: FullBudget = {
+      ...budget,
+      presentationDocument: presentationData,
+      updatedAt: now,
+    }
+
+    // Persistir localmente
+    saveSingleBudget(updatedBudget)
+    // Sincronizar na nuvem PocketBase via syncEngine
+    syncEngine.enqueueBudgetSave(updatedBudget)
+
+    // Registrar no histórico de auditoria
+    logAuditEvent({
+      budgetId: budget.id,
+      action: 'anexo_apresentacao',
+      title: 'Apresentação Comercial Anexada ao Orçamento',
+      details: `Apresentação de 7 lâminas anexada com sucesso como documento (v${nextVersion}). Valor: ${formatCurrencyBRL(
+        summary.finalSalePrice,
+      )}.`,
+      userName: CONCE_COMPANY.responsavelTecnicoCompleto,
+    })
+
+    if (onAttachPresentationToBudget) {
+      onAttachPresentationToBudget(updatedBudget)
+    }
+
+    showToast(`Apresentação v${nextVersion} anexada com sucesso ao orçamento!`)
   }
 
   const slideTitles = [
@@ -151,6 +264,14 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
 
   const modalContent = (
     <div className="conce-presentation-modal-overlay fixed inset-0 z-50 bg-[#171A1F]/90 backdrop-blur-md flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:overflow-visible">
+      {/* Toast de notificação de anexo */}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-[9999] bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-bold border border-emerald-400 print:hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <FileCheck className="w-4 h-4 text-emerald-200" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* BARRA SUPERIOR DE COMANDOS (Oculta na Impressão) */}
       <header className="w-full max-w-6xl bg-[#171A1F] text-white rounded-2xl p-3.5 mb-3 flex flex-col md:flex-row items-center justify-between gap-3 shadow-2xl border border-white/20 print:hidden sticky top-2 z-50">
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
@@ -198,11 +319,43 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs sm:text-sm font-bold shadow-lg shadow-orange-500/20 transition-all cursor-pointer active:scale-95 border border-white/20"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#294C87] hover:bg-[#1f3a68] text-white text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer active:scale-95 border border-white/20"
+            title="Imprimir Apresentação Comercial em folha A4 (1 lâmina por página)"
+          >
+            <Printer className="w-4 h-4 text-[#FF8945]" />
+            <span>Imprimir</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs sm:text-sm font-bold shadow-lg shadow-orange-500/20 transition-all cursor-pointer active:scale-95 border border-white/20"
             title="Exportar ou Imprimir em PDF formato Paisagem (1 lâmina por folha)"
           >
             <Printer className="w-4 h-4" />
             <span>Baixar PDF (Paisagem)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAttachPresentation}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer active:scale-95 border ${
+              hasAttachedPresentation
+                ? 'bg-emerald-600/90 hover:bg-emerald-600 text-white border-emerald-400/40'
+                : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
+            }`}
+            title="Gravar e anexar esta apresentação comercial ao registro do orçamento como documento oficial"
+          >
+            {hasAttachedPresentation ? (
+              <FileCheck className="w-4 h-4 text-emerald-300" />
+            ) : (
+              <Paperclip className="w-4 h-4 text-[#FF8945]" />
+            )}
+            <span>
+              {hasAttachedPresentation
+                ? `Anexada (v${budget.presentationDocument?.version || 1}) • Atualizar`
+                : 'Anexar ao Orçamento'}
+            </span>
           </button>
 
           <button
@@ -407,7 +560,10 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           </div>
 
           <div className="border-t border-[#171A1F]/10 pt-4 flex items-center justify-between text-xs text-[#171A1F]/60">
-            <span>Proposta Comercial CONCE • {cleanCode}</span>
+            <div>
+              <span>Proposta Comercial CONCE • {cleanCode}</span>
+              <span className="hidden sm:inline"> • CNPJ {CONCE_COMPANY.cnpjFormatado}</span>
+            </div>
             <span>
               Prazo estimado: <strong className="text-[#171A1F]">{cleanDeadline}</strong>
             </span>
@@ -488,7 +644,10 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           </div>
 
           <div className="border-t border-[#171A1F]/10 pt-4 flex items-center justify-between text-xs text-[#171A1F]/60">
-            <span>Total de {summary.servicesCount} serviços especificados e orçados</span>
+            <div>
+              <span>Total de {summary.servicesCount} serviços especificados e orçados</span>
+              <span className="hidden sm:inline"> • CNPJ {CONCE_COMPANY.cnpjFormatado}</span>
+            </div>
             <span>Garantia de integridade e atendimento às normas técnicas</span>
           </div>
         </section>
@@ -581,12 +740,15 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           </div>
 
           <div className="border-t border-[#171A1F]/10 pt-4 flex items-center justify-between text-xs text-[#171A1F]/60">
-            <span>
-              Validade da proposta:{' '}
-              <strong>
-                {cleanValidityDays} dias {cleanValidityType}
-              </strong>
-            </span>
+            <div>
+              <span>
+                Validade da proposta:{' '}
+                <strong>
+                  {cleanValidityDays} dias {cleanValidityType}
+                </strong>
+              </span>
+              <span className="hidden sm:inline"> • CNPJ {CONCE_COMPANY.cnpjFormatado}</span>
+            </div>
             <span>Segurança contratual garantida pela CONCE</span>
           </div>
         </section>
@@ -676,7 +838,10 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           </div>
 
           <div className="border-t border-[#171A1F]/10 pt-4 flex items-center justify-between text-xs text-[#171A1F]/60">
-            <span>{CONCE_COMPANY.razaoSocial}</span>
+            <div>
+              <span>{CONCE_COMPANY.razaoSocial}</span>
+              <span className="hidden sm:inline"> • CNPJ {CONCE_COMPANY.cnpjFormatado}</span>
+            </div>
             <span>CREA/RS-252397</span>
           </div>
         </section>
@@ -752,7 +917,10 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           </div>
 
           <div className="border-t border-[#171A1F]/10 pt-4 flex items-center justify-between text-xs text-[#171A1F]/60">
-            <span>Proposta Comercial CONCE • {cleanCode}</span>
+            <div>
+              <span>Proposta Comercial CONCE • {cleanCode}</span>
+              <span className="hidden sm:inline"> • CNPJ {CONCE_COMPANY.cnpjFormatado}</span>
+            </div>
             <span>Garantia de atendimento e cumprimento rigoroso</span>
           </div>
         </section>

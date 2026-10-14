@@ -145,6 +145,7 @@ export type AuditActionType =
   | 'exportacao_pdf'
   | 'exportacao_excel'
   | 'edicao_memorial'
+  | 'anexo_apresentacao'
 
 export interface AuditLogEntry {
   id: string

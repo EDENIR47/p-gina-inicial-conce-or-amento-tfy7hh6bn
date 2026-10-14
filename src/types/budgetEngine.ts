@@ -221,6 +221,25 @@ export interface FullBudget {
       }>
     }>
   }
+  presentationDocument?: {
+    version: number
+    attachedAt: string
+    updatedAt: string
+    budgetCode: string
+    budgetTitle?: string
+    clientName?: string
+    workName?: string
+    finalSalePrice: number
+    bdiRate: number
+    stagesCount: number
+    servicesCount: number
+    slides: Array<{
+      slideNumber: number
+      title: string
+      subtitle?: string
+      contentSummary?: string
+    }>
+  }
   stages: BudgetStage[]
   chargesConfig: {
     uf: string

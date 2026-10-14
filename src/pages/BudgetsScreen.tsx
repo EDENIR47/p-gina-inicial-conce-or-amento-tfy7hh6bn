@@ -666,6 +666,32 @@ export const BudgetsScreen: React.FC = () => {
                     </strong>
                   </span>
 
+                  {/* Botão de Apresentação Comercial / Documento Anexado no topo */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCommercialModalOpen(true)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shadow-xs focus:outline-none focus:ring-2 cursor-pointer ${
+                      activeBudget.presentationDocument
+                        ? 'bg-emerald-600/15 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-500/40 focus:ring-emerald-500'
+                        : 'bg-[#FF6B1F]/10 hover:bg-[#FF6B1F] text-[#FF6B1F] hover:text-white border border-[#FF6B1F]/30 focus:ring-[#FF6B1F]'
+                    }`}
+                    title={
+                      activeBudget.presentationDocument
+                        ? `Apresentação anexada como documento oficial (v${activeBudget.presentationDocument.version}). Clique para visualizar, reimprimir ou exportar PDF.`
+                        : 'Gerar Apresentação Comercial Oficial de Alto Impacto (7 Lâminas A4)'
+                    }
+                    aria-label="Abrir apresentação comercial ou documento anexado"
+                  >
+                    {activeBudget.presentationDocument ? (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    ) : null}
+                    <span>
+                      {activeBudget.presentationDocument
+                        ? `Apresentação Anexada (v${activeBudget.presentationDocument.version})`
+                        : 'Apresentação Comercial'}
+                    </span>
+                  </button>
+
                   {/* Botão de Memorial Descritivo no topo */}
                   <button
                     type="button"
@@ -1422,11 +1448,23 @@ export const BudgetsScreen: React.FC = () => {
                                   setActiveBudget(b)
                                   setIsCommercialModalOpen(true)
                                 }}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white text-xs font-extrabold transition-all shadow-sm shadow-orange-500/20 border border-white/20 active:scale-95 cursor-pointer"
-                                title="Apresentação Comercial da Proposta (7 Lâminas Executivas de Alto Impacto)"
+                                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-extrabold transition-all border active:scale-95 cursor-pointer ${
+                                  b.presentationDocument
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-400/40 shadow-sm shadow-emerald-600/20'
+                                    : 'bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white border-white/20 shadow-sm shadow-orange-500/20'
+                                }`}
+                                title={
+                                  b.presentationDocument
+                                    ? `Apresentação Comercial anexada como documento (v${b.presentationDocument.version}). Clique para abrir, reimprimir ou baixar PDF.`
+                                    : 'Apresentação Comercial da Proposta (7 Lâminas Executivas de Alto Impacto)'
+                                }
                               >
-                                <Eye className="w-3.5 h-3.5 text-white animate-pulse" />
-                                <span>Apresentação</span>
+                                <Eye className="w-3.5 h-3.5 text-white" />
+                                <span>
+                                  {b.presentationDocument
+                                    ? `Apresentação (v${b.presentationDocument.version})`
+                                    : 'Apresentação'}
+                                </span>
                               </button>
 
                               <button
@@ -1626,6 +1664,29 @@ export const BudgetsScreen: React.FC = () => {
                                   type="button"
                                   onClick={() => {
                                     setActiveBudget(b)
+                                    setIsCommercialModalOpen(true)
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
+                                    b.presentationDocument
+                                      ? 'bg-emerald-600/15 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-500/40'
+                                      : 'bg-[#FF6B1F]/10 hover:bg-[#FF6B1F] text-[#FF6B1F] hover:text-white border border-[#FF6B1F]/30'
+                                  }`}
+                                  title={
+                                    b.presentationDocument
+                                      ? `Apresentação anexada (v${b.presentationDocument.version}). Clique para abrir e imprimir.`
+                                      : 'Apresentação Comercial em 7 lâminas'
+                                  }
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>
+                                    {b.presentationDocument ? 'Apres. (Doc)' : 'Apresentação'}
+                                  </span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveBudget(b)
                                     setIsMemorialModalOpen(true)
                                   }}
                                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white font-bold text-xs transition-colors cursor-pointer"
@@ -1634,7 +1695,6 @@ export const BudgetsScreen: React.FC = () => {
                                   <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
                                   <span>Memorial</span>
                                 </button>
-
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1792,6 +1852,13 @@ export const BudgetsScreen: React.FC = () => {
           budget={activeBudget}
           isOpen={isCommercialModalOpen}
           onClose={() => setIsCommercialModalOpen(false)}
+          onAttachPresentationToBudget={(updatedWithPresentation) => {
+            setActiveBudget(updatedWithPresentation)
+            setBudgetsList(getStoredFullBudgets())
+            showToast(
+              `Apresentação Comercial v${updatedWithPresentation.presentationDocument?.version || 1} anexada com sucesso!`,
+            )
+          }}
         />
       )}
     </div>

@@ -273,6 +273,16 @@
     margin: 30mm 8mm 20mm 8mm;
   }
 
+  /* Quando o modal de apresentação comercial estiver ativo para impressão, forçar A4 paisagem com margens controladas */
+  body.conce-printing-presentation {
+    /* Identificador de contexto paisagem para a apresentação */
+  }
+
+  @page presentation-page {
+    size: A4 landscape;
+    margin: 10mm 10mm 10mm 10mm;
+  }
+
   @media print {
     /* 1. Reset básico do documento para impressão limpa e compacta */
     html {
@@ -298,6 +308,13 @@
       overflow: visible !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+    }
+
+    /* Ajuste para documento em apresentação A4 paisagem */
+    body.conce-printing-presentation {
+      background-color: #ffffff !important;
+      background: #ffffff !important;
+      color: #171a1f !important;
     }
 
     /* 2. Quando o modal de impressão estiver ativo (.conce-printing no body, .conce-pdf-modal-overlay, .conce-memorial-modal-overlay ou .conce-presentation-modal-overlay presente),
@@ -398,17 +415,24 @@
 
     /* Cada slide da apresentação impresso como página A4 paisagem individual */
     .conce-presentation-page {
+      page: presentation-page !important;
       box-sizing: border-box !important;
       width: 100% !important;
       min-height: 175mm !important;
-      max-height: 185mm !important;
+      max-height: 188mm !important;
       page-break-after: always !important;
       break-after: page !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       overflow: hidden !important;
       margin: 0 0 4mm 0 !important;
-      padding: 4mm 6mm !important;
+      padding: 6mm 8mm !important;
+    }
+
+    /* Última lâmina da apresentação não precisa forçar folha em branco após ela */
+    .conce-presentation-page:last-child {
+      page-break-after: auto !important;
+      break-after: auto !important;
     }
 
     /* 5. Seções e fluxo contínuo sem quebras forçadas (sem folhas vazias e sem texto espaçado) */
