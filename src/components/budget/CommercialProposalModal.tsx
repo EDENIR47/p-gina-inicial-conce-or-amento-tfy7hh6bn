@@ -292,12 +292,17 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           {/* CABEÇALHO INSTITUCIONAL CONCE */}
           <header className="conce-proposal-header border-b-2 border-[#171A1F] px-6 sm:px-10 pt-6 pb-4 print:p-0 print:pb-3">
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <ConceLogo height={30} variant="light" />
-                <p className="text-[11px] text-[#294C87] font-extrabold uppercase tracking-widest pt-1">
-                  {CONCE_COMPANY.razaoSocial}
-                </p>
-                <p className="text-[10px] text-[#171A1F]/60">
+              <div className="space-y-0.5">
+                {/* Wordmark hierarquizado em 2 linhas: CONCE grande e ENGENHARIA LTDA menor */}
+                <div className="flex flex-col leading-none">
+                  <span className="text-3xl sm:text-4xl font-extrabold font-poppins text-[#171A1F] tracking-tight uppercase leading-none select-none print:text-3xl">
+                    <span className="text-[#FF6B1F]">C</span>ONCE
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] font-bold font-poppins text-[#294C87] uppercase tracking-[0.28em] mt-1 select-none print:text-[10px]">
+                    ENGENHARIA LTDA
+                  </span>
+                </div>
+                <p className="text-[10px] text-[#171A1F]/60 pt-1">
                   CNPJ {CONCE_COMPANY.cnpjFormatado} • Porto Alegre/RS
                 </p>
               </div>
