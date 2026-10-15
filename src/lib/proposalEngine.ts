@@ -287,15 +287,30 @@ const DENSITIES_KG_M3: Array<{ keywords: string[]; density: number }> = [
 
 const CLASS_B_KEYWORDS = [
   'madeira',
+  'aucatex',
+  'aglomerad',
+  'compensad',
+  'mdf',
+  'mdp',
   'metal',
+  'metalic',
   'aço',
   'aco',
-  'vergalhao',
+  'aluzinco',
+  'zinco',
+  'aluminio',
   'ferro',
+  'cobre',
+  'vergalhao',
+  'perfil metalico',
+  'perfis metalicos',
+  'esquadria metalica',
+  'esquadrias de aluminio',
   'plastico',
   'pvc',
   'vidro',
   'papel',
+  'papelao',
   'embalagem',
 ]
 const CLASS_C_KEYWORDS = ['gesso', 'drywall']
@@ -310,6 +325,19 @@ const CLASS_D_KEYWORDS = [
   'quimico',
   'perigoso',
   'asfalto',
+]
+
+const NON_RESIDUE_KEYWORDS = [
+  'locacao',
+  'locação',
+  'aluguel',
+  'retirada sem descarte',
+  'remocao sem descarte',
+  'desmontagem sem descarte',
+  'reaproveitamento',
+  'reaproveitar',
+  'reutilizacao',
+  'reutilizar',
 ]
 
 function matchesAny(normText: string, keywords: string[]): boolean {
@@ -328,6 +356,13 @@ function residueClassFor(normText: string): ResidueClass {
   if (matchesAny(normText, CLASS_C_KEYWORDS)) return 'C'
   if (matchesAny(normText, CLASS_B_KEYWORDS)) return 'B'
   return 'A'
+}
+
+function isNonResidueItem(normDescription: string, normStageName: string): boolean {
+  return (
+    matchesAny(normDescription, NON_RESIDUE_KEYWORDS) ||
+    matchesAny(normStageName, NON_RESIDUE_KEYWORDS)
+  )
 }
 
 /** Fator de espessura/vazado médio (m) por m² demolido, conforme a natureza do serviço. */
@@ -351,6 +386,9 @@ function thicknessFactorFor(normText: string): number {
 }
 
 function isRemovalService(normDescription: string, normStageName: string): boolean {
+  if (isNonResidueItem(normDescription, normStageName)) {
+    return false
+  }
   return (
     matchesAny(normDescription, REMOVAL_KEYWORDS) || matchesAny(normStageName, REMOVAL_KEYWORDS)
   )
@@ -405,26 +443,30 @@ export function analyzeRemovedVolume(budget: FullBudget): ProposalVolumeAnalysis
     const declaredWeight = Number(stage.weightKg) || 0
 
     if (declaredVolume > 0 || declaredWeight > 0) {
-      // Dado declarado pelo usuário na etapa — autoridade máxima
-      const volume = declaredVolume > 0 ? declaredVolume : declaredWeight / 1300
-      rows.push({
-        stageCode: stage.code || String(stage.order || ''),
-        stageName: stage.name || '',
-        serviceCode: '—',
-        description: `Volume declarado da etapa ${stage.code || ''} — ${stage.name || ''}`.trim(),
-        unit: 'm³',
-        quantity: Number(volume.toFixed(3)),
-        estimatedVolumeM3: Number(volume.toFixed(3)),
-        estimatedWeightKg: declaredWeight > 0 ? declaredWeight : Number((volume * 1300).toFixed(0)),
-        residueClass: residueClassFor(normStage),
-        isDeclaredByUser: true,
-      })
-      return
+      if (!isNonResidueItem(normStage, '')) {
+        // Dado declarado pelo usuário na etapa — autoridade máxima
+        const volume = declaredVolume > 0 ? declaredVolume : declaredWeight / 1300
+        rows.push({
+          stageCode: stage.code || String(stage.order || ''),
+          stageName: stage.name || '',
+          serviceCode: '—',
+          description: `Volume declarado da etapa ${stage.code || ''} — ${stage.name || ''}`.trim(),
+          unit: 'm³',
+          quantity: Number(volume.toFixed(3)),
+          estimatedVolumeM3: Number(volume.toFixed(3)),
+          estimatedWeightKg:
+            declaredWeight > 0 ? declaredWeight : Number((volume * 1300).toFixed(0)),
+          residueClass: residueClassFor(normStage),
+          isDeclaredByUser: true,
+        })
+        return
+      }
     }
 
     const services = Array.isArray(stage.services) ? stage.services : []
     services.forEach((service) => {
       const normDesc = normalizeKeyword(service.description || '')
+      if (isNonResidueItem(normDesc, normStage)) return
       if (!isRemovalService(normDesc, normStage)) return
       const qty = Number(service.quantity) || 0
       if (qty <= 0) return
@@ -500,9 +542,50 @@ export function analyzeBudgetForProposal(budget: FullBudget): ProposalAnalysis {
   })
   const combined = allServiceTexts.join(' | ')
 
-  const methodTags = Object.keys(METHOD_TAG_KEYWORDS).filter((tag) =>
-    matchesAny(combined, METHOD_TAG_KEYWORDS[tag]),
-  )
+  // Processos construtivos: apenas entra o que possui serviço correspondente no escopo
+  // 'Serviços preliminares e canteiro' e 'Demolições, remoções e escavações' avaliam os termos específicos.
+  // Processos de construção/reconstrução estrita ('Estrutura e fundações', 'Alvenaria e vedações',
+  // 'Revestimentos, pisos e acabamentos', 'Instalações prediais') exigem que os serviços NÃO sejam meramente de demolição/remoção
+  // se o serviço só existe como demolição daquele elemento, não deve figurar como método construtivo a executar.
+  const hasConstructiveServicesFor = (keywords: string[]): boolean => {
+    return stages.some((stage) => {
+      const svs = Array.isArray(stage.services) ? stage.services : []
+      return svs.some((service) => {
+        const normDesc = normalizeKeyword(service.description || '')
+        const normStg = normalizeKeyword(stage.name || '')
+        const matchesKw = matchesAny(normDesc, keywords) || matchesAny(normStg, keywords)
+        if (!matchesKw) return false
+        // Se for serviço de demolição/remoção/retirada, não conta como execução construtiva do elemento
+        const isDemolitionOnly =
+          matchesAny(normDesc, REMOVAL_KEYWORDS) &&
+          !matchesAny(normDesc, [
+            'assentamento',
+            'execucao',
+            'construcao',
+            'instalacao',
+            'confeccao',
+            'fechamento',
+            'chapisco',
+            'emboço',
+            'reboco',
+            'pintura nova',
+            'fiada',
+          ])
+        return !isDemolitionOnly
+      })
+    })
+  }
+
+  const methodTags = Object.keys(METHOD_TAG_KEYWORDS).filter((tag) => {
+    if (tag === 'Serviços preliminares e canteiro') {
+      return matchesAny(combined, METHOD_TAG_KEYWORDS[tag])
+    }
+    if (tag === 'Demolições, remoções e escavações') {
+      return volume.hasRemovalServices || matchesAny(combined, REMOVAL_KEYWORDS)
+    }
+    // Para processos construtivos: exige serviços construtivos reais
+    return hasConstructiveServicesFor(METHOD_TAG_KEYWORDS[tag])
+  })
 
   const hasInstallations = matchesAny(combined, INSTALLATION_KEYWORDS)
   const hasStructuralDemolition = matchesAny(combined, STRUCTURAL_KEYWORDS)
@@ -845,11 +928,11 @@ export function buildProposalSections(
   const prazoParagraphs: string[] = []
   if (deadlineText) {
     prazoParagraphs.push(
-      `O prazo de execução constante do orçamento ${budgetCode} é de ${deadlineText}. Adicionalmente, a previsão inicial de planejamento da CONCE, proporcional ao escopo orçado (${servicesCount} serviço(s) em ${stages.length} etapa(s)), é de aproximadamente ${analysis.estimatedWeeksMin} a ${analysis.estimatedWeeksMax} semanas de efetiva produção.`,
+      `O prazo de execução previsto no orçamento ${budgetCode} para a realização dos serviços discriminados é de ${deadlineText}, contados a partir da liberação efetiva do canteiro de obras e do atendimento integral às autorizações prévias relacionadas neste item.`,
     )
   } else {
     prazoParagraphs.push(
-      `Com base no escopo orçado (${servicesCount} serviço(s) em ${stages.length} etapa(s)), a previsão inicial de planejamento da CONCE para a execução é de aproximadamente ${analysis.estimatedWeeksMin} a ${analysis.estimatedWeeksMax} semanas de efetiva produção, contadas da liberação do canteiro e das autorizações prévias listadas neste item.`,
+      `O prazo de execução estimado para a realização dos serviços discriminados no orçamento ${budgetCode} (${servicesCount} serviço(s) em ${stages.length} etapa(s)) será pactuado na formalização do contrato, condicionado à liberação do canteiro e às autorizações prévias relacionadas neste item.`,
     )
   }
   prazoParagraphs.push(
@@ -880,7 +963,7 @@ export function buildProposalSections(
 
   const commercialItems: string[] = [
     'CONDIÇÕES DE PAGAMENTO: entrada de 15% (quinze por cento) do valor total da proposta no ato da assinatura/aceite deste instrumento. O saldo remanescente será faturado mediante medições quinzenais realizadas nos DIAS 2 E 15 (OU PRIMEIRO DIA ÚTIL SUBSEQUENTE) DE CADA MÊS, apurando-se o avanço físico dos serviços executados.',
-    'VÍNCULO PAGAMENTO–NOTA FISCAL: o pagamento de cada medição fica expressamente atrelado à emissão da Nota Fiscal correspondente ao período medido e aprovado pelas partes, sendo a liquidação financeira devida pelo Contratante mediante a respectiva apresentação do documento fiscal.',
+    'VÍNCULO PAGAMENTO–NOTA FISCAL: o pagamento de cada medição fica expressamente atrelado à emissão da Nota Fiscal correspondente ao período medido e aprovado pelas partes, com pagamento da Nota Fiscal em até 15 (quinze) dias corridos contados da respectiva emissão, sendo a liquidação financeira devida pelo Contratante mediante a respectiva apresentação do documento fiscal.',
     'SEGURO DE OBRA: declara-se formalmente que será contratado Seguro de Obra (Seguro de Riscos de Engenharia — Danos Materiais e, quando aplicável, Responsabilidade Civil / Danos a Terceiros) cobrindo integralmente a execução dos serviços objeto desta proposta, com apólice mantida válida e eficaz durante todo o período de vigência e desenvolvimento da obra, com custeio conforme pactuado na presente proposta. A contratação e vigência do seguro não exonera nem substitui a responsabilidade técnica e profissional do Responsável Técnico (RT) perante o CREA/RS e a legislação vigente.',
     'GARANTIA CONTRATUAL E LEGAL: os serviços prestados contam com a garantia legal de solidez e segurança pelo prazo irredutível de 5 (cinco) anos, nos estritos termos do Art. 618 do Código Civil Brasileiro (Lei nº 10.406/2002), além da garantia de boa execução e conformidade técnica dos serviços entregues pelo responsável técnico.',
     `EXCLUSÕES EXPLÍCITAS DE ESCOPO: o orçamento ${budgetCode} constitui o delimitador formal, técnico e financeiro do escopo contratado. Não estão contemplados nesta proposta: elaboração de projeto arquitetônico executivo ou detalhamento mobiliário; taxas, emolumentos, licenças ou multas de órgãos públicos ou ambientais; fornecimento de móveis planejados, marcenaria decorativa ou eletrodomésticos fora dos itens orçados; serviços extraordinários não listados na planilha orçamentária referenciada; e reparo de patologias ocultas ou interferências construtivas prévias não identificáveis visualmente na vistoria inicial. Quaisquer intervenções adicionais serão objeto de orçamento prévio e termo aditivo formal.`,

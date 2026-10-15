@@ -412,16 +412,17 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(analysis.totalVolumeM3).toBeCloseTo(40, 1)
   })
 
-  it('Seção 7 (Prazo e autorizações) usa faixa de semanas proporcional, marca como estimativa e lista autorizações com responsabilidade', () => {
+  it('Seção 7 (Prazo e autorizações) unifica o prazo no valor declarado do orçamento, sem semanas inventadas/paralelas', () => {
     const budget = makeBudget()
     const analysis = analyzeBudgetForProposal(budget)
     const sections = buildProposalSections(budget, calculateFullBudget(budget), analysis)
     const prazo = sections[6]
 
     const fullText = [...prazo.paragraphs, ...(prazo.items || [])].join(' ')
-    expect(fullText).toContain(
-      `${analysis.estimatedWeeksMin} a ${analysis.estimatedWeeksMax} semanas`,
-    )
+    // Deve citar o prazo declarado no orçamento (60 dias)
+    expect(fullText).toContain('60 dias')
+    // NÃO deve conter números/faixas de prazo inventadas paralelas em semanas
+    expect(fullText).not.toContain('semanas de efetiva produção')
     expect(fullText.toLowerCase()).toContain('estimativa de planejamento')
     expect(fullText).toContain('condomínio')
     expect(fullText).toContain('Prefeitura')
@@ -556,10 +557,11 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(sec8Text).toContain('DIAS 2 E 15')
     expect(sec8Text.toLowerCase()).toContain('útil')
 
-    // 3. Pagamento atrelado à emissão da nota fiscal referente ao período medido
+    // 3. Pagamento atrelado à emissão da nota fiscal referente ao período medido com prazo de 15 dias corridos
     expect(sec8Text.toLowerCase()).toContain('nota fiscal')
     expect(sec8Text.toLowerCase()).toContain('período medido')
     expect(sec8Text.toLowerCase()).toContain('atrelado')
+    expect(sec8Text).toContain('15 (quinze) dias corridos')
 
     // 4. Garantia legal Art. 618 Código Civil (solidez e segurança, 5 anos)
     expect(sec8Text).toContain('Art. 618')
@@ -635,5 +637,207 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     const a = analyzeBudgetForProposal(budget)
     const b = analyzeBudgetForProposal(budget)
     expect(a).toEqual(b)
+  })
+
+  it('classificação de resíduos: metálicos e madeira são Classe B, locações e reaproveitamentos NÃO geram resíduo, alvenaria/concreto Classe A', () => {
+    const dummyComp = makeComposition('Demolição', [
+      {
+        description: 'Mão de obra demolidor',
+        category: 'mao_de_obra',
+        coefficient: 1,
+        unitCost: 20,
+      },
+    ])
+    const testBudget: FullBudget = {
+      ...makeBudget(),
+      stages: [
+        {
+          id: 'stg-cobertura',
+          order: 1,
+          code: '01',
+          name: 'COBERTURA E PILARES',
+          services: [
+            {
+              id: 's-metais',
+              order: 1,
+              code: '01.01',
+              description: 'Remoção de telha Aluzinco e perfis metálicos da cobertura',
+              unit: 'm²',
+              quantity: 50,
+              composition: dummyComp,
+            },
+            {
+              id: 's-mureta',
+              order: 2,
+              code: '01.02',
+              description: 'Demolição de mureta em alvenaria e concreto dos pilares',
+              unit: 'm²',
+              quantity: 10,
+              composition: dummyComp,
+            },
+          ],
+        },
+        {
+          id: 'stg-divisorias',
+          order: 2,
+          code: '02',
+          name: 'DIVISÓRIAS E PISOS',
+          services: [
+            {
+              id: 's-aucatex',
+              order: 1,
+              code: '02.01',
+              description: 'Desmontagem e descarte de divisórias em Aucatex com miolo tipo colmeia',
+              unit: 'm²',
+              quantity: 40,
+              composition: dummyComp,
+            },
+            {
+              id: 's-madeira',
+              order: 2,
+              code: '02.02',
+              description: 'Remoção de piso elevado em madeira compensada e caibros',
+              unit: 'm²',
+              quantity: 30,
+              composition: dummyComp,
+            },
+          ],
+        },
+        {
+          id: 'stg-locacao-reaprov',
+          order: 3,
+          code: '03',
+          name: 'LOCAÇÃO DE EQUIPAMENTOS E REAPROVEITAMENTO',
+          services: [
+            {
+              id: 's-loc-conduto',
+              order: 1,
+              code: '03.01',
+              description: 'Locação de conduto vertical para descida de entulho',
+              unit: 'mês',
+              quantity: 1,
+              composition: dummyComp,
+            },
+            {
+              id: 's-loc-andaime',
+              order: 2,
+              code: '03.02',
+              description: 'Locação de andaimes metálicos tipo torre com plataformas',
+              unit: 'mês',
+              quantity: 1,
+              composition: dummyComp,
+            },
+            {
+              id: 's-reaproveitamento',
+              order: 3,
+              code: '03.03',
+              description: 'Retirada sem descarte de telha Aluzinco para reaproveitamento',
+              unit: 'm²',
+              quantity: 25,
+              composition: dummyComp,
+            },
+          ],
+        },
+      ],
+    }
+
+    const volumeAnalysis = analyzeRemovedVolume(testBudget)
+
+    // Deve ter apenas 4 linhas de remoção (telha aluzinco, alvenaria, aucatex, piso compensado)
+    // Locações e 'retirada sem descarte' NUNCA devem figurar como resíduo
+    expect(volumeAnalysis.rows).toHaveLength(4)
+
+    const descriptions = volumeAnalysis.rows.map((r) => r.description.toLowerCase())
+    expect(descriptions.some((d) => d.includes('locação'))).toBe(false)
+    expect(descriptions.some((d) => d.includes('conduto'))).toBe(false)
+    expect(descriptions.some((d) => d.includes('andaime'))).toBe(false)
+    expect(descriptions.some((d) => d.includes('sem descarte'))).toBe(false)
+
+    // Telha Aluzinco deve ser Classe B
+    const rowAluzinco = volumeAnalysis.rows.find((r) =>
+      r.description.toLowerCase().includes('aluzinco'),
+    )
+    expect(rowAluzinco).toBeDefined()
+    expect(rowAluzinco?.residueClass).toBe('B')
+
+    // Alvenaria deve ser Classe A
+    const rowAlvenaria = volumeAnalysis.rows.find((r) =>
+      r.description.toLowerCase().includes('mureta'),
+    )
+    expect(rowAlvenaria).toBeDefined()
+    expect(rowAlvenaria?.residueClass).toBe('A')
+
+    // Aucatex deve ser Classe B
+    const rowAucatex = volumeAnalysis.rows.find((r) =>
+      r.description.toLowerCase().includes('aucatex'),
+    )
+    expect(rowAucatex).toBeDefined()
+    expect(rowAucatex?.residueClass).toBe('B')
+
+    // Madeira compensada deve ser Classe B
+    const rowMadeira = volumeAnalysis.rows.find((r) =>
+      r.description.toLowerCase().includes('compensada'),
+    )
+    expect(rowMadeira).toBeDefined()
+    expect(rowMadeira?.residueClass).toBe('B')
+  })
+
+  it('Seção 2: obra de demolição pura não exibe processos construtivos de edificação sem serviços correspondentes', () => {
+    const dummyComp = makeComposition('Demolição', [
+      {
+        description: 'Mão de obra demolidor',
+        category: 'mao_de_obra',
+        coefficient: 1,
+        unitCost: 20,
+      },
+    ])
+    const demoOnlyBudget: FullBudget = {
+      ...makeBudget(),
+      stages: [
+        {
+          id: 'stg-demo',
+          order: 1,
+          code: '01',
+          name: 'DEMOLIÇÃO E REMOÇÃO',
+          services: [
+            {
+              id: 's-1',
+              order: 1,
+              code: '01.01',
+              description: 'Demolição manual de alvenaria e paredes existentes',
+              unit: 'm²',
+              quantity: 50,
+              composition: dummyComp,
+            },
+            {
+              id: 's-2',
+              order: 2,
+              code: '01.02',
+              description: 'Remoção de forro de gesso existente e perfis',
+              unit: 'm²',
+              quantity: 80,
+              composition: dummyComp,
+            },
+          ],
+        },
+      ],
+    }
+
+    const summary = calculateFullBudget(demoOnlyBudget)
+    const analysis = analyzeBudgetForProposal(demoOnlyBudget)
+    const sections = buildProposalSections(demoOnlyBudget, summary, analysis)
+
+    const execucao = sections[1]
+    const items = execucao.items || []
+    const fullItemsText = items.join(' ')
+
+    // Deve conter Demolições
+    expect(fullItemsText).toContain('DEMOLIÇÕES, REMOÇÕES E ESCAVAÇÕES')
+
+    // NÃO deve conter processos construtivos novos porque não há execução/construção
+    expect(fullItemsText).not.toContain('ESTRUTURA E FUNDAÇÕES')
+    expect(fullItemsText).not.toContain('ALVENARIA E VEDAÇÕES')
+    expect(fullItemsText).not.toContain('REVESTIMENTOS, PISOS E ACABAMENTOS')
+    expect(fullItemsText).not.toContain('INSTALAÇÕES PREDIAIS')
   })
 })
