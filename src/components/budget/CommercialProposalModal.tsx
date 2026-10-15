@@ -9,8 +9,9 @@
  *  3. COMPLEXIDADE DO SERVIÇO
  *  4. DESTINAÇÃO FINAL DOS RESÍDUOS
  *  5. FORMA DE FISCALIZAÇÃO UTILIZADA
- *  6. VOLUME ESTIMADO DE MATERIAL REMOVIDO
+ *  6. VOLUME DE MATERIAL REMOVIDO
  *  7. PRAZO E AUTORIZAÇÕES PRÉVIAS PARA EXECUÇÃO
+ *  8. CONDIÇÕES COMERCIAIS E GARANTIAS
  *
  * Todo o conteúdo técnico é derivado dos DADOS REAIS do orçamento (etapas, serviços,
  * insumos e quantidades) pelo motor src/lib/proposalEngine.ts — sem texto genérico.
@@ -34,8 +35,9 @@ import {
   Paperclip,
   FileText,
   ListOrdered,
-  UserCheck,
-  Trash2,
+  Calendar,
+  Clock,
+  ShieldCheck,
 } from 'lucide-react'
 import { saveSingleBudget } from '@/lib/budgetsStorage'
 import { syncEngine } from '@/services/syncEngine'
@@ -126,7 +128,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
       budgetId: budget.id,
       action: 'exportacao_pdf',
       title: 'Proposta Técnica e Comercial Impressa / Emitida em PDF',
-      details: `Documento PROPOSTA TÉCNICA E COMERCIAL (7 seções, A4 retrato) da proposta ${cleanCode} impresso/gerado em PDF. Valor: ${formatCurrencyBRL(
+      details: `Documento PROPOSTA TÉCNICA E COMERCIAL (8 seções, A4 retrato) da proposta ${cleanCode} impresso/gerado em PDF. Valor: ${formatCurrencyBRL(
         summary.finalSalePrice,
       )}. Cliente: ${cleanClientName}.`,
       userName: CONCE_COMPANY.responsavelTecnicoCompleto,
@@ -183,7 +185,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
       budgetId: budget.id,
       action: 'anexo_apresentacao',
       title: 'Proposta Técnica e Comercial Anexada ao Orçamento',
-      details: `Documento ${PROPOSAL_DOCUMENT_TITLE} (7 seções, formato A4 retrato) anexado com sucesso como documento (v${nextVersion}). Valor: ${formatCurrencyBRL(
+      details: `Documento ${PROPOSAL_DOCUMENT_TITLE} (8 seções, formato A4 retrato) anexado com sucesso como documento (v${nextVersion}). Valor: ${formatCurrencyBRL(
         summary.finalSalePrice,
       )}.`,
       userName: CONCE_COMPANY.responsavelTecnicoCompleto,
@@ -382,7 +384,8 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             </table>
             <p className="text-[10px] text-[#171A1F]/50 mt-2">
               Validade desta proposta: {cleanValidityDays} dias {cleanValidityType}. Prazo de
-              execução previsto: {cleanDeadline} (ver Seção 7).
+              execução previsto: {cleanDeadline} (ver Seção 7). Condições de faturamento e
+              garantias: ver Seção 8.
             </p>
           </section>
 
@@ -491,13 +494,48 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             <p className="text-[12px] leading-relaxed text-[#171A1F] text-justify">
               Permanecemos à inteira disposição para esclarecimentos adicionais sobre este
               documento. A aceitação da presente proposta implica a concordância integral com as
-              condições aqui estabelecidas, ficando a execução condicionada às autorizações prévias
-              relacionadas na Seção 7 e à formalização contratual entre as partes.
+              condições técnicas, comerciais e de garantia aqui estabelecidas, ficando a execução
+              condicionada às autorizações prévias relacionadas na Seção 7, às condições comerciais
+              da Seção 8 e à formalização contratual entre as partes.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-10 print:mt-12">
+            {/* BLOCO DE DESTAQUE EM EVIDÊNCIA — VALIDADE DA PROPOSTA JUNTO AO ACEITE */}
+            <div className="mt-4 p-3.5 rounded-xl bg-[#294C87]/5 border-2 border-[#FF6B1F]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm print:border print:border-[#FF6B1F]/60">
+              <div className="flex items-start gap-2.5">
+                <div className="p-2 rounded-lg bg-[#FF6B1F]/15 text-[#FF6B1F] shrink-0 mt-0.5 sm:mt-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-[#294C87]">
+                      Validade da Proposta Comercial
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-[#FF6B1F] text-white uppercase tracking-wider">
+                      {cleanValidityDays} dias {cleanValidityType}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#171A1F]/80 mt-0.5 leading-snug">
+                    As condições técnicas e os valores de venda aqui apresentados são válidos por{' '}
+                    <strong>
+                      {cleanValidityDays} dias {cleanValidityType}
+                    </strong>{' '}
+                    a contar da data de emissão ({formatCurrentDatePTBR()}). Decorrido este prazo
+                    sem aceite formal, os preços e cronogramas poderão ser reavaliados.
+                  </p>
+                </div>
+              </div>
+              <div className="shrink-0 text-right sm:text-right w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-[#171A1F]/10">
+                <span className="text-[10px] text-[#171A1F]/60 block">Valor total de venda</span>
+                <span className="text-sm font-black text-[#FF6B1F] whitespace-nowrap">
+                  {formatCurrencyBRL(summary.finalSalePrice)}
+                </span>
+              </div>
+            </div>
+
+            {/* BLOCO DE ASSINATURAS COM DATA E LOCAL DO ACEITE */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-9 print:mt-10">
               <div className="text-center">
-                <div className="border-t border-[#171A1F] pt-1.5 mx-auto max-w-[260px]">
+                <div className="border-t border-[#171A1F] pt-2 mx-auto max-w-[280px]">
                   <p className="font-bold text-[11px] text-[#171A1F]">
                     {CONCE_COMPANY.responsavelTecnico}
                   </p>
@@ -505,15 +543,24 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                     {CONCE_COMPANY.registroCrea}
                   </p>
                   <p className="text-[9.5px] text-[#171A1F]/60">{CONCE_COMPANY.razaoSocial}</p>
+                  <p className="text-[9.5px] text-[#171A1F]/50 mt-1">
+                    Porto Alegre/RS, {formatCurrentDatePTBR()}
+                  </p>
                 </div>
               </div>
               <div className="text-center">
-                <div className="border-t border-[#171A1F] pt-1.5 mx-auto max-w-[240px]">
+                <div className="border-t border-[#171A1F] pt-2 mx-auto max-w-[280px]">
                   <p className="font-bold text-[11px] text-[#171A1F]">{cleanClientName}</p>
                   <p className="text-[10px] text-[#FF6B1F] font-bold">
                     Aceite da Proposta Técnica e Comercial
                   </p>
-                  <p className="text-[9.5px] text-[#171A1F]/60">Data: ____/____/________</p>
+                  <div className="mt-1.5 space-y-0.5 text-[9.5px] text-[#171A1F]/70">
+                    <p>Local do aceite: ________________________ / _____</p>
+                    <p>Data do aceite: _____ / _____ / _________</p>
+                    <p className="text-[8.5px] italic text-[#171A1F]/50">
+                      Assinatura do Contratante ou Representante Legal
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -533,7 +580,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
       <footer className="w-full max-w-4xl mt-3 flex items-center justify-between text-white/60 text-xs px-2 print:hidden">
         <span className="flex items-center gap-1.5">
           <FileText className="w-3.5 h-3.5" />
-          <span>Documento de proposta em A4 retrato — role para ler as 7 seções.</span>
+          <span>Documento de proposta em A4 retrato — role para ler as 8 seções.</span>
         </span>
         <span className="font-mono text-[11px]">Proposta {cleanCode} • CONCE Engenharia</span>
       </footer>

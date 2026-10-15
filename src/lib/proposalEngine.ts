@@ -3,14 +3,15 @@
  * Motor de geração da PROPOSTA TÉCNICA E COMERCIAL (documento comercial de engenharia)
  *
  * A partir dos dados REAIS do orçamento (etapas, serviços, insumos, quantidades, composições),
- * deriva as 7 seções obrigatórias, nesta ordem:
+ * deriva as 8 seções obrigatórias, nesta ordem:
  *  1. OBJETIVO DO TRABALHO
  *  2. FORMA DE EXECUÇÃO
  *  3. COMPLEXIDADE DO SERVIÇO
  *  4. DESTINAÇÃO FINAL DOS RESÍDUOS
  *  5. FORMA DE FISCALIZAÇÃO UTILIZADA
- *  6. VOLUME ESTIMADO DE MATERIAL REMOVIDO
+ *  6. VOLUME DE MATERIAL REMOVIDO
  *  7. PRAZO E AUTORIZAÇÕES PRÉVIAS PARA EXECUÇÃO
+ *  8. CONDIÇÕES COMERCIAIS E GARANTIAS
  *
  * Regras:
  * - Nada de texto genérico de enchimento: cada frase cita dados do orçamento (etapas, serviços,
@@ -778,7 +779,7 @@ export function buildProposalSections(
     'O contratante poderá designar representante para fiscalização complementar junto à CONCE. Eventuais acréscimos, exclusões ou alterações de escopo identificados durante a fiscalização serão formalizados por termo aditivo, com reavaliação técnica de cronograma antes da execução do item alterado.',
   ]
 
-  /* ---------------- 6. VOLUME ESTIMADO DE MATERIAL REMOVIDO ---------------- */
+  /* ---------------- 6. VOLUME DE MATERIAL REMOVIDO ---------------- */
   const volumeParagraphs: string[] = []
   let volumeSection: ProposalSectionData
 
@@ -811,7 +812,7 @@ export function buildProposalSections(
 
     volumeSection = {
       number: 6,
-      title: 'VOLUME ESTIMADO DE MATERIAL REMOVIDO',
+      title: 'VOLUME DE MATERIAL REMOVIDO',
       paragraphs: [...volumeParagraphs, ...concludingParagraphs],
       items: volumeItems,
       footnotes: [
@@ -826,7 +827,7 @@ export function buildProposalSections(
     )
     volumeSection = {
       number: 6,
-      title: 'VOLUME ESTIMADO DE MATERIAL REMOVIDO',
+      title: 'VOLUME DE MATERIAL REMOVIDO',
       paragraphs: volumeParagraphs,
       footnotes: [
         'Análise qualitativa baseada na ausência de serviços de demolição ou escavação no escopo orçado; conformidade com a Resolução CONAMA nº 307/2002.',
@@ -872,6 +873,22 @@ export function buildProposalSections(
     'A presente enumeração é uma previsão técnica das autorizações usualmente exigidas para obras da natureza orçada, sem substituir a verificação específica junto ao condomínio e à Prefeitura, que poderá apontar exigências adicionais.',
   )
 
+  /* ---------------- 8. CONDIÇÕES COMERCIAIS E GARANTIAS ---------------- */
+  const commercialParagraphs: string[] = [
+    'O regime comercial, as condições de faturamento, as garantias técnicas e as exclusões de escopo aplicáveis a esta proposta técnica e comercial obedecem aos critérios formais de engenharia a seguir discriminados:',
+  ]
+
+  const commercialItems: string[] = [
+    'CONDIÇÕES DE PAGAMENTO: entrada de 15% (quinze por cento) do valor total da proposta no ato da assinatura/aceite deste instrumento. O saldo remanescente será faturado mediante medições quinzenais realizadas nos DIAS 2 E 15 (OU PRIMEIRO DIA ÚTIL SUBSEQUENTE) DE CADA MÊS, apurando-se o avanço físico dos serviços executados.',
+    'VÍNCULO PAGAMENTO–NOTA FISCAL: o pagamento de cada medição fica expressamente atrelado à emissão da Nota Fiscal correspondente ao período medido e aprovado pelas partes, sendo a liquidação financeira devida pelo Contratante mediante a respectiva apresentação do documento fiscal.',
+    'GARANTIA CONTRATUAL E LEGAL: os serviços prestados contam com a garantia legal de solidez e segurança pelo prazo irredutível de 5 (cinco) anos, nos estritos termos do Art. 618 do Código Civil Brasileiro (Lei nº 10.406/2002), além da garantia de boa execução e conformidade técnica dos serviços entregues pelo responsável técnico.',
+    `EXCLUSÕES EXPLÍCITAS DE ESCOPO: o orçamento ${budgetCode} constitui o delimitador formal, técnico e financeiro do escopo contratado. Não estão contemplados nesta proposta: elaboração de projeto arquitetônico executivo ou detalhamento mobiliário; taxas, emolumentos, licenças ou multas de órgãos públicos ou ambientais; fornecimento de móveis planejados, marcenaria decorativa ou eletrodomésticos fora dos itens orçados; serviços extraordinários não listados na planilha orçamentária referenciada; e reparo de patologias ocultas ou interferências construtivas prévias não identificáveis visualmente na vistoria inicial. Quaisquer intervenções adicionais serão objeto de orçamento prévio e termo aditivo formal.`,
+  ]
+
+  const commercialFootnotes: string[] = [
+    'A validade comercial desta proposta e os prazos de formalização encontram-se destacados no encerramento e no cabeçalho deste instrumento.',
+  ]
+
   const sections: ProposalSectionData[] = [
     {
       number: 1,
@@ -908,6 +925,13 @@ export function buildProposalSections(
       title: 'PRAZO E AUTORIZAÇÕES PRÉVIAS PARA EXECUÇÃO',
       paragraphs: prazoParagraphs,
       items: authItems,
+    },
+    {
+      number: 8,
+      title: 'CONDIÇÕES COMERCIAIS E GARANTIAS',
+      paragraphs: commercialParagraphs,
+      items: commercialItems,
+      footnotes: commercialFootnotes,
     },
   ]
 

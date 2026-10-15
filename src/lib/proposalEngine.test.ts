@@ -11,7 +11,7 @@ import { FullBudget } from '@/types/budgetEngine'
 
 /**
  * Testes da PROPOSTA TÉCNICA E COMERCIAL (formato DOCUMENTO, não slides).
- * Valida as 7 seções obrigatórias, na ordem exigida, com conteúdo técnico
+ * Valida as 8 seções obrigatórias, na ordem exigida, com conteúdo técnico
  * derivado dos dados reais do orçamento — e a ausência de regressão à
  * antiga feature "Ficha de Descarte".
  */
@@ -170,8 +170,9 @@ const EXPECTED_SECTIONS = [
   'COMPLEXIDADE DO SERVIÇO',
   'DESTINAÇÃO FINAL DOS RESÍDUOS',
   'FORMA DE FISCALIZAÇÃO UTILIZADA',
-  'VOLUME ESTIMADO DE MATERIAL REMOVIDO',
+  'VOLUME DE MATERIAL REMOVIDO',
   'PRAZO E AUTORIZAÇÕES PRÉVIAS PARA EXECUÇÃO',
+  'CONDIÇÕES COMERCIAIS E GARANTIAS',
 ]
 
 describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
@@ -179,15 +180,29 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(PROPOSAL_DOCUMENT_TITLE).toBe('PROPOSTA TÉCNICA E COMERCIAL')
   })
 
-  it('gera exatamente 7 seções, com os títulos obrigatórios na ordem definida pelo usuário', () => {
+  it('gera exatamente 8 seções, com os títulos obrigatórios na ordem definida pelo usuário', () => {
     const budget = makeBudget()
     const summary = calculateFullBudget(budget)
     const analysis = analyzeBudgetForProposal(budget)
     const sections = buildProposalSections(budget, summary, analysis)
 
-    expect(sections).toHaveLength(7)
+    expect(sections).toHaveLength(8)
     expect(sections.map((s) => s.title)).toEqual(EXPECTED_SECTIONS)
-    expect(sections.map((s) => s.number)).toEqual([1, 2, 3, 4, 5, 6, 7])
+    expect(sections.map((s) => s.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+  })
+
+  it('Seção 6 tem o título "VOLUME DE MATERIAL REMOVIDO" sem a palavra "Estimado"', () => {
+    const budget = makeBudget()
+    const sections = buildProposalSections(
+      budget,
+      calculateFullBudget(budget),
+      analyzeBudgetForProposal(budget),
+    )
+    const sec6 = sections[5]
+    expect(sec6.number).toBe(6)
+    expect(sec6.title).toBe('VOLUME DE MATERIAL REMOVIDO')
+    expect(sec6.title).not.toContain('ESTIMADO')
+    expect(sec6.title).not.toContain('Estimado')
   })
 
   it('Seção 1 (Objetivo) cita etapas e serviços reais de forma qualitativa, SEM quantitativos numéricos de volume/área/unidade', () => {
@@ -291,7 +306,7 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(fullText.toLowerCase()).not.toContain('construções sustentáveis')
   })
 
-  it('proposta gerada integralmente não possui qualquer menção a LEED em nenhuma das 7 seções', () => {
+  it('proposta gerada integralmente não possui qualquer menção a LEED em nenhuma das 8 seções', () => {
     const budget = makeBudget()
     const summary = calculateFullBudget(budget)
     const analysis = analyzeBudgetForProposal(budget)
@@ -518,13 +533,59 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(fullText.toLowerCase()).not.toContain('concessionária')
   })
 
-  it('anti-regressão: nenhuma menção a "BDI", sigla BDI ou composição de custo direto + BDI aparece nas 7 seções geradas', () => {
+  it('Seção 8 (Condições Comerciais e Garantias) contempla entrada de 15%, medições nos dias 2 e 15 úteis atreladas a NF, Art. 618 e exclusões de escopo', () => {
     const budget = makeBudget()
     const summary = calculateFullBudget(budget)
     const analysis = analyzeBudgetForProposal(budget)
     const sections = buildProposalSections(budget, summary, analysis)
 
-    expect(sections).toHaveLength(7)
+    expect(sections).toHaveLength(8)
+    const sec8 = sections[7]
+    expect(sec8.number).toBe(8)
+    expect(sec8.title).toBe('CONDIÇÕES COMERCIAIS E GARANTIAS')
+
+    const sec8Text = [...sec8.paragraphs, ...(sec8.items || []), ...(sec8.footnotes || [])].join(
+      ' ',
+    )
+
+    // 1. Pagamento: entrada de 15%
+    expect(sec8Text).toContain('15%')
+    expect(sec8Text.toLowerCase()).toContain('entrada')
+
+    // 2. Medições realizadas nos dias 2 e 15 (dias úteis) de cada mês
+    expect(sec8Text).toContain('DIAS 2 E 15')
+    expect(sec8Text.toLowerCase()).toContain('útil')
+
+    // 3. Pagamento atrelado à emissão da nota fiscal referente ao período medido
+    expect(sec8Text.toLowerCase()).toContain('nota fiscal')
+    expect(sec8Text.toLowerCase()).toContain('período medido')
+    expect(sec8Text.toLowerCase()).toContain('atrelado')
+
+    // 4. Garantia legal Art. 618 Código Civil (solidez e segurança, 5 anos)
+    expect(sec8Text).toContain('Art. 618')
+    expect(sec8Text).toContain('Código Civil')
+    expect(sec8Text).toContain('5 (cinco) anos')
+    expect(sec8Text.toLowerCase()).toContain('solidez e segurança')
+    expect(sec8Text.toLowerCase()).toContain('boa execução')
+
+    // 5. Cláusula de exclusões explícita e delimitador do escopo
+    expect(sec8Text.toLowerCase()).toContain('exclusões')
+    expect(sec8Text).toContain('ORC-2025-777')
+    expect(sec8Text.toLowerCase()).toContain('delimitador')
+    expect(sec8Text.toLowerCase()).toContain('projeto arquitetônico')
+    expect(sec8Text.toLowerCase()).toContain('taxas')
+    expect(sec8Text.toLowerCase()).toContain('emolumentos')
+    expect(sec8Text.toLowerCase()).toContain('móveis planejados')
+    expect(sec8Text.toLowerCase()).toContain('interferências')
+  })
+
+  it('anti-regressão: nenhuma menção a "BDI", sigla BDI ou composição de custo direto + BDI aparece nas 8 seções geradas', () => {
+    const budget = makeBudget()
+    const summary = calculateFullBudget(budget)
+    const analysis = analyzeBudgetForProposal(budget)
+    const sections = buildProposalSections(budget, summary, analysis)
+
+    expect(sections).toHaveLength(8)
 
     const allSectionsText = sections
       .map(
