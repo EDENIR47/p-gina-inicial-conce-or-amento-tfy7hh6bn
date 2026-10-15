@@ -28,17 +28,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  X,
-  Printer,
-  FileCheck,
-  Paperclip,
-  FileText,
-  ListOrdered,
-  Calendar,
-  Clock,
-  ShieldCheck,
-} from 'lucide-react'
+import { X, Printer, FileCheck, Paperclip, FileText, ListOrdered } from 'lucide-react'
 import { saveSingleBudget } from '@/lib/budgetsStorage'
 import { syncEngine } from '@/services/syncEngine'
 import { FullBudget } from '@/types/budgetEngine'
@@ -567,67 +557,40 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
               da Seção 8 e à formalização contratual entre as partes.
             </p>
 
-            {/* BLOCO DE DESTAQUE EM EVIDÊNCIA — VALIDADE DA PROPOSTA JUNTO AO ACEITE */}
-            <div className="conce-proposal-validity-box mt-4 p-3.5 rounded-xl bg-[#294C87]/5 border-2 border-[#FF6B1F]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm print:border print:border-[#FF6B1F]/60">
-              <div className="flex items-start gap-2.5">
-                <div className="p-2 rounded-lg bg-[#FF6B1F]/15 text-[#FF6B1F] shrink-0 mt-0.5 sm:mt-0">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-[#294C87]">
-                      Validade da Proposta Comercial
-                    </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-[#FF6B1F] text-white uppercase tracking-wider">
-                      {cleanValidityDays} dias {cleanValidityType}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#171A1F]/80 mt-0.5 leading-snug">
-                    As condições técnicas e os valores de venda aqui apresentados são válidos por{' '}
-                    <strong>
-                      {cleanValidityDays} dias {cleanValidityType}
-                    </strong>{' '}
-                    a contar da data de emissão ({formatCurrentDatePTBR()}). Decorrido este prazo
-                    sem aceite formal, os preços e cronogramas poderão ser reavaliados.
-                  </p>
-                </div>
-              </div>
-              <div className="shrink-0 text-right sm:text-right w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-[#171A1F]/10">
-                <span className="text-[10px] text-[#171A1F]/60 block">Valor total de venda</span>
-                <span className="text-sm font-black text-[#FF6B1F] whitespace-nowrap">
-                  {formatCurrencyBRL(summary.finalSalePrice)}
-                </span>
-              </div>
-            </div>
-
-            {/* BLOCO DE ASSINATURAS COM DATA E LOCAL DO ACEITE */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-9 print:mt-6 print:grid-cols-2 print:gap-6 print:break-inside-avoid">
-              <div className="text-center">
-                <div className="border-t border-[#171A1F] pt-2 mx-auto max-w-[280px]">
-                  <p className="font-bold text-[11px] text-[#171A1F]">
-                    {CONCE_COMPANY.responsavelTecnico}
-                  </p>
-                  <p className="text-[10px] text-[#294C87] font-semibold">
-                    {CONCE_COMPANY.registroCrea}
-                  </p>
-                  <p className="text-[9.5px] text-[#171A1F]/60">{CONCE_COMPANY.razaoSocial}</p>
-                  <p className="text-[9.5px] text-[#171A1F]/50 mt-1">
-                    Porto Alegre/RS, {formatCurrentDatePTBR()}
-                  </p>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="border-t border-[#171A1F] pt-2 mx-auto max-w-[280px]">
-                  <p className="font-bold text-[11px] text-[#171A1F]">{cleanClientName}</p>
-                  <p className="text-[10px] text-[#FF6B1F] font-bold">
-                    Aceite da Proposta Técnica e Comercial
-                  </p>
-                  <div className="mt-1.5 space-y-0.5 text-[9.5px] text-[#171A1F]/70">
-                    <p>Local do aceite: ________________________ / _____</p>
-                    <p>Data do aceite: _____ / _____ / _________</p>
-                    <p className="text-[8.5px] italic text-[#171A1F]/50">
-                      Assinatura do Contratante ou Representante Legal
+            {/* BLOCO DE ASSINATURAS — ESPAÇO AMPLIADO PARA COLETA DAS ASSINATURAS */}
+            <div className="conce-proposal-signatures print-signatures-block mt-16 pt-8 sm:mt-20 sm:pt-10 print:mt-12 print:pt-6 print:break-inside-avoid">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-12 sm:gap-14 print:grid-cols-2 print:gap-8">
+                {/* ASSINATURA CONCE */}
+                <div className="text-center flex flex-col justify-end">
+                  <div className="h-20 sm:h-24 print:h-[22mm]" aria-hidden="true" />
+                  <div className="border-t border-[#171A1F] pt-2 mx-auto w-full max-w-[280px]">
+                    <p className="font-bold text-[11px] text-[#171A1F]">
+                      {CONCE_COMPANY.responsavelTecnico}
                     </p>
+                    <p className="text-[10px] text-[#294C87] font-semibold">
+                      {CONCE_COMPANY.registroCrea}
+                    </p>
+                    <p className="text-[9.5px] text-[#171A1F]/60">{CONCE_COMPANY.razaoSocial}</p>
+                    <p className="text-[9.5px] text-[#171A1F]/50 mt-1">
+                      Porto Alegre/RS, {formatCurrentDatePTBR()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* ACEITE DO CLIENTE */}
+                <div className="text-center flex flex-col justify-end">
+                  <div className="h-20 sm:h-24 print:h-[22mm]" aria-hidden="true" />
+                  <div className="border-t border-[#171A1F] pt-2 mx-auto w-full max-w-[280px]">
+                    <p className="font-bold text-[11px] text-[#171A1F]">{cleanClientName}</p>
+                    <p className="text-[10px] text-[#FF6B1F] font-bold">
+                      Aceite da Proposta Técnica e Comercial
+                    </p>
+                    <div className="mt-1.5 space-y-0.5 text-[9.5px] text-[#171A1F]/70">
+                      <p>Data do aceite: _____ / _____ / _________</p>
+                      <p className="text-[8.5px] italic text-[#171A1F]/50">
+                        Assinatura do Contratante ou Representante Legal
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

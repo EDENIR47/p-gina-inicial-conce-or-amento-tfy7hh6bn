@@ -551,7 +551,8 @@
     }
 
     /* BLOCO DE ASSINATURAS */
-    .print-signatures-block {
+    .print-signatures-block,
+    .conce-proposal-signatures {
       break-inside: avoid !important;
       page-break-inside: avoid !important;
     }
