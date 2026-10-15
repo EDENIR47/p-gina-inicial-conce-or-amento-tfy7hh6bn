@@ -289,8 +289,8 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
         id="conce-printable-presentation"
       >
         <article className="conce-proposal-sheet bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 print:border-none print:shadow-none">
-          {/* CABEÇALHO DA CAPA: MARCA CONCE + ENGENHARIA LTDA ACIMA DO TÍTULO "PROPOSTA TÉCNICA E COMERCIAL" */}
-          <header className="conce-proposal-header border-b-2 border-[#171A1F] px-6 sm:px-10 pt-6 pb-4 print:p-0 print:pt-1 print:pb-3 print:border-b-2 print:border-[#171A1F] print:block">
+          {/* CABEÇALHO DA CAPA: MARCA CONCE + ENGENHARIA LTDA ACIMA DO TÍTULO "PROPOSTA TÉCNICA E COMERCIAL" (sem divisória/linha inferior com a frase da proposta) */}
+          <header className="conce-proposal-header px-6 sm:px-10 pt-6 pb-4 print:p-0 print:pt-1 print:pb-3 print:border-b-0 print:block">
             {/* Metadados do documento (topo do cabeçalho) */}
             <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#171A1F]/10 print:pb-2">
               <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FF6B1F]/15 text-[#FF6B1F] text-[10px] font-black uppercase tracking-wider print:bg-[#FF6B1F]/15 print:text-[#FF6B1F]">

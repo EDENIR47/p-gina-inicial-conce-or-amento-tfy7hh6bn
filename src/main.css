@@ -435,6 +435,7 @@
       height: auto !important;
       max-height: none !important;
       opacity: 1 !important;
+      border-bottom: none !important;
       break-inside: avoid !important;
       page-break-inside: avoid !important;
       break-after: auto !important;
