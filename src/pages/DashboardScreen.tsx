@@ -31,7 +31,6 @@ import { AbcCurvePanel } from '@/components/dashboard/AbcCurvePanel'
 import { BudgetComparisonPanel } from '@/components/dashboard/BudgetComparisonPanel'
 import { MonthlyEvolutionPanel } from '@/components/dashboard/MonthlyEvolutionPanel'
 import { StatusDistributionPanel } from '@/components/dashboard/StatusDistributionPanel'
-import { WasteDisposalPanel } from '@/components/dashboard/WasteDisposalPanel'
 import { BudgetsTable } from '@/components/dashboard/BudgetsTable'
 import { ManageBudgetsPanel } from '@/components/dashboard/ManageBudgetsPanel'
 import {
@@ -293,15 +292,6 @@ export const DashboardScreen: React.FC = () => {
             <StatusDistributionPanel
               items={dashboardData.distribution}
               total={dashboardData.summary.totalBudgets}
-            />
-          </section>
-
-          {/* 5. Bloco de Controle de Descarte de Resíduos CONAMA 307 com Certificados de Destino Final */}
-          <section aria-label="Controle de Descarte de Resíduos da Obra">
-            <WasteDisposalPanel
-              budgets={fullBudgets}
-              onOpenBudget={handleOpenFullEditor}
-              onBudgetUpdated={() => reloadBudgets()}
             />
           </section>
 

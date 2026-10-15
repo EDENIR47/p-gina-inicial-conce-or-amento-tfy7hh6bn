@@ -41,7 +41,6 @@ interface BudgetTotalsBarProps {
   onOpenRevisionsModal?: () => void
   onOpenAuditModal?: () => void
   onOpenCommercialModal?: () => void
-  onOpenDisposalModal?: () => void
 }
 
 export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
@@ -54,7 +53,6 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
   onOpenExcelExport,
   onOpenMemorialModal,
   onOpenCommercialModal,
-  onOpenDisposalModal,
   onOpenRevisionsModal,
   onOpenAuditModal,
 }) => {
@@ -148,32 +146,6 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
             >
               <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
               <span>Memorial Descritivo</span>
-            </button>
-          )}
-
-          {onOpenDisposalModal && (
-            <button
-              type="button"
-              onClick={onOpenDisposalModal}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm border active:scale-95 cursor-pointer ${
-                budget.disposalDocument
-                  ? 'bg-emerald-600/20 hover:bg-emerald-600 text-emerald-200 hover:text-white border-emerald-400/40'
-                  : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-              }`}
-              title={
-                budget.disposalDocument
-                  ? `Ficha de Descarte v${budget.disposalDocument.version} anexada ao orçamento. Clique para visualizar ou editar.`
-                  : 'Ficha de Descarte de Materiais com Certificado de Destino Final (CONAMA 307)'
-              }
-            >
-              {budget.disposalDocument && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              )}
-              <span>
-                {budget.disposalDocument
-                  ? `Ficha Descarte (v${budget.disposalDocument.version})`
-                  : 'Ficha Descarte'}
-              </span>
             </button>
           )}
 

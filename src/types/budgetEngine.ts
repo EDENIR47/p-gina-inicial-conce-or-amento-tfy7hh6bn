@@ -240,54 +240,6 @@ export interface FullBudget {
       contentSummary?: string
     }>
   }
-  disposalDocument?: {
-    version: number
-    attachedAt: string
-    updatedAt: string
-    budgetCode: string
-    budgetTitle?: string
-    clientName?: string
-    workName?: string
-    workAddress?: string
-    technicalResponsible: string
-    technicalCrea: string
-    totalMaterialInputsCount: number
-    totalEstimatedWeightKg: number
-    sheets: Array<{
-      id: string
-      wasteType: string // ex.: "Classe A - Entulho / Alvenaria / Cerâmica / Concreto"
-      wasteGroup: string // "entulho_alvenaria" | "madeira" | "metal_aco" | "plastico_pvc" | "papel_papelao" | "gesso" | "tintas_solventes" | "vidro" | "embalagens_gerais"
-      conamaClass: 'Classe A' | 'Classe B' | 'Classe C' | 'Classe D'
-      description: string
-      estimatedWeightKg: number
-      estimatedVolumeM3?: number
-      recommendedDestination: string
-      items: Array<{
-        stageCode: string
-        stageName: string
-        serviceCode: string
-        serviceDescription: string
-        inputCode: string
-        inputDescription: string
-        unit: string
-        budgetQuantity: number
-        estimatedWeightKg: number
-      }>
-      certificate: {
-        status: 'pendente' | 'emitido' | 'conferido'
-        transporterName?: string
-        transporterCnpj?: string
-        destinationCompany?: string
-        destinationCnpj?: string
-        destinationType?: string // ex: "Aterro de Inertes Licenciado", "Central de Britagem/Reciclagem", "Cooperativa de Triagem", "Unidade de Co-processamento/Incineração"
-        certificateOrManifestNumber?: string // MTR / CDF nº
-        environmentalLicense?: string // Licença de Operação (LO) nº
-        disposalDate?: string // YYYY-MM-DD
-        responsibleTechnician?: string
-        notes?: string
-      }
-    }>
-  }
   stages: BudgetStage[]
   chargesConfig: {
     uf: string
