@@ -453,20 +453,20 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             <ol className="text-[11px] text-[#171A1F]/80 space-y-0.5 list-decimal list-inside">
               {sections.map((sec) => (
                 <li key={sec.number}>
-                  <strong>Seção {sec.number}.</strong> {sec.title}
+                  <strong>{sec.number}</strong> {sec.title}
                 </li>
               ))}
             </ol>
           </section>
 
-          {/* AS 8 SEÇÕES DA PROPOSTA (texto corrido, ordem fixa) */}
+          {/* AS 8 SEÇÕES DA PROPOSTA (texto corrido, ordem fixa) — Títulos numerados sem ponto final ABNT */}
           {sections.map((sec) => (
             <section
               key={sec.number}
               className="conce-proposal-section px-6 sm:px-10 py-4 border-t border-[#171A1F]/15 print:px-0"
             >
-              <h2 className="flex items-baseline gap-2 text-sm font-black text-[#294C87] uppercase tracking-wide mb-2.5">
-                <span className="font-mono text-[#FF6B1F]">{sec.number}.</span>
+              <h2 className="flex items-baseline gap-2 text-sm font-black text-[#294C87] uppercase tracking-wide mb-2.5 print:font-bold print:text-[12pt] print:leading-[1.5] print:text-[#171A1F]">
+                <span className="font-mono text-[#FF6B1F] print:text-[#171A1F]">{sec.number}</span>
                 <span>{sec.title}</span>
               </h2>
 
@@ -647,11 +647,18 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
               Em @media print, position: fixed fixa este rodapé na base da área útil de cada folha impressa,
               garantindo que as notas técnicas e identificação fiquem sempre na última linha da folha,
               sem quebras artificiais nem flutuação no meio do texto. */}
+          {/* Marcador de numeração de páginas ABNT NBR 14724 no canto superior direito (oculto na capa) */}
+          <div aria-hidden="true" className="abnt-page-counter print:block hidden select-none" />
+
+          {/* RODAPÉ FIXO NA BASE DA FOLHA (APENAS NA IMPRESSÃO)
+              Em @media print, position: fixed fixa este rodapé na base da área útil de cada folha impressa,
+              garantindo que as notas técnicas e identificação fiquem sempre na última linha da folha,
+              sem quebras artificiais nem flutuação no meio do texto, com tipografia ABNT (10pt, simples). */}
           <footer
             aria-label="Rodapé impresso da folha"
             className="conce-proposal-page-footer print:block hidden"
           >
-            <div className="flex items-center justify-between border-t border-[#171A1F]/20 pt-1 text-[7.5pt] text-[#171A1F]/70">
+            <div className="flex items-center justify-between border-t border-[#171A1F]/20 pt-1 text-[10pt] text-[#171A1F]/80">
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-[#294C87]">CONCE ENGENHARIA</span>
                 <span>•</span>

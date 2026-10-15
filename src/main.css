@@ -263,14 +263,17 @@
     }
   }
 
-  /* REGRAS DE IMPRESSÃO PROFISSIONAL CONCE */
-  /* Margens físicas do @page aplicadas automaticamente em TODAS as páginas após as quebras,
-     garantindo respiro superior de 3cm (30mm) e respiro inferior de 2cm (20mm), com 8mm nas laterais.
-     Para evitar que URLs ou títulos do navegador apareçam nas margens, o usuário mantém desmarcada
+  /* REGRAS DE IMPRESSÃO PROFISSIONAL CONCE — PADRONIZAÇÃO ABNT NBR 14724 */
+  /* Papel A4 portrait; Margens ABNT NBR 14724:
+     - Superior: 3 cm (30mm)
+     - Esquerda: 3 cm (30mm)
+     - Inferior: 2 cm (20mm)
+     - Direita: 2 cm (20mm)
+     Para evitar que URLs ou títulos do navegador apareçam nas margens, desmarcar
      a opção "Cabeçalhos e rodapés" na caixa de diálogo de impressão do navegador. */
   @page {
     size: A4 portrait;
-    margin: 30mm 8mm 20mm 8mm;
+    margin: 30mm 20mm 20mm 30mm;
   }
 
   /* Quando o modal de PROPOSTA TÉCNICA E COMERCIAL estiver ativo para impressão:
@@ -281,7 +284,7 @@
   }
 
   @media print {
-    /* 1. Reset básico do documento para impressão limpa e compacta */
+    /* 1. Reset básico do documento para impressão limpa e compacta conforme ABNT NBR 14724 */
     html {
       background-color: #ffffff !important;
       background: #ffffff !important;
@@ -289,14 +292,18 @@
       padding: 0 !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
     }
 
     body {
       background-color: #ffffff !important;
       background: #ffffff !important;
       color: #171a1f !important;
-      font-size: 9.5pt !important;
-      line-height: 1.3 !important;
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-size: 12pt !important;
+      line-height: 1.5 !important;
       width: 100% !important;
       height: auto !important;
       min-height: 0 !important;
@@ -307,13 +314,15 @@
       print-color-adjust: exact !important;
     }
 
-    /* Ajuste para documento de Proposta Técnica e Comercial em A4 retrato */
+    /* Ajuste para documento de Proposta Técnica e Comercial e Memorial em A4 retrato */
     body.conce-printing-presentation {
       background-color: #ffffff !important;
       background: #ffffff !important;
       color: #171a1f !important;
-      font-size: 9.5pt !important;
-      line-height: 1.4 !important;
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-size: 12pt !important;
+      line-height: 1.5 !important;
       overflow: visible !important;
     }
 
@@ -499,6 +508,29 @@
       padding-bottom: 2mm !important;
     }
 
+    /* Numeração de páginas conforme ABNT NBR 14724:
+       Algarismos arábicos no canto superior direito, iniciando a partir da segunda folha (a capa não é numerada).
+       CSS Paged Media: counter(page) posicionado no canto superior direito. */
+    .abnt-page-counter {
+      display: none !important;
+    }
+
+    @media print {
+      .abnt-page-counter {
+        display: block !important;
+        position: fixed !important;
+        top: -22mm !important;
+        right: 0 !important;
+        font-family:
+          Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+        font-size: 10pt !important;
+        line-height: 1 !important;
+        color: #171a1f !important;
+        text-align: right !important;
+        z-index: 9999 !important;
+      }
+    }
+
     /* Título PROPOSTA TÉCNICA E COMERCIAL na página 2 */
     .conce-proposal-title {
       display: block !important;
@@ -571,38 +603,55 @@
       box-sizing: border-box !important;
     }
 
-    /* Títulos de seção: evitar que fiquem órfãos no fim da folha */
-    .conce-proposal-section h2 {
-      font-size: 10.5pt !important;
-      font-weight: 800 !important;
-      line-height: 1.35 !important;
-      margin-top: 1mm !important;
-      margin-bottom: 2.5mm !important;
+    /* Títulos de seção conforme ABNT NBR 14724:
+       Numerados na hierarquia (1, 1.1, etc.), em negrito nos níveis principais, sem ponto final,
+       alinhados à esquerda, sem recuo de parágrafo, sem órfãos no fim da página */
+    .conce-proposal-section h2,
+    .abnt-section-title {
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-size: 12pt !important;
+      font-weight: bold !important;
+      line-height: 1.5 !important;
+      margin-top: 4mm !important;
+      margin-bottom: 3mm !important;
+      text-align: left !important;
+      text-indent: 0 !important;
       break-after: avoid !important;
       page-break-after: avoid !important;
     }
 
-    /* Parágrafos com espaçamento e entrelinha confortáveis (elimina textos colados) */
-    .conce-proposal-section p {
-      font-size: 9pt !important;
-      line-height: 1.45 !important;
-      margin-bottom: 2mm !important;
+    /* Parágrafos com espaçamento e entrelinha ABNT NBR 14724:
+       Fonte 12pt, entrelinha 1,5, texto justificado, recuo de primeira linha de 1,25 cm */
+    .conce-proposal-section p,
+    .abnt-paragraph {
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-size: 12pt !important;
+      line-height: 1.5 !important;
+      margin-bottom: 3mm !important;
       text-align: justify !important;
       text-justify: inter-word !important;
+      text-indent: 1.25cm !important;
       word-spacing: normal !important;
     }
 
     .conce-proposal-section ul {
       margin-top: 2mm !important;
-      margin-bottom: 2.5mm !important;
+      margin-bottom: 3mm !important;
+      padding-left: 1.25cm !important;
     }
 
     .conce-proposal-section ul li {
-      font-size: 8.5pt !important;
-      line-height: 1.4 !important;
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-size: 12pt !important;
+      line-height: 1.5 !important;
       margin-bottom: 1.5mm !important;
       break-inside: avoid !important;
       page-break-inside: avoid !important;
+      text-align: justify !important;
+      text-justify: inter-word !important;
     }
 
     .conce-proposal-section ul li span {
@@ -610,25 +659,29 @@
       text-justify: inter-word !important;
     }
 
-    /* Tabelas dentro de seções */
+    /* Tabelas dentro de seções — área útil 100%, sem estourar margem */
     .conce-proposal-section table {
       break-inside: auto !important;
       page-break-inside: auto !important;
-      font-size: 8pt !important;
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-size: 10pt !important;
+      line-height: 1.2 !important;
       width: 100% !important;
+      max-width: 100% !important;
       border-collapse: collapse !important;
-      margin-top: 2mm !important;
-      margin-bottom: 2.5mm !important;
+      margin-top: 2.5mm !important;
+      margin-bottom: 3mm !important;
     }
 
     .conce-proposal-section th,
     .conce-proposal-section td {
       padding: 1.8mm 2.5mm !important;
-      font-size: 8pt !important;
-      line-height: 1.35 !important;
+      font-size: 10pt !important;
+      line-height: 1.2 !important;
     }
 
-    /* Rodapé fixado na base de cada folha impressa:
+    /* Rodapé fixado na base de cada folha impressa (ABNT: notas de rodapé tamanho 10, espaçamento simples):
        Em CSS paged media (@page/print), elementos com position: fixed ficam fixados
        na base da área imprimível (área útil da folha A4) de cada folha.
        Na tela/modal interativo, este rodapé fica oculto (print-only). */
@@ -650,16 +703,17 @@
         padding-top: 1.5mm !important;
         padding-bottom: 0 !important;
         z-index: 9999 !important;
-        font-size: 7.5pt !important;
-        line-height: 1.25 !important;
-        color: rgba(23, 26, 31, 0.7) !important;
+        font-family:
+          Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+        font-size: 10pt !important;
+        line-height: 1 !important;
+        color: rgba(23, 26, 31, 0.8) !important;
       }
     }
 
-    /* Bloco de notas gerais da proposta:
-       Concentrado de forma limpa antes do aceite ou ao final das seções,
-       sem quebras artificiais nem ficar solto no meio do texto. */
-    .conce-proposal-footnote-block {
+    /* Bloco de notas gerais da proposta: ABNT NBR 14724 — fonte 10pt, espaçamento simples */
+    .conce-proposal-footnote-block,
+    .abnt-footnote {
       display: block !important;
       visibility: visible !important;
       break-inside: avoid !important;
@@ -670,13 +724,19 @@
       border-top: 0.5pt dashed rgba(23, 26, 31, 0.25) !important;
       width: 100% !important;
       box-sizing: border-box !important;
+      font-size: 10pt !important;
+      line-height: 1.2 !important;
     }
 
-    .conce-proposal-footnote-text {
-      font-size: 8pt !important;
-      line-height: 1.35 !important;
-      color: rgba(23, 26, 31, 0.7) !important;
+    .conce-proposal-footnote-text,
+    .abnt-footnote-text {
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-size: 10pt !important;
+      line-height: 1.2 !important;
+      color: rgba(23, 26, 31, 0.75) !important;
       margin: 1mm 0 !important;
+      text-indent: 0 !important;
     }
 
     /* Encerramento e Aceite */
@@ -692,11 +752,14 @@
     }
 
     .conce-proposal-encerramento p {
-      font-size: 9pt !important;
-      line-height: 1.45 !important;
-      margin-bottom: 2mm !important;
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-size: 12pt !important;
+      line-height: 1.5 !important;
+      margin-bottom: 3mm !important;
       text-align: justify !important;
       text-justify: inter-word !important;
+      text-indent: 1.25cm !important;
     }
 
     /* Bloco de destaque de validade posicionado junto ao aceite */
@@ -721,6 +784,7 @@
       display: block !important;
       position: relative !important;
       width: 100% !important;
+      max-width: 100% !important;
       margin: 0 0 0.5rem 0 !important;
       padding: 0 !important;
       box-sizing: border-box !important;
@@ -729,6 +793,59 @@
       page-break-inside: auto !important;
       break-after: auto !important;
       page-break-after: auto !important;
+    }
+
+    /* Padrão ABNT NBR 14724 para Memorial Descritivo na Impressão */
+    #conce-printable-memorial {
+      font-family:
+        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-size: 12pt !important;
+      line-height: 1.5 !important;
+      color: #171a1f !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    #conce-printable-memorial p {
+      font-size: 12pt !important;
+      line-height: 1.5 !important;
+      text-align: justify !important;
+      text-justify: inter-word !important;
+      text-indent: 1.25cm !important;
+      margin-bottom: 3mm !important;
+    }
+
+    #conce-printable-memorial h3,
+    #conce-printable-memorial h4 {
+      font-size: 12pt !important;
+      font-weight: bold !important;
+      line-height: 1.5 !important;
+      text-align: left !important;
+      text-indent: 0 !important;
+      break-after: avoid !important;
+      page-break-after: avoid !important;
+    }
+
+    #conce-printable-memorial .abnt-caption,
+    #conce-printable-memorial .abnt-footnote,
+    #conce-printable-memorial footer,
+    #conce-printable-memorial .abnt-meta {
+      font-size: 10pt !important;
+      line-height: 1.2 !important;
+      text-indent: 0 !important;
+    }
+
+    #conce-printable-memorial table {
+      font-size: 10pt !important;
+      line-height: 1.2 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    #conce-printable-memorial th,
+    #conce-printable-memorial td {
+      font-size: 10pt !important;
+      line-height: 1.2 !important;
     }
 
     /* Capa institucional contínua e compacta:
@@ -798,6 +915,7 @@
       page-break-inside: auto !important;
       break-inside: auto !important;
       width: 100% !important;
+      max-width: 100% !important;
     }
 
     thead {
