@@ -504,7 +504,7 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
         {/* 3. INTRODUÇÃO E OBJETIVO DO MEMORIAL */}
         <section className="print-page-section print-break-avoid space-y-2">
           <div className="flex items-center justify-between border-b border-[#171A1F]/15 pb-1.5">
-            <h3 className="text-xs sm:text-sm font-extrabold uppercase text-[#294C87] tracking-wider print:font-bold print:text-[12pt] print:leading-[1.5] print:text-[#171A1F]">
+            <h3 className="text-xs sm:text-sm font-extrabold uppercase text-[#294C87] tracking-wider">
               1 Objetivo e Considerações Gerais
             </h3>
             {isEditMode && (
@@ -530,7 +530,7 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
         {/* 4. SUMÁRIO EXECUTIVO DE ETAPAS (OPCIONAL) */}
         {includeSummary && memorialData.stages.length > 0 && (
           <section className="print-page-section print-break-avoid space-y-2.5">
-            <h3 className="text-xs sm:text-sm font-extrabold uppercase text-[#294C87] tracking-wider border-b border-[#171A1F]/15 pb-1.5 print:font-bold print:text-[12pt] print:leading-[1.5] print:text-[#171A1F]">
+            <h3 className="text-xs sm:text-sm font-extrabold uppercase text-[#294C87] tracking-wider border-b border-[#171A1F]/15 pb-1.5">
               2 Relação Executiva de Etapas Previstas
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -557,7 +557,7 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
         {/* 5. DISCRIMINAÇÃO DETALHADA POR ETAPA E ESPECIFICAÇÃO DE CADA SERVIÇO */}
         <section className="space-y-6 print:space-y-4">
           <div className="border-b-2 border-[#294C87] pb-1">
-            <h3 className="text-xs sm:text-sm font-extrabold uppercase text-[#294C87] tracking-wider print:font-bold print:text-[12pt] print:leading-[1.5] print:text-[#171A1F]">
+            <h3 className="text-xs sm:text-sm font-extrabold uppercase text-[#294C87] tracking-wider">
               {includeSummary
                 ? '3 Especificações Técnicas Detalhadas dos Serviços'
                 : '2 Especificações Técnicas Detalhadas dos Serviços'}

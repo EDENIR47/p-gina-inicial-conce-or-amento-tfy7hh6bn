@@ -341,14 +341,14 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
         {/* identificação, sumário e seções numeradas de 1 a 8.          */}
         {/* ============================================================ */}
         <article className="conce-proposal-sheet bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 print:border-none print:shadow-none">
-          {/* Marcador de numeração de páginas ABNT NBR 14724 no canto superior direito (a partir da página 2) */}
+          {/* Marcador de numeração de páginas no canto superior direito (a partir da página 2) */}
           <div aria-hidden="true" className="abnt-page-counter print:block hidden select-none" />
 
           {/* CABEÇALHO DO CORPO DA PROPOSTA (TOPO DA PÁGINA 2) */}
-          <header className="conce-proposal-body-header px-6 sm:px-10 pt-6 pb-1 print:px-0 print:pt-0 print:pb-0 print:block">
-            {/* Metadados do documento (topo da página 2) — linha superior mais rente ao topo */}
-            <div className="conce-proposal-meta-line flex items-center justify-between gap-4 pb-2 border-b border-[#171A1F]/15 print:pb-1.5">
-              <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FF6B1F]/15 text-[#FF6B1F] text-[10px] font-black uppercase tracking-wider print:bg-[#FF6B1F]/15 print:text-[#FF6B1F]">
+          <header className="conce-proposal-body-header px-6 sm:px-10 pt-6 pb-1 print:px-6 print:pt-4 print:pb-1 print:block">
+            {/* Metadados do documento (topo da página 2) */}
+            <div className="conce-proposal-meta-line flex items-center justify-between gap-4 pb-2 border-b border-[#171A1F]/15 print:pb-2">
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FF6B1F]/15 text-[#FF6B1F] text-[10px] font-black uppercase tracking-wider">
                 Proposta Comercial
               </span>
               <div className="flex items-center gap-3 text-right">
@@ -363,18 +363,18 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             </div>
           </header>
 
-          {/* TÍTULO DO DOCUMENTO — PROPOSTA TÉCNICA E COMERCIAL (abre a página 2, com mais respiro vertical abaixo da linha) */}
-          <div className="conce-proposal-title px-6 sm:px-10 pt-7 pb-4 sm:pt-8 sm:pb-5 text-center border-b border-[#171A1F]/15 print:px-0 print:border-b print:border-[#171A1F]/15 print:block">
-            <h1 className="text-xl sm:text-2xl font-black text-[#171A1F] tracking-tight uppercase print:text-[14pt] print:leading-tight">
+          {/* TÍTULO DO DOCUMENTO — PROPOSTA TÉCNICA E COMERCIAL */}
+          <div className="conce-proposal-title px-6 sm:px-10 pt-7 pb-4 sm:pt-8 sm:pb-5 text-center border-b border-[#171A1F]/15 print:px-6 print:pt-4 print:pb-3 print:border-b print:border-[#171A1F]/15 print:block">
+            <h1 className="text-xl sm:text-2xl font-black text-[#171A1F] tracking-tight uppercase">
               {PROPOSAL_DOCUMENT_TITLE}
             </h1>
-            <p className="text-[11px] text-[#294C87] font-bold uppercase tracking-wider mt-1 print:text-[9pt]">
+            <p className="text-[11px] text-[#294C87] font-bold uppercase tracking-wider mt-1">
               {cleanTitle}
             </p>
           </div>
 
           {/* IDENTIFICAÇÃO DO ORÇAMENTO / CLIENTE / OBRA */}
-          <section className="conce-proposal-identificacao px-6 sm:px-10 py-4 print:px-0">
+          <section className="conce-proposal-identificacao px-6 sm:px-10 py-4 print:px-6 print:py-3">
             <table className="w-full text-[11px] border border-[#171A1F]/20">
               <tbody>
                 <tr className="border-b border-[#171A1F]/10">
@@ -448,7 +448,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           </section>
 
           {/* SUMÁRIO DAS SEÇÕES */}
-          <section className="conce-proposal-sumario px-6 sm:px-10 pb-4 print:px-0">
+          <section className="conce-proposal-sumario px-6 sm:px-10 pb-4 print:px-6 print:pb-3">
             <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#294C87] mb-1.5">
               <ListOrdered className="w-3.5 h-3.5 text-[#FF6B1F]" />
               <span>Sumário da Proposta</span>
@@ -462,14 +462,14 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             </ol>
           </section>
 
-          {/* AS 8 SEÇÕES DA PROPOSTA (texto corrido, ordem fixa) — Títulos numerados sem ponto final ABNT */}
+          {/* AS 8 SEÇÕES DA PROPOSTA (texto corrido, ordem fixa) — Títulos numerados */}
           {sections.map((sec) => (
             <section
               key={sec.number}
-              className="conce-proposal-section px-6 sm:px-10 py-4 border-t border-[#171A1F]/15 print:px-0"
+              className="conce-proposal-section px-6 sm:px-10 py-4 border-t border-[#171A1F]/15 print:px-6 print:py-3.5"
             >
-              <h2 className="flex items-baseline gap-2 text-sm font-black text-[#294C87] uppercase tracking-wide mb-2.5 print:font-bold print:text-[12pt] print:leading-[1.5] print:text-[#171A1F]">
-                <span className="font-mono text-[#FF6B1F] print:text-[#171A1F]">{sec.number}</span>
+              <h2 className="flex items-baseline gap-2 text-sm font-black text-[#294C87] uppercase tracking-wide mb-2.5">
+                <span className="font-mono text-[#FF6B1F]">{sec.number}</span>
                 <span>{sec.title}</span>
               </h2>
 
@@ -558,7 +558,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           ))}
 
           {/* ENCERRAMENTO / ASSINATURAS */}
-          <section className="conce-proposal-encerramento px-6 sm:px-10 py-4 border-t border-[#171A1F]/15 print:px-0">
+          <section className="conce-proposal-encerramento px-6 sm:px-10 py-4 border-t border-[#171A1F]/15 print:px-6 print:py-4">
             <p className="text-[12px] leading-relaxed text-[#171A1F] text-justify">
               Permanecemos à inteira disposição para esclarecimentos adicionais sobre este
               documento. A aceitação da presente proposta implica a concordância integral com as
@@ -601,35 +601,31 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             </div>
 
             {/* BLOCO DE ASSINATURAS COM DATA E LOCAL DO ACEITE */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-9 print:mt-8 print:grid-cols-2 print:gap-6 print:break-inside-avoid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-9 print:mt-6 print:grid-cols-2 print:gap-6 print:break-inside-avoid">
               <div className="text-center">
                 <div className="border-t border-[#171A1F] pt-2 mx-auto max-w-[280px]">
-                  <p className="font-bold text-[11px] text-[#171A1F] print:text-[9.5pt]">
+                  <p className="font-bold text-[11px] text-[#171A1F]">
                     {CONCE_COMPANY.responsavelTecnico}
                   </p>
-                  <p className="text-[10px] text-[#294C87] font-semibold print:text-[8.5pt]">
+                  <p className="text-[10px] text-[#294C87] font-semibold">
                     {CONCE_COMPANY.registroCrea}
                   </p>
-                  <p className="text-[9.5px] text-[#171A1F]/60 print:text-[8pt]">
-                    {CONCE_COMPANY.razaoSocial}
-                  </p>
-                  <p className="text-[9.5px] text-[#171A1F]/50 mt-1 print:text-[7.5pt]">
+                  <p className="text-[9.5px] text-[#171A1F]/60">{CONCE_COMPANY.razaoSocial}</p>
+                  <p className="text-[9.5px] text-[#171A1F]/50 mt-1">
                     Porto Alegre/RS, {formatCurrentDatePTBR()}
                   </p>
                 </div>
               </div>
               <div className="text-center">
                 <div className="border-t border-[#171A1F] pt-2 mx-auto max-w-[280px]">
-                  <p className="font-bold text-[11px] text-[#171A1F] print:text-[9.5pt]">
-                    {cleanClientName}
-                  </p>
-                  <p className="text-[10px] text-[#FF6B1F] font-bold print:text-[8.5pt]">
+                  <p className="font-bold text-[11px] text-[#171A1F]">{cleanClientName}</p>
+                  <p className="text-[10px] text-[#FF6B1F] font-bold">
                     Aceite da Proposta Técnica e Comercial
                   </p>
-                  <div className="mt-1.5 space-y-0.5 text-[9.5px] text-[#171A1F]/70 print:text-[8pt]">
+                  <div className="mt-1.5 space-y-0.5 text-[9.5px] text-[#171A1F]/70">
                     <p>Local do aceite: ________________________ / _____</p>
                     <p>Data do aceite: _____ / _____ / _________</p>
-                    <p className="text-[8.5px] italic text-[#171A1F]/50 print:text-[7pt]">
+                    <p className="text-[8.5px] italic text-[#171A1F]/50">
                       Assinatura do Contratante ou Representante Legal
                     </p>
                   </div>
@@ -648,13 +644,12 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
 
           {/* RODAPÉ FIXO NA BASE DA FOLHA (APENAS NA IMPRESSÃO)
               Em @media print, position: fixed fixa este rodapé na base da área útil de cada folha impressa,
-              garantindo que as notas técnicas e identificação fiquem sempre na base da folha (rodapé de verdade),
-              com tipografia ABNT (10pt simples, sem quebras no meio do texto). */}
+              garantindo que as notas técnicas e identificação fiquem na base da folha. */}
           <footer
             aria-label="Rodapé impresso da folha"
             className="conce-proposal-page-footer print:block hidden"
           >
-            <div className="flex items-center justify-between pt-1 text-[9pt] text-[#171A1F]/80">
+            <div className="flex items-center justify-between px-6 pt-1 text-[8.5pt] text-[#171A1F]/80">
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-[#294C87]">CONCE ENGENHARIA</span>
                 <span>•</span>
