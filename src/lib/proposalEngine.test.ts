@@ -190,7 +190,7 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(sections.map((s) => s.number)).toEqual([1, 2, 3, 4, 5, 6, 7])
   })
 
-  it('Seção 1 (Objetivo) cita etapa e serviços reais com quantidades e unidades do orçamento', () => {
+  it('Seção 1 (Objetivo) cita etapas e serviços reais de forma qualitativa, SEM quantitativos numéricos de volume/área/unidade', () => {
     const budget = makeBudget()
     const summary = calculateFullBudget(budget)
     const analysis = analyzeBudgetForProposal(budget)
@@ -203,8 +203,13 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(fullText).toContain('Demolição de revestimento de parede em alvenaria')
     expect(fullText).toContain('Pintura de paredes internas')
     expect(fullText).toContain('ORC-2025-777')
-    expect(fullText).toContain('m²')
-    expect(fullText).toContain('2 etapa(s) e 3 serviço(s)')
+    expect(fullText).toContain('2 etapa(s) e 3 item(ns) de serviço')
+
+    // Remoção de quantitativos numéricos de volume/área/unidade na proposta a pedido do usuário
+    expect(fullText).not.toContain('120,0 m²')
+    expect(fullText).not.toContain('80,0 m²')
+    expect(fullText).not.toContain('200,0 m²')
+    expect(fullText).not.toContain('120 m²')
   })
 
   it('Seção 2 (Forma de execução) descreve metodologia conforme serviços presentes (demolição + revestimentos/pintura) e não inclui seções ausentes', () => {
@@ -225,7 +230,7 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(analysis.hasInstallations).toBe(false)
   })
 
-  it('Seção 3 (Complexidade) é proporcional ao escopo e cita fatores numéricos reais', () => {
+  it('Seção 3 (Complexidade) avalia a complexidade técnica sem expor cifras numéricas de área', () => {
     const budget = makeBudget()
     const summary = calculateFullBudget(budget)
     const analysis = analyzeBudgetForProposal(budget)
@@ -234,8 +239,9 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
 
     const fullText = [...complexidade.paragraphs, ...(complexidade.items || [])].join(' ')
     expect(fullText).toContain('3 serviço(s)')
-    expect(fullText).toContain('180 m²')
-    // Escopo pequeno: complexidade não pode ser "elevada"
+    // Área numérica não é mais citada na proposta a pedido do usuário
+    expect(fullText).not.toContain('180 m²')
+    // Escopo pequeno: complexidade não é "elevada"
     expect(analysis.complexityLevel).not.toBe('elevada')
     expect(fullText).toContain(analysis.complexityLevel.toUpperCase())
   })
@@ -263,7 +269,7 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(allSectionsText).not.toContain('disposalengine')
   })
 
-  it('Seção 5 (Fiscalização) cita o responsável técnico, ART e conferência de etapas', () => {
+  it('Seção 5 (Fiscalização) cita o responsável técnico, ART, conferência de etapas e qualificação técnica LEED BD+C verbatim', () => {
     const budget = makeBudget()
     const summary = calculateFullBudget(budget)
     const analysis = analyzeBudgetForProposal(budget)
@@ -271,13 +277,18 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     const fiscalizacao = sections[4]
 
     const fullText = [...fiscalizacao.paragraphs, ...(fiscalizacao.items || [])].join(' ')
+    expect(fullText).toContain('EDENIR SOUZA DA ROSA')
     expect(fullText).toContain('CREA/RS-252397')
+    expect(fullText).toContain('LEED BD+C para Novas Construções e Grandes Reformas')
+    expect(fullText).toContain('17/04/2026')
+    expect(fullText).toContain('05:00 Horas')
+    expect(fullText).toContain('Green Building Council')
     expect(fullText).toContain('ART')
     expect(fullText).toContain('DEMOLIÇÃO E REMOÇÃO DE REVESTIMENTOS')
     expect(fullText).toContain('ORC-2025-777')
   })
 
-  it('Seção 6 (Volume) estima volumes a partir dos serviços de demolição/remoção com quantidades reais e marca como estimativa', () => {
+  it('Seção 6 (Volume de material removido) é qualitativa, cita serviços de remoção e normas CONAMA 307/NBRs, SEM tabela numérica nem quantitativos de volume/área', () => {
     const budget = makeBudget()
     const sections = buildProposalSections(
       budget,
@@ -286,26 +297,30 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     )
     const volume = sections[5]
 
-    expect(volume.table).toBeDefined()
-    const volumeAnalysis = analyzeRemovedVolume(budget)
-    expect(volumeAnalysis.hasRemovalServices).toBe(true)
-    // 2 serviços de remoção identificados (demolição parede + remoção piso)
-    expect(volumeAnalysis.removalServiceCount).toBe(2)
-    // Demolição parede: 120 m² × 0,15 m = 18 m³; remoção piso: 80 m² × 0,05 m = 4 m³
-    expect(volumeAnalysis.totalVolumeM3).toBeCloseTo(22, 1)
+    // Tabela numérica removida a pedido do usuário
+    expect(volume.table).toBeUndefined()
+    expect(volume.items).toBeDefined()
+    expect(volume.items?.length).toBe(2)
 
-    const volumeText = [
-      ...volume.paragraphs,
-      ...(volume.items || []),
-      ...volume.table.rows.flat(),
-    ].join(' ')
-    expect(volumeText).toContain('120,0')
-    expect(volumeText).toContain('80,0')
-    expect(volumeText.toLowerCase()).toContain('estimativ')
-    expect(volume.footnotes?.length).toBeGreaterThan(0)
+    const volumeText = [...volume.paragraphs, ...(volume.items || [])].join(' ')
+    // Cita os serviços reais de remoção
+    expect(volumeText).toContain('Demolição de revestimento de parede em alvenaria')
+    expect(volumeText).toContain('Remoção de piso cerâmico existente')
+    // Cita as normas técnicas e classes de resíduo
+    expect(volumeText).toContain('CONAMA nº 307/2002')
+    expect(volumeText).toContain('NBR 15.112')
+    expect(volumeText).toContain('Classe A')
+    expect(volumeText).toContain('planejamento executivo')
+
+    // SEM quantitativos numéricos de volume/área/caçambas
+    expect(volumeText).not.toContain('m³')
+    expect(volumeText).not.toContain('m²')
+    expect(volumeText).not.toContain('caçamba(s) basculante(s) estanque(s) de 5 m³')
+    expect(volumeText).not.toContain('120,0')
+    expect(volumeText).not.toContain('80,0')
   })
 
-  it('Seção 6 declara ausência de previsão significativa quando não há serviços de remoção', () => {
+  it('Seção 6 declara ausência de serviços de grande porte quando não há remoções no escopo', () => {
     const budget = makeBudget({
       stages: [
         {
@@ -345,11 +360,11 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     )
     const volume = sections[5]
     const volumeText = volume.paragraphs.join(' ')
-    expect(volumeText).toContain('não há previsão significativa')
+    expect(volumeText).toContain('não há, no escopo técnico')
     expect(volume.table).toBeUndefined()
   })
 
-  it('volume declarado pelo usuário na etapa (volumeM3/weightKg) prevalece sobre a estimativa por serviço', () => {
+  it('análise de remoção detecta serviços e etapas declaradas pelo usuário', () => {
     const budget = makeBudget()
     budget.stages[0].volumeM3 = 40
     budget.stages[0].weightKg = 52000

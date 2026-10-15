@@ -33,10 +33,10 @@ export interface ProposalVolumeRow {
   stageName: string
   serviceCode: string
   description: string
-  unit: string
-  quantity: number
-  estimatedVolumeM3: number
-  estimatedWeightKg: number
+  unit?: string
+  quantity?: number
+  estimatedVolumeM3?: number
+  estimatedWeightKg?: number
   residueClass: ResidueClass
   isDeclaredByUser: boolean
 }
@@ -45,6 +45,12 @@ export interface ProposalVolumeAnalysis {
   hasRemovalServices: boolean
   removalServiceCount: number
   rows: ProposalVolumeRow[]
+  removalDescriptions: string[]
+  classesPresent: ResidueClass[]
+  hasClassA: boolean
+  hasClassB: boolean
+  hasClassC: boolean
+  hasClassD: boolean
   totalVolumeM3: number
   totalWeightKg: number
   volumeByClass: Record<ResidueClass, number>
@@ -442,20 +448,33 @@ export function analyzeRemovedVolume(budget: FullBudget): ProposalVolumeAnalysis
     })
   })
 
-  const totalVolumeM3 = Number(rows.reduce((acc, r) => acc + r.estimatedVolumeM3, 0).toFixed(2))
-  const totalWeightKg = rows.reduce((acc, r) => acc + r.estimatedWeightKg, 0)
+  const totalVolumeM3 = Number(
+    rows.reduce((acc, r) => acc + (r.estimatedVolumeM3 || 0), 0).toFixed(2),
+  )
+  const totalWeightKg = rows.reduce((acc, r) => acc + (r.estimatedWeightKg || 0), 0)
 
   const volumeByClass: Record<ResidueClass, number> = { A: 0, B: 0, C: 0, D: 0 }
   rows.forEach((r) => {
     volumeByClass[r.residueClass] = Number(
-      (volumeByClass[r.residueClass] + r.estimatedVolumeM3).toFixed(2),
+      (volumeByClass[r.residueClass] + (r.estimatedVolumeM3 || 0)).toFixed(2),
     )
   })
+
+  const uniqueClasses = Array.from(new Set(rows.map((r) => r.residueClass)))
+  const uniqueDescriptions = Array.from(
+    new Set(rows.map((r) => sanitizeProposalText(r.description))),
+  )
 
   return {
     hasRemovalServices: rows.length > 0,
     removalServiceCount: rows.length,
     rows,
+    removalDescriptions: uniqueDescriptions,
+    classesPresent: uniqueClasses,
+    hasClassA: uniqueClasses.includes('A'),
+    hasClassB: uniqueClasses.includes('B'),
+    hasClassC: uniqueClasses.includes('C'),
+    hasClassD: uniqueClasses.includes('D'),
     totalVolumeM3,
     totalWeightKg,
     volumeByClass,
@@ -490,19 +509,17 @@ export function analyzeBudgetForProposal(budget: FullBudget): ProposalAnalysis {
 
   const servicesCount = summaryServicesCount(budget)
   const stagesCount = stages.length
-  const areaM2 = Number(budget.work?.totalAreaM2) || 0
-
   const factors: string[] = []
   if (hasStructuralDemolition)
     factors.push('presença de demolição/intervenção em elementos estruturais')
   if (hasHeightWork) factors.push('trabalhos em altura, fachada ou cobertura')
   if (hasInstallations) factors.push('interferência com instalações prediais existentes')
   if (servicesCount > 15)
-    factors.push(`quantitativo elevado de serviços (${servicesCount} itens orçados)`)
-  if (stagesCount > 5) factors.push(`grande número de etapas de gestão (${stagesCount} etapas)`)
-  if (areaM2 > 200) factors.push(`área de intervenção expressiva (${nf0.format(areaM2)} m²)`)
-  if (volume.totalVolumeM3 > 30)
-    factors.push(`volume relevante de material removido (${fmt(volume.totalVolumeM3)} m³)`)
+    factors.push(`elevada diversidade de serviços (${servicesCount} itens no escopo orçado)`)
+  if (stagesCount > 5)
+    factors.push(`múltiplas frentes de trabalho coordenadas (${stagesCount} etapas de gestão)`)
+  if (volume.hasRemovalServices)
+    factors.push('serviços especializados de demolição, remoção e segregação de resíduos na fonte')
 
   const score =
     (hasStructuralDemolition ? 2 : 0) +
@@ -510,7 +527,7 @@ export function analyzeBudgetForProposal(budget: FullBudget): ProposalAnalysis {
     (hasInstallations ? 1 : 0) +
     (servicesCount > 15 ? 1 : 0) +
     (stagesCount > 5 ? 1 : 0) +
-    (areaM2 > 200 ? 1 : 0)
+    (volume.hasRemovalServices ? 1 : 0)
 
   const complexityLevel: ProposalAnalysis['complexityLevel'] =
     score >= 4 ? 'elevada' : score >= 2 ? 'moderada' : 'reduzida'
@@ -528,7 +545,7 @@ export function analyzeBudgetForProposal(budget: FullBudget): ProposalAnalysis {
   // Prazo: estimativa proporcional ao escopo — NUNCA prazo contratual
   let weeks = Math.max(2, Math.ceil(servicesCount / 6))
   if (hasStructuralDemolition) weeks += 1
-  if (volume.totalVolumeM3 > 30) weeks += 1
+  if (volume.hasRemovalServices) weeks += 1
   weeks = Math.min(weeks, 24)
   const estimatedWeeksMax = weeks + Math.max(1, Math.ceil(weeks / 2))
 
@@ -578,7 +595,7 @@ export function buildProposalAuthorizations(
     })
   }
 
-  if (analysis.volume.totalVolumeM3 > 0) {
+  if (analysis.volume.hasRemovalServices) {
     auths.push({
       title: 'Ocupação de via pública para posicionamento de caçambas',
       description:
@@ -644,8 +661,6 @@ export function buildProposalSections(
   const clientName = sanitizeProposalText(budget.client?.name) || 'Cliente Contratante'
   const budgetCode = sanitizeProposalText(budget.code) || 'ORC-CONCE'
   const servicesCount = summary.servicesCount || summaryServicesCount(budget)
-  const areaM2 = Number(budget.work?.totalAreaM2) || 0
-
   /* ---------------- 1. OBJETIVO DO TRABALHO ---------------- */
   const objectiveParagraphs: string[] = [
     `A CONCE — Serviço de Engenharia e Consultoria LTDA apresenta a presente ${PROPOSAL_DOCUMENT_TITLE.toLowerCase()} para a execução dos serviços de engenharia relativos à obra "${workName}", situada em ${workAddress}, tendo como contratante ${clientName}.`,
@@ -657,25 +672,20 @@ export function buildProposalSections(
   }
 
   objectiveParagraphs.push(
-    `O escopo objeto desta proposta está detalhado no orçamento ${budgetCode} e compreende ${stages.length} etapa(s) e ${servicesCount} serviço(s) quantificados, conforme discriminação a seguir:`,
+    `O escopo objeto desta proposta está detalhado no orçamento ${budgetCode} e compreende ${stages.length} etapa(s) e ${servicesCount} item(ns) de serviço discriminados tecnicamente a seguir:`,
   )
 
   const scopeItems: string[] = stages.map((stage, idx) => {
     const services = Array.isArray(stage.services) ? stage.services : []
     const serviceList =
       services.length > 0
-        ? services
-            .map(
-              (s) =>
-                `${sanitizeProposalText(s.description)} (${nf1.format(Number(s.quantity) || 0)} ${s.unit})`,
-            )
-            .join('; ')
-        : 'sem serviços quantificados no momento'
+        ? services.map((s) => sanitizeProposalText(s.description)).join('; ')
+        : 'serviços a detalhar na etapa executiva'
     return `Etapa ${stage.code || String(idx + 1).padStart(2, '0')} — ${sanitizeProposalText(stage.name)}: ${serviceList}.`
   })
 
   objectiveParagraphs.push(
-    `Os quantitativos, composições unitárias e preços correspondentes constam do orçamento ${budgetCode}, que integra esta proposta como documento complementar e prevalece como referência de medição.`,
+    `As especificações técnicas, insumos e composições de referência constam do orçamento ${budgetCode}, que integra esta proposta como documento complementar de contratação.`,
   )
 
   /* ---------------- 2. FORMA DE EXECUÇÃO ---------------- */
@@ -697,9 +707,7 @@ export function buildProposalSections(
 
   /* ---------------- 3. COMPLEXIDADE DO SERVIÇO ---------------- */
   const complexityParagraphs: string[] = [
-    `Com base no orçamento ${budgetCode} (${stages.length} etapa(s), ${servicesCount} serviço(s) e ${
-      summary.inputsCount
-    } insumo(s) especificados${areaM2 > 0 ? `, área de intervenção de ${nf0.format(areaM2)} m²` : ''}), a CONCE avalia tecnicamente a complexidade do serviço como ${analysis.complexityLevel.toUpperCase()} para fins de planejamento, dimensionamento de equipes e supervisão técnica.`,
+    `Com base no escopo técnico do orçamento ${budgetCode} (${stages.length} etapa(s), ${servicesCount} serviço(s) e ${summary.inputsCount} insumo(s) especificados), a CONCE avalia tecnicamente a complexidade dos serviços como ${analysis.complexityLevel.toUpperCase()} para fins de planejamento executivo, alocação de equipes e supervisão técnica.`,
   ]
 
   if (analysis.complexityFactors.length > 0) {
@@ -732,19 +740,15 @@ export function buildProposalSections(
       residueParagraphs.push(
         `O orçamento contempla serviços com potencial de geração de resíduos classe D (${classDItems.join(
           '; ',
-        )}), que receberão o tratamento específico descrito neste item.`,
+        )}), que receberão o tratamento específico de segregação, acondicionamento em embalagens estanques identificadas e envio exclusivo a destinador final licenciado.`,
       )
     } else {
       residueParagraphs.push(
-        'Pela natureza dos serviços orçados, a geração esperada concentra-se em resíduos classes A e B (demolições, alvenaria, argamassas e embalagens). Caso venham a ser identificados resíduos classe D durante a execução, será aplicado o procedimento de destinação licenciada descrito neste item, com comunicação prévia ao contratante.',
+        'Pela natureza dos serviços orçados, a geração qualitativa esperada concentra-se em resíduos da Classe A (alvenarias, argamassas, concreto e revestimentos) e Classe B (madeira, metais e embalagens de insumos). Caso sejam identificados materiais perigosos (Classe D) durante a abertura de frentes de serviço, será imediatamente adotado o procedimento de destinação licenciada com aviso prévio ao contratante.',
       )
     }
     residueParagraphs.push(
-      `A estimativa quantitativa dos resíduos a remover consta do item 6 desta proposta, e sua classificação preliminar por classe é a seguinte: classe A — ${fmt(
-        analysis.volume.volumeByClass.A,
-      )} m³; classe B — ${fmt(analysis.volume.volumeByClass.B)} m³; classe D — ${fmt(
-        analysis.volume.volumeByClass.D,
-      )} m³ (estimativa prévia, a confirmar nas medições de execução).`,
+      'Os serviços de remoção e as classes de resíduo envolvidas estão identificados na Seção 6 desta proposta; o dimensionamento executivo e logístico das retiradas será determinado em projeto/fase executiva.',
     )
   } else {
     residueParagraphs.push(
@@ -759,27 +763,29 @@ export function buildProposalSections(
   /* ---------------- 5. FORMA DE FISCALIZAÇÃO UTILIZADA ---------------- */
   const inspectionItems = [
     `Vistorias técnicas periódicas ao canteiro pelo Eng. Edenir Souza da Rosa (CREA/RS-252397), com registro fotográfico e relatório de evolução ao contratante;`,
+    `Aplicação de conhecimento técnico agregado em construções sustentáveis, certificado pelo Green Building Council Brasil com a Certificação LEED BD+C para Novas Construções e Grandes Reformas (conclusão em 17/04/2026, 05:00 horas), garantindo padrões elevados de eficiência, conservação de recursos e menor impacto ambiental na execução;`,
     `Conferência de conformidade de cada etapa antes de liberar a etapa seguinte — etapas controladas nesta obra: ${
       stages.map((st) => sanitizeProposalText(st.name)).join('; ') ||
       'conforme planejamento a detalhar'
     };`,
-    `Medições físicas periódicas confrontadas com os quantitativos do orçamento ${budgetCode}, com apontamento de eventuais diferenças entre o executado e o orçado;`,
-    'Controle de recebimento e conferência dos insumos aplicados em relação às especificações das composições unitárias do orçamento;',
+    `Medições físicas periódicas confrontadas com os itens do escopo do orçamento ${budgetCode}, com apontamento formal de evolução da obra;`,
+    'Controle de recebimento e conferência dos insumos aplicados em relação às especificações técnicas das composições de referência;',
     'Verificação de conformidade com as normas técnicas ABNT aplicáveis e com as condições de segurança e saúde no trabalho (NRs aplicáveis à obra);',
     'Registro formal da ART no CREA/RS e disponibilização do número da anotação ao contratante;',
   ]
   if (analysis.volume.hasRemovalServices) {
     inspectionItems.push(
-      'Conferência dos comprovantes de destinação dos resíduos (caçambas e destinos finais licenciados) antes da liberação da medição correspondente;',
+      'Conferência dos comprovantes de destinação dos resíduos (destinos finais licenciados) antes da homologação da etapa executada;',
     )
   }
   inspectionItems.push(
-    'Registros de execução, ocorrências e aprovações mantidos no sistema de orçamentos da CONCE, com histórico auditável de alterações do orçamento e das medições.',
+    'Registros de execução, ocorrências e aprovações mantidos no sistema técnico da CONCE, com histórico auditável de alterações de escopo e medições.',
   )
 
   const inspectionParagraphs = [
-    `A fiscalização e o acompanhamento técnico da execução serão exercidos pelo responsável técnico da CONCE, ${'Eng. Edenir Souza da Rosa'} (CREA/RS-252397), mediante os mecanismos a seguir, aplicáveis na proporção do escopo contratado:`,
-    'O contratante poderá designar representante para fiscalização complementar junto à CONCE. Eventuais acréscimos, exclusões ou alterações de escopo identificados durante a fiscalização serão formalizados por termo aditivo, com reavaliação de quantitativos e prazos antes da execução do item alterado.',
+    `A fiscalização e o acompanhamento técnico da execução serão exercidos pelo responsável técnico da CONCE, Eng. Edenir Souza da Rosa (CREA/RS-252397), profissional com Certificação LEED BD+C para Novas Construções e Grandes Reformas (Green Building Council Brasil), mediante os mecanismos a seguir, aplicáveis na proporção do escopo contratado:`,
+    'A qualificação técnica do responsável técnico inclui formação especializada em construções sustentáveis e grandes reformas, assegurando que as rotinas de fiscalização incorporem critérios de eficiência no uso de materiais, redução e triagem de resíduos no canteiro e controle rigoroso de qualidade em conformidade com as melhores práticas de sustentabilidade e engenharia civil.',
+    'O contratante poderá designar representante para fiscalização complementar junto à CONCE. Eventuais acréscimos, exclusões ou alterações de escopo identificados durante a fiscalização serão formalizados por termo aditivo, com reavaliação técnica de cronograma antes da execução do item alterado.',
   ]
 
   /* ---------------- 6. VOLUME ESTIMADO DE MATERIAL REMOVIDO ---------------- */
@@ -787,58 +793,53 @@ export function buildProposalSections(
   let volumeSection: ProposalSectionData
 
   if (analysis.volume.hasRemovalServices) {
+    const removalList = analysis.volume.rows.map((r) => {
+      const classLabel =
+        r.residueClass === 'A'
+          ? 'Classe A (alvenaria / concreto / argamassa / cerâmica)'
+          : r.residueClass === 'B'
+            ? 'Classe B (madeira / metal / plástico / papel)'
+            : r.residueClass === 'C'
+              ? 'Classe C (gesso / drywall)'
+              : 'Classe D (materiais perigosos)'
+      return `${r.stageCode}${r.serviceCode && r.serviceCode !== '—' ? `.${r.serviceCode}` : ''} — ${sanitizeProposalText(
+        r.description,
+      )}: resíduo ${classLabel}.`
+    })
+
     volumeParagraphs.push(
-      `A partir dos serviços de demolição, remoção e escavação presentes no orçamento ${budgetCode} (${
-        analysis.volume.removalServiceCount
-      } item(ns) identificado(s)), a CONCE elaborou a estimativa prévia de volume de material a remover indicada a seguir. Os volumes são ESTIMATIVAS DE PLANEJAMENTO calculadas por quantidades e fatores técnicos médios de espessura/vazado, a serem confirmados nas medições de execução.`,
+      `A execução das obras e intervenções orçadas no documento ${budgetCode} contempla frentes de serviço com necessidade de remoção de materiais existentes e geração de resíduos da construção civil (RCC). Em estrita conformidade com as diretrizes do Conselho Nacional do Meio Ambiente (Resolução CONAMA nº 307/2002) e com as normas ABNT aplicáveis (NBR 15.112, NBR 15.113 e NBR 15.114), a gestão desses materiais será conduzida de forma prioritariamente qualitativa e técnica.`,
+      'As atividades que demandam remoção de material no escopo desta proposta englobam:',
     )
 
-    const tableRows = analysis.volume.rows.map((r) => [
-      `${r.stageCode}${r.serviceCode && r.serviceCode !== '—' ? `.${r.serviceCode}` : ''} — ${sanitizeProposalText(r.description)}`,
-      r.unit,
-      nf1.format(r.quantity),
-      fmt(r.estimatedVolumeM3),
-      nf0.format(r.estimatedWeightKg),
-      r.residueClass,
-    ])
+    const volumeItems = removalList
 
-    const volumeItems = [
-      `Volume total estimado de material removido: ${fmt(analysis.volume.totalVolumeM3)} m³ (massa estimada de ${nf0.format(analysis.volume.totalWeightKg)} kg);`,
-      `Equivalente logístico aproximado: ${nf0.format(analysis.volume.cacambaCount5m3)} caçamba(s) basculante(s) estanque(s) de 5 m³;`,
-      'Os resíduos serão retirados de forma contínua ao longo da execução, sem acúmulo em áreas comuns, conforme o item 4 desta proposta.',
+    const concludingParagraphs = [
+      'O dimensionamento executivo, a cubagem precisa de frentes de retirada e a logística de caçambas ou transporte serão definidos no planejamento executivo da obra, após a liberação das frentes de serviço e vistorias in loco pelo responsável técnico, não sendo adotados quantitativos numéricos prévios de volume ou massa nesta proposta.',
+      'Todos os materiais removidos serão segregados na origem conforme sua classificação normativa (Classes A, B, C ou D) e transportados por empresas autorizadas, garantindo-se que cada fluxo de resíduo receba o tratamento e a destinação técnica exigidos pela legislação ambiental vigente.',
     ]
 
     volumeSection = {
       number: 6,
       title: 'VOLUME ESTIMADO DE MATERIAL REMOVIDO',
-      paragraphs: volumeParagraphs,
+      paragraphs: [...volumeParagraphs, ...concludingParagraphs],
       items: volumeItems,
-      table: {
-        headers: [
-          'Serviço de remoção / demolição',
-          'Unid.',
-          'Quantidade',
-          'Vol. estimado (m³)',
-          'Massa estimada (kg)',
-          'Classe',
-        ],
-        rows: tableRows,
-      },
       footnotes: [
-        'Estimativa elaborada com fatores técnicos médios (espessura de 0,05 m para revestimentos/pisos, 0,15 m para alvenarias, 0,20 m para estruturas/contrapisos e massa específica conforme a natureza do material). Volumes declarados por etapa no orçamento prevalecem sobre estas estimativas.',
+        'Critério qualitativo e normativo conforme CONAMA 307/2002 e NBR 15.112/113/114. O dimensionamento executivo das remoções e a logística de transporte serão formalizados na etapa executiva.',
       ],
     }
   } else {
     volumeParagraphs.push(
-      `Não há, no escopo orçado do orçamento ${budgetCode}, previsão significativa de remoção de material — não foram identificados serviços de demolição, escavação, remoção de revestimentos ou retirada de entulho em escala relevante. Eventuais pequenos volumes decorrentes de ajustes de execução serão removidos nas caçambas previstas para os resíduos eventuais, sem impacto no quantitativo contratado.`,
-      'Caso, durante a execução, venha a se constatar a necessidade de remoção de material em escala superior à prevista, o quantitativo será objeto de medição específica e, se aplicável, de termo aditivo, antes da contratação do serviço adicional.',
+      `Não há, no escopo técnico do orçamento ${budgetCode}, previsão de serviços de grande porte para remoção de material — não foram identificadas etapas expressivas de demolição estrutural, escavação massiva ou raspagem integral de revestimentos.`,
+      'Eventuais pequenos descartes de embalagens ou aparas resultantes da instalação de novos acabamentos e componentes serão segregados na fonte e encaminhados a pontos de triagem e reciclagem licenciados, em conformidade com as normas ABNT NBR 15.112/15.113/15.114 e a Resolução CONAMA nº 307/2002.',
+      'Caso, durante o desenvolvimento dos trabalhos, surja a conveniência técnica de remoção não contemplada originalmente, a atividade será precedida de vistoria técnica do responsável técnico, emissão de parecer e formalização mediante aditivo de escopo.',
     )
     volumeSection = {
       number: 6,
       title: 'VOLUME ESTIMADO DE MATERIAL REMOVIDO',
       paragraphs: volumeParagraphs,
       footnotes: [
-        'Estimativa derivada exclusivamente dos serviços de demolição/remoção presentes no orçamento; inexistindo tais serviços, declara-se formalmente a ausência de previsão significativa.',
+        'Análise qualitativa baseada na ausência de serviços de demolição ou escavação no escopo orçado; conformidade com a Resolução CONAMA nº 307/2002.',
       ],
     }
   }

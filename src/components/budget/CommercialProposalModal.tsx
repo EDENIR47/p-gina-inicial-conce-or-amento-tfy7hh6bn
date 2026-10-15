@@ -121,8 +121,6 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
   const cleanValidityType = budget.validityDaysType || 'uteis'
   const cleanDeadline = formatBudgetDeadline(budget.work)
 
-  const areaM2 = Number(budget.work?.totalAreaM2) || 0
-
   const handlePrint = () => {
     logAuditEvent({
       budgetId: budget.id,
@@ -355,7 +353,6 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                   </th>
                   <td className="px-2.5 py-1.5 text-[#171A1F]">
                     {cleanWorkName} — {cleanWorkAddress}
-                    {areaM2 > 0 ? ` • Área total: ${areaM2} m²` : ''}
                   </td>
                 </tr>
                 <tr className="border-b border-[#171A1F]/10">
@@ -367,7 +364,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                       {formatCurrencyBRL(summary.finalSalePrice)}
                     </strong>{' '}
                     (BDI {summary.bdiRate.toFixed(2)}% incluso • {budget.stages.length} etapa(s) e{' '}
-                    {summary.servicesCount} serviço(s) quantificados)
+                    {summary.servicesCount} item(ns) de serviço)
                   </td>
                 </tr>
                 <tr>
@@ -375,8 +372,14 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                     Responsável Técnico
                   </th>
                   <td className="px-2.5 py-1.5 text-[#171A1F]">
-                    {CONCE_COMPANY.responsavelTecnico} — {CONCE_COMPANY.registroCrea} •{' '}
-                    {CONCE_COMPANY.razaoSocial}
+                    <strong>{CONCE_COMPANY.responsavelTecnico}</strong> —{' '}
+                    {CONCE_COMPANY.registroCrea}
+                    <span className="block text-[10px] text-[#294C87] font-semibold mt-0.5">
+                      Qualificação: {CONCE_COMPANY.certificacaoLeed} (Green Building Council Brasil)
+                    </span>
+                    <span className="block text-[10px] text-[#171A1F]/60">
+                      {CONCE_COMPANY.razaoSocial}
+                    </span>
                   </td>
                 </tr>
               </tbody>
@@ -498,12 +501,15 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-10 print:mt-12">
               <div className="text-center">
-                <div className="border-t border-[#171A1F] pt-1.5 mx-auto max-w-[240px]">
+                <div className="border-t border-[#171A1F] pt-1.5 mx-auto max-w-[260px]">
                   <p className="font-bold text-[11px] text-[#171A1F]">
                     {CONCE_COMPANY.responsavelTecnico}
                   </p>
                   <p className="text-[10px] text-[#294C87] font-semibold">
                     {CONCE_COMPANY.registroCrea}
+                  </p>
+                  <p className="text-[9.5px] text-[#294C87] font-medium">
+                    {CONCE_COMPANY.certificacaoLeed}
                   </p>
                   <p className="text-[9.5px] text-[#171A1F]/60">{CONCE_COMPANY.razaoSocial}</p>
                 </div>
