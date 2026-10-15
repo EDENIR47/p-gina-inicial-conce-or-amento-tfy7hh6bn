@@ -28,7 +28,16 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Printer, FileCheck, Paperclip, FileText, ListOrdered } from 'lucide-react'
+import {
+  X,
+  Printer,
+  FileCheck,
+  Paperclip,
+  FileText,
+  ListOrdered,
+  FileDown,
+  Loader2,
+} from 'lucide-react'
 import { saveSingleBudget } from '@/lib/budgetsStorage'
 import { syncEngine } from '@/services/syncEngine'
 import { FullBudget } from '@/types/budgetEngine'
@@ -47,6 +56,7 @@ import {
   analyzeBudgetForProposal,
   buildProposalSections,
 } from '@/lib/proposalEngine'
+import { downloadProposalDocx } from '@/lib/exportProposalDocx'
 
 export interface CommercialProposalModalProps {
   budget: FullBudget
@@ -62,6 +72,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
   onAttachPresentationToBudget,
 }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [isExportingDocx, setIsExportingDocx] = useState(false)
 
   const summary = useMemo(() => calculateFullBudget(budget), [budget])
   const analysis = useMemo(() => analyzeBudgetForProposal(budget), [budget])
@@ -138,6 +149,20 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
         document.title = originalTitle
       }
     }, 500)
+  }
+
+  const handleExportDocx = async () => {
+    if (isExportingDocx) return
+    setIsExportingDocx(true)
+    try {
+      await downloadProposalDocx(budget)
+      showToast('Documento Word (.docx) gerado com sucesso!')
+    } catch (err) {
+      console.error('Erro ao exportar proposta em Word (.docx):', err)
+      showToast('Erro ao gerar documento Word (.docx). Tente novamente.')
+    } finally {
+      setIsExportingDocx(false)
+    }
   }
 
   const handleAttachPresentation = () => {
@@ -230,6 +255,21 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          <button
+            type="button"
+            onClick={handleExportDocx}
+            disabled={isExportingDocx}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1e5aa0] hover:bg-[#16447a] text-white text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer active:scale-95 border border-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            title="Salvar e baixar a Proposta Técnica e Comercial em formato Microsoft Word (.docx)"
+          >
+            {isExportingDocx ? (
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+            ) : (
+              <FileDown className="w-4 h-4 text-[#FF8945]" />
+            )}
+            <span>{isExportingDocx ? 'Gerando Word...' : 'Salvar em Word (.docx)'}</span>
+          </button>
+
           <button
             type="button"
             onClick={handlePrint}
