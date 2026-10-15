@@ -289,40 +289,46 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
         id="conce-printable-presentation"
       >
         <article className="conce-proposal-sheet bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 print:border-none print:shadow-none">
-          {/* CABEÇALHO INSTITUCIONAL CONCE */}
+          {/* CABEÇALHO DA CAPA: MARCA CONCE + ENGENHARIA LTDA ACIMA DO TÍTULO "PROPOSTA TÉCNICA E COMERCIAL" */}
           <header className="conce-proposal-header border-b-2 border-[#171A1F] px-6 sm:px-10 pt-6 pb-4 print:p-0 print:pb-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-0.5">
-                {/* Wordmark hierarquizado em 2 linhas: CONCE grande e ENGENHARIA LTDA menor */}
-                <div className="flex flex-col leading-none">
-                  <span className="text-3xl sm:text-4xl font-extrabold font-poppins text-[#171A1F] tracking-tight uppercase leading-none select-none print:text-3xl">
-                    <span className="text-[#FF6B1F]">C</span>ONCE
-                  </span>
-                  <span className="text-[10px] sm:text-[11px] font-bold font-poppins text-[#294C87] uppercase tracking-[0.28em] mt-1 select-none print:text-[10px]">
-                    ENGENHARIA LTDA
-                  </span>
-                </div>
-                <p className="text-[10px] text-[#171A1F]/60 pt-1">
-                  CNPJ {CONCE_COMPANY.cnpjFormatado} • Porto Alegre/RS
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FF6B1F]/15 text-[#FF6B1F] text-[10px] font-black uppercase tracking-wider">
-                  Proposta Comercial
-                </span>
-                <div className="font-mono text-[11px] text-[#171A1F]/60 mt-1">
+            {/* Metadados do documento (topo do cabeçalho) */}
+            <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#171A1F]/10">
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FF6B1F]/15 text-[#FF6B1F] text-[10px] font-black uppercase tracking-wider">
+                Proposta Comercial
+              </span>
+              <div className="flex items-center gap-3 text-right">
+                <div className="font-mono text-[11px] text-[#171A1F]/70">
                   Nº <strong className="text-[#294C87]">{cleanCode}</strong>
                 </div>
-                <div className="text-[10px] text-[#171A1F]/50">
+                <span className="text-[#171A1F]/30">•</span>
+                <div className="text-[10px] text-[#171A1F]/60">
                   Porto Alegre, {formatCurrentDatePTBR()}
                 </div>
               </div>
             </div>
+
+            {/* Bloco de Marca CONCE + ENGENHARIA LTDA com hierarquia tipográfica reforçada:
+                1. CONCE grande no topo (mínimo o dobro do tamanho da frase da proposta).
+                2. ENGENHARIA LTDA menor como subtítulo abaixo do CONCE.
+                3. Ambos ACIMA da frase PROPOSTA TÉCNICA E COMERCIAL. */}
+            <div className="pt-4 pb-3 flex flex-col items-center text-center">
+              <div className="flex flex-col items-center leading-none">
+                <span className="text-5xl sm:text-6xl md:text-7xl font-black font-poppins text-[#171A1F] tracking-tight uppercase leading-none select-none print:text-5xl">
+                  <span className="text-[#FF6B1F]">C</span>ONCE
+                </span>
+                <span className="text-xs sm:text-sm md:text-base font-extrabold font-poppins text-[#294C87] uppercase tracking-[0.32em] mt-2 select-none print:text-xs">
+                  ENGENHARIA LTDA
+                </span>
+              </div>
+              <p className="text-[10px] text-[#171A1F]/60 pt-1.5 font-medium tracking-wide">
+                CNPJ {CONCE_COMPANY.cnpjFormatado} • Porto Alegre/RS
+              </p>
+            </div>
           </header>
 
-          {/* TÍTULO DO DOCUMENTO */}
-          <div className="conce-proposal-title px-6 sm:px-10 py-5 text-center border-b border-[#171A1F]/15 print:px-0">
-            <h1 className="text-xl sm:text-2xl font-black text-[#171A1F] tracking-tight uppercase">
+          {/* TÍTULO DO DOCUMENTO — PROPOSTA TÉCNICA E COMERCIAL (abaixo da marca) */}
+          <div className="conce-proposal-title px-6 sm:px-10 py-4 sm:py-5 text-center border-b border-[#171A1F]/15 print:px-0">
+            <h1 className="text-xl sm:text-2xl font-black text-[#171A1F] tracking-tight uppercase print:text-xl">
               {PROPOSAL_DOCUMENT_TITLE}
             </h1>
             <p className="text-[11px] text-[#294C87] font-bold uppercase tracking-wider mt-1">
