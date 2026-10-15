@@ -374,10 +374,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                   <td className="px-2.5 py-1.5 text-[#171A1F]">
                     <strong>{CONCE_COMPANY.responsavelTecnico}</strong> —{' '}
                     {CONCE_COMPANY.registroCrea}
-                    <span className="block text-[10px] text-[#294C87] font-semibold mt-0.5">
-                      Qualificação: {CONCE_COMPANY.certificacaoLeed} (Green Building Council Brasil)
-                    </span>
-                    <span className="block text-[10px] text-[#171A1F]/60">
+                    <span className="block text-[10px] text-[#171A1F]/60 mt-0.5">
                       {CONCE_COMPANY.razaoSocial}
                     </span>
                   </td>
@@ -507,9 +504,6 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                   </p>
                   <p className="text-[10px] text-[#294C87] font-semibold">
                     {CONCE_COMPANY.registroCrea}
-                  </p>
-                  <p className="text-[9.5px] text-[#294C87] font-medium">
-                    {CONCE_COMPANY.certificacaoLeed}
                   </p>
                   <p className="text-[9.5px] text-[#171A1F]/60">{CONCE_COMPANY.razaoSocial}</p>
                 </div>

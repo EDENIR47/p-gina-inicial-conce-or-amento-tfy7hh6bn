@@ -755,7 +755,6 @@ export function buildProposalSections(
   /* ---------------- 5. FORMA DE FISCALIZAÇÃO UTILIZADA ---------------- */
   const inspectionItems = [
     `Vistorias técnicas periódicas ao canteiro pelo Eng. Edenir Souza da Rosa (CREA/RS-252397), com registro fotográfico e relatório de evolução ao contratante;`,
-    `Aplicação de conhecimento técnico agregado em construções sustentáveis, certificado pelo Green Building Council Brasil com a Certificação LEED BD+C para Novas Construções e Grandes Reformas (conclusão em 17/04/2026, 05:00 horas), garantindo padrões elevados de eficiência, conservação de recursos e menor impacto ambiental na execução;`,
     `Conferência de conformidade de cada etapa antes de liberar a etapa seguinte — etapas controladas nesta obra: ${
       stages.map((st) => sanitizeProposalText(st.name)).join('; ') ||
       'conforme planejamento a detalhar'
@@ -775,8 +774,7 @@ export function buildProposalSections(
   )
 
   const inspectionParagraphs = [
-    `A fiscalização e o acompanhamento técnico da execução serão exercidos pelo responsável técnico da CONCE, Eng. Edenir Souza da Rosa (CREA/RS-252397), profissional com Certificação LEED BD+C para Novas Construções e Grandes Reformas (Green Building Council Brasil), mediante os mecanismos a seguir, aplicáveis na proporção do escopo contratado:`,
-    'A qualificação técnica do responsável técnico inclui formação especializada em construções sustentáveis e grandes reformas, assegurando que as rotinas de fiscalização incorporem critérios de eficiência no uso de materiais, redução e triagem de resíduos no canteiro e controle rigoroso de qualidade em conformidade com as melhores práticas de sustentabilidade e engenharia civil.',
+    `A fiscalização e o acompanhamento técnico da execução serão exercidos pelo responsável técnico da CONCE, Eng. Edenir Souza da Rosa (CREA/RS-252397), mediante os mecanismos a seguir, aplicáveis na proporção do escopo contratado:`,
     'O contratante poderá designar representante para fiscalização complementar junto à CONCE. Eventuais acréscimos, exclusões ou alterações de escopo identificados durante a fiscalização serão formalizados por termo aditivo, com reavaliação técnica de cronograma antes da execução do item alterado.',
   ]
 

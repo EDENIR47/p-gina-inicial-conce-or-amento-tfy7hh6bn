@@ -269,7 +269,7 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(allSectionsText).not.toContain('disposalengine')
   })
 
-  it('Seção 5 (Fiscalização) cita o responsável técnico, ART, conferência de etapas e qualificação técnica LEED BD+C verbatim', () => {
+  it('Seção 5 (Fiscalização) cita o responsável técnico, ART, conferência de etapas e medições sem menção a LEED ou certificação', () => {
     const budget = makeBudget()
     const summary = calculateFullBudget(budget)
     const analysis = analyzeBudgetForProposal(budget)
@@ -279,13 +279,32 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     const fullText = [...fiscalizacao.paragraphs, ...(fiscalizacao.items || [])].join(' ')
     expect(fullText).toContain('EDENIR SOUZA DA ROSA')
     expect(fullText).toContain('CREA/RS-252397')
-    expect(fullText).toContain('LEED BD+C para Novas Construções e Grandes Reformas')
-    expect(fullText).toContain('17/04/2026')
-    expect(fullText).toContain('05:00 Horas')
-    expect(fullText).toContain('Green Building Council')
     expect(fullText).toContain('ART')
     expect(fullText).toContain('DEMOLIÇÃO E REMOÇÃO DE REVESTIMENTOS')
     expect(fullText).toContain('ORC-2025-777')
+
+    // Validação rígida: nenhuma menção a LEED, GBC ou certificação
+    expect(fullText.toUpperCase()).not.toContain('LEED')
+    expect(fullText).not.toContain('17/04/2026')
+    expect(fullText).not.toContain('05:00')
+    expect(fullText).not.toContain('Green Building Council')
+    expect(fullText.toLowerCase()).not.toContain('construções sustentáveis')
+  })
+
+  it('proposta gerada integralmente não possui qualquer menção a LEED em nenhuma das 7 seções', () => {
+    const budget = makeBudget()
+    const summary = calculateFullBudget(budget)
+    const analysis = analyzeBudgetForProposal(budget)
+    const sections = buildProposalSections(budget, summary, analysis)
+
+    const allSectionsText = sections
+      .map((s) => [s.title, ...s.paragraphs, ...(s.items || []), ...(s.footnotes || [])].join(' '))
+      .join(' ')
+
+    expect(allSectionsText.toUpperCase()).not.toContain('LEED')
+    expect(allSectionsText).not.toContain('17/04/2026')
+    expect(allSectionsText).not.toContain('05:00')
+    expect(allSectionsText).not.toContain('Green Building Council')
   })
 
   it('Seção 6 (Volume de material removido) é qualitativa, cita serviços de remoção e normas CONAMA 307/NBRs, SEM tabela numérica nem quantitativos de volume/área', () => {
