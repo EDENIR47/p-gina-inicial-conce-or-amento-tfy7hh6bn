@@ -427,11 +427,21 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                 </tr>
               </tbody>
             </table>
-            <p className="text-[10px] text-[#171A1F]/50 mt-2">
-              Validade desta proposta: {cleanValidityDays} dias {cleanValidityType}. Prazo de
-              execução previsto: {cleanDeadline} (ver Seção 7). Condições de faturamento e
-              garantias: ver Seção 8.
-            </p>
+            <aside
+              aria-label="Notas de identificação e validade da proposta"
+              className="conce-proposal-footnote-block mt-3 pt-2 border-t border-dashed border-[#171A1F]/20"
+            >
+              <p className="conce-proposal-footnote-text text-[9.5px] italic text-[#171A1F]/65 leading-snug flex items-start gap-1">
+                <span className="font-semibold not-italic text-[#294C87] text-[9px] uppercase tracking-wide shrink-0">
+                  Nota:
+                </span>
+                <span>
+                  Validade desta proposta: {cleanValidityDays} dias {cleanValidityType}. Prazo de
+                  execução previsto: {cleanDeadline} (ver Seção 7). Condições de faturamento e
+                  garantias: ver Seção 8.
+                </span>
+              </p>
+            </aside>
           </section>
 
           {/* SUMÁRIO DAS SEÇÕES */}
@@ -523,13 +533,22 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
               )}
 
               {sec.footnotes && sec.footnotes.length > 0 && (
-                <div className="mt-2 space-y-0.5">
+                <aside
+                  aria-label={`Notas da Seção ${sec.number}`}
+                  className="conce-proposal-footnote-block mt-4 pt-2.5 border-t border-dashed border-[#171A1F]/20 space-y-0.5 text-left"
+                >
                   {sec.footnotes.map((fn, fIdx) => (
-                    <p key={fIdx} className="text-[9.5px] italic text-[#171A1F]/55 leading-snug">
-                      Nota: {fn}
+                    <p
+                      key={fIdx}
+                      className="conce-proposal-footnote-text text-[9.5px] italic text-[#171A1F]/65 leading-snug flex items-start gap-1"
+                    >
+                      <span className="font-semibold not-italic text-[#294C87] text-[9px] uppercase tracking-wide shrink-0">
+                        Nota:
+                      </span>
+                      <span>{fn}</span>
                     </p>
                   ))}
-                </div>
+                </aside>
               )}
             </section>
           ))}
@@ -545,7 +564,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             </p>
 
             {/* BLOCO DE DESTAQUE EM EVIDÊNCIA — VALIDADE DA PROPOSTA JUNTO AO ACEITE */}
-            <div className="mt-4 p-3.5 rounded-xl bg-[#294C87]/5 border-2 border-[#FF6B1F]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm print:border print:border-[#FF6B1F]/60">
+            <div className="conce-proposal-validity-box mt-4 p-3.5 rounded-xl bg-[#294C87]/5 border-2 border-[#FF6B1F]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm print:border print:border-[#FF6B1F]/60">
               <div className="flex items-start gap-2.5">
                 <div className="p-2 rounded-lg bg-[#FF6B1F]/15 text-[#FF6B1F] shrink-0 mt-0.5 sm:mt-0">
                   <Clock className="w-4 h-4" />

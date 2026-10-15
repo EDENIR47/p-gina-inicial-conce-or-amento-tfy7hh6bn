@@ -567,6 +567,30 @@
       box-sizing: border-box !important;
     }
 
+    /* Notas de rodapé da seção na impressão:
+       Ancoradas na parte inferior da folha/seção com linha divisória sutil,
+       tipografia compacta em pt e break-inside: avoid para ficarem sempre
+       junto ao rodapé útil da folha sem flutuar no meio do texto corrido. */
+    .conce-proposal-footnote-block {
+      display: block !important;
+      visibility: visible !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      margin-top: 5mm !important;
+      padding-top: 2mm !important;
+      padding-bottom: 1mm !important;
+      border-top: 0.5pt dashed rgba(23, 26, 31, 0.25) !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    .conce-proposal-footnote-text {
+      font-size: 8pt !important;
+      line-height: 1.3 !important;
+      color: rgba(23, 26, 31, 0.65) !important;
+      margin: 0.5mm 0 !important;
+    }
+
     .conce-proposal-section h2 {
       font-size: 10pt !important;
       font-weight: 800 !important;
@@ -618,6 +642,22 @@
       line-height: 1.4 !important;
       text-align: justify !important;
       text-justify: inter-word !important;
+    }
+
+    /* Bloco de destaque de validade posicionado próximo ao rodapé/aceite */
+    .conce-proposal-validity-box {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      margin-top: 4mm !important;
+      padding: 2.5mm 3.5mm !important;
+      border: 1pt solid rgba(255, 107, 31, 0.6) !important;
+      background: rgba(41, 76, 135, 0.04) !important;
+    }
+
+    .conce-proposal-validity-box p {
+      font-size: 8pt !important;
+      line-height: 1.3 !important;
+      text-align: left !important;
     }
 
     /* 5. Seções e fluxo contínuo sem quebras forçadas (sem folhas vazias e sem texto espaçado) */
