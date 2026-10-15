@@ -329,9 +329,9 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
         {/* ============================================================ */}
         <article className="conce-proposal-sheet bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 print:border-none print:shadow-none">
           {/* CABEÇALHO DO CORPO DA PROPOSTA (TOPO DA PÁGINA 2) */}
-          <header className="conce-proposal-body-header px-6 sm:px-10 pt-6 pb-2 print:px-0 print:pt-0 print:pb-2 print:block">
-            {/* Metadados do documento (topo da página 2) */}
-            <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#171A1F]/10 print:pb-2">
+          <header className="conce-proposal-body-header px-6 sm:px-10 pt-6 pb-1 print:px-0 print:pt-0 print:pb-0 print:block">
+            {/* Metadados do documento (topo da página 2) — linha superior mais rente ao topo */}
+            <div className="conce-proposal-meta-line flex items-center justify-between gap-4 pb-2 border-b border-[#171A1F]/15 print:pb-1.5">
               <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FF6B1F]/15 text-[#FF6B1F] text-[10px] font-black uppercase tracking-wider print:bg-[#FF6B1F]/15 print:text-[#FF6B1F]">
                 Proposta Comercial
               </span>
@@ -347,8 +347,8 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             </div>
           </header>
 
-          {/* TÍTULO DO DOCUMENTO — PROPOSTA TÉCNICA E COMERCIAL (abre a página 2) */}
-          <div className="conce-proposal-title px-6 sm:px-10 py-4 sm:py-5 text-center border-b border-[#171A1F]/15 print:px-0 print:py-3 print:border-b print:border-[#171A1F]/15 print:block">
+          {/* TÍTULO DO DOCUMENTO — PROPOSTA TÉCNICA E COMERCIAL (abre a página 2, com mais respiro vertical abaixo da linha) */}
+          <div className="conce-proposal-title px-6 sm:px-10 pt-7 pb-4 sm:pt-8 sm:pb-5 text-center border-b border-[#171A1F]/15 print:px-0 print:border-b print:border-[#171A1F]/15 print:block">
             <h1 className="text-xl sm:text-2xl font-black text-[#171A1F] tracking-tight uppercase print:text-[20px] print:leading-tight">
               {PROPOSAL_DOCUMENT_TITLE}
             </h1>

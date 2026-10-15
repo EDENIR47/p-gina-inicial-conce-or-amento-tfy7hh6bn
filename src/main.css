@@ -456,7 +456,9 @@
       break-before: page !important;
     }
 
-    /* Cabeçalho do corpo da proposta (topo da página 2) */
+    /* Cabeçalho do corpo da proposta (topo da página 2)
+       A linha horizontal superior fica encostada na margem superior da página 2,
+       com margem e padding nulos no topo da impressão. */
     header.conce-proposal-body-header,
     .conce-proposal-body-header,
     header.conce-proposal-header,
@@ -474,6 +476,10 @@
       overflow: visible !important;
       width: 100% !important;
       box-sizing: border-box !important;
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+      margin-bottom: 0 !important;
+      padding-bottom: 0 !important;
     }
 
     header.conce-proposal-body-header *,
@@ -483,9 +489,32 @@
       visibility: visible !important;
     }
 
+    /* Linha divisória horizontal logo acima do título — próxima da margem superior */
+    .conce-proposal-meta-line {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 1.5mm !important;
+    }
+
+    /* Título PROPOSTA TÉCNICA E COMERCIAL na página 2:
+       Deslocado mais para baixo com respiro generoso em relação à linha divisória
+       do topo, conferindo equilíbrio e harmonia visual ao documento na folha A4. */
+    .conce-proposal-title {
+      display: block !important;
+      visibility: visible !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      break-after: auto !important;
+      page-break-after: auto !important;
+      overflow: visible !important;
+      margin-top: 6mm !important;
+      padding-top: 3mm !important;
+      padding-bottom: 4mm !important;
+      margin-bottom: 2mm !important;
+    }
+
     .conce-proposal-identificacao,
     .conce-proposal-sumario,
-    .conce-proposal-title,
     .conce-proposal-encerramento {
       display: block !important;
       visibility: visible !important;
