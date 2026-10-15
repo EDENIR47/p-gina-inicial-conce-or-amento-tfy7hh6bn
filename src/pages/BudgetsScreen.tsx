@@ -677,18 +677,18 @@ export const BudgetsScreen: React.FC = () => {
                     }`}
                     title={
                       activeBudget.presentationDocument
-                        ? `Apresentação anexada como documento oficial (v${activeBudget.presentationDocument.version}). Clique para visualizar, reimprimir ou exportar PDF.`
-                        : 'Gerar Apresentação Comercial Oficial de Alto Impacto (7 Lâminas A4)'
+                        ? `Proposta anexada como documento oficial (v${activeBudget.presentationDocument.version}). Clique para visualizar, reimprimir ou exportar PDF.`
+                        : 'Gerar Proposta Técnica e Comercial (documento A4 com 7 seções)'
                     }
-                    aria-label="Abrir apresentação comercial ou documento anexado"
+                    aria-label="Abrir proposta técnica e comercial ou documento anexado"
                   >
                     {activeBudget.presentationDocument ? (
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     ) : null}
                     <span>
                       {activeBudget.presentationDocument
-                        ? `Apresentação Anexada (v${activeBudget.presentationDocument.version})`
-                        : 'Apresentação Comercial'}
+                        ? `Proposta Anexada (v${activeBudget.presentationDocument.version})`
+                        : 'Proposta'}
                     </span>
                   </button>
 
@@ -1455,15 +1455,15 @@ export const BudgetsScreen: React.FC = () => {
                                 }`}
                                 title={
                                   b.presentationDocument
-                                    ? `Apresentação Comercial anexada como documento (v${b.presentationDocument.version}). Clique para abrir, reimprimir ou baixar PDF.`
-                                    : 'Apresentação Comercial da Proposta (7 Lâminas Executivas de Alto Impacto)'
+                                    ? `Proposta anexada como documento (v${b.presentationDocument.version}). Clique para abrir, reimprimir ou baixar PDF.`
+                                    : 'Proposta Técnica e Comercial (documento A4 com 7 seções)'
                                 }
                               >
                                 <Eye className="w-3.5 h-3.5 text-white" />
                                 <span>
                                   {b.presentationDocument
-                                    ? `Apresentação (v${b.presentationDocument.version})`
-                                    : 'Apresentação'}
+                                    ? `Proposta (v${b.presentationDocument.version})`
+                                    : 'Proposta'}
                                 </span>
                               </button>
                               <button
@@ -1672,13 +1672,15 @@ export const BudgetsScreen: React.FC = () => {
                                   }`}
                                   title={
                                     b.presentationDocument
-                                      ? `Apresentação anexada (v${b.presentationDocument.version}). Clique para abrir e imprimir.`
-                                      : 'Apresentação Comercial em 7 lâminas'
+                                      ? `Proposta anexada (v${b.presentationDocument.version}). Clique para abrir e imprimir.`
+                                      : 'Proposta Técnica e Comercial (documento A4 com 7 seções)'
                                   }
                                 >
                                   <Eye className="w-3.5 h-3.5" />
                                   <span>
-                                    {b.presentationDocument ? 'Apres. (Doc)' : 'Apresentação'}
+                                    {b.presentationDocument
+                                      ? `Prop. (Doc v${b.presentationDocument.version})`
+                                      : 'Proposta'}
                                   </span>
                                 </button>
                                 <button
@@ -1843,7 +1845,7 @@ export const BudgetsScreen: React.FC = () => {
         />
       )}
 
-      {/* Modal de Apresentação Comercial de Alto Impacto (7 Lâminas) */}
+      {/* Modal da Proposta Técnica e Comercial (documento A4 retrato, 7 seções) */}
       {isCommercialModalOpen && activeBudget && (
         <CommercialProposalModal
           key={`commercial-${activeBudget.id}`}
@@ -1854,7 +1856,7 @@ export const BudgetsScreen: React.FC = () => {
             setActiveBudget(updatedWithPresentation)
             setBudgetsList(getStoredFullBudgets())
             showToast(
-              `Apresentação Comercial v${updatedWithPresentation.presentationDocument?.version || 1} anexada com sucesso!`,
+              `Proposta Técnica e Comercial v${updatedWithPresentation.presentationDocument?.version || 1} anexada com sucesso!`,
             )
           }}
         />

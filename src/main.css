@@ -273,14 +273,11 @@
     margin: 30mm 8mm 20mm 8mm;
   }
 
-  /* Quando o modal de apresentação comercial estiver ativo para impressão, forçar A4 paisagem com margens controladas */
+  /* Quando o modal de PROPOSTA TÉCNICA E COMERCIAL estiver ativo para impressão:
+     documento A4 RETRATO paginado (mesma geometria do @page global — sem página nomeada),
+     no padrão do Memorial Descritivo. Sem folha em branco e sem seção cortada no meio. */
   body.conce-printing-presentation {
-    /* Identificador de contexto paisagem para a apresentação */
-  }
-
-  @page presentation-page {
-    size: A4 landscape;
-    margin: 10mm 10mm 10mm 10mm;
+    /* Identificador de contexto retrato para a proposta comercial */
   }
 
   @media print {
@@ -413,26 +410,50 @@
       box-sizing: border-box !important;
     }
 
-    /* Cada slide da apresentação impresso como página A4 paisagem individual */
-    .conce-presentation-page {
-      page: presentation-page !important;
+    /* ============================================================
+       PROPOSTA TÉCNICA E COMERCIAL — impressão A4 RETRATO paginada
+       (documento contínuo, no padrão do Memorial: sem folha em branco
+       e sem quebrar uma seção numerada no meio da folha)
+       ============================================================ */
+    #conce-printable-presentation .conce-proposal-sheet {
       box-sizing: border-box !important;
       width: 100% !important;
-      min-height: 175mm !important;
-      max-height: 188mm !important;
-      page-break-after: always !important;
-      break-after: page !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-      overflow: hidden !important;
-      margin: 0 0 4mm 0 !important;
-      padding: 6mm 8mm !important;
+      overflow: visible !important;
+      margin: 0 !important;
+      padding: 0 !important;
     }
 
-    /* Última lâmina da apresentação não precisa forçar folha em branco após ela */
-    .conce-presentation-page:last-child {
-      page-break-after: auto !important;
+    /* Bloco de identificação (orçamento/cliente/obra) íntegro em uma folha */
+    .conce-proposal-identificacao,
+    .conce-proposal-sumario,
+    .conce-proposal-header,
+    .conce-proposal-title,
+    .conce-proposal-encerramento {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
       break-after: auto !important;
+      page-break-after: auto !important;
+      overflow: visible !important;
+    }
+
+    /* Cada SEÇÃO numerada da proposta: nunca quebrar no meio.
+       Se a seção inteira não couber no restante da folha, ela é empurrada
+       inteira para a folha seguinte (evita seção cortada e folha residual). */
+    .conce-proposal-section {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      break-after: auto !important;
+      page-break-after: auto !important;
+      overflow: visible !important;
+      margin: 0 0 4mm 0 !important;
+      padding: 0 0 3mm 0 !important;
+    }
+
+    /* Dentro de uma seção, a tabela de volumes pode fluir entre folhas
+       (linhas individuais permanecem íntegras pela regra global de `tr`). */
+    .conce-proposal-section table {
+      break-inside: auto !important;
+      page-break-inside: auto !important;
     }
 
     /* 5. Seções e fluxo contínuo sem quebras forçadas (sem folhas vazias e sem texto espaçado) */

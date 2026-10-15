@@ -233,7 +233,21 @@ export interface FullBudget {
     bdiRate: number
     stagesCount: number
     servicesCount: number
-    slides: Array<{
+    // Formato atual: documento PROPOSTA TÉCNICA E COMERCIAL (A4 retrato, 7 seções)
+    documentTitle?: string
+    format?: string
+    sections?: Array<{
+      sectionNumber: number
+      title: string
+      paragraphsCount: number
+      itemsCount: number
+      hasTable: boolean
+      contentSummary?: string
+    }>
+    volumeEstimateM3?: number
+    complexityLevel?: string
+    // Retrocompatibilidade: anexos antigos no formato de lâminas (slides) da v0.0.109
+    slides?: Array<{
       slideNumber: number
       title: string
       subtitle?: string
