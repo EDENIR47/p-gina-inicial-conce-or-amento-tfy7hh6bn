@@ -429,7 +429,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             </table>
             <aside
               aria-label="Notas de identificação e validade da proposta"
-              className="conce-proposal-footnote-block mt-3 pt-2 border-t border-dashed border-[#171A1F]/20"
+              className="conce-proposal-footnote-block mt-3 pt-2 border-t border-dashed border-[#171A1F]/20 print:hidden"
             >
               <p className="conce-proposal-footnote-text text-[9.5px] italic text-[#171A1F]/65 leading-snug flex items-start gap-1">
                 <span className="font-semibold not-italic text-[#294C87] text-[9px] uppercase tracking-wide shrink-0">
@@ -459,7 +459,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             </ol>
           </section>
 
-          {/* AS 7 SEÇÕES DA PROPOSTA (texto corrido, ordem fixa) */}
+          {/* AS 8 SEÇÕES DA PROPOSTA (texto corrido, ordem fixa) */}
           {sections.map((sec) => (
             <section
               key={sec.number}
@@ -470,7 +470,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                 <span>{sec.title}</span>
               </h2>
 
-              <div className="space-y-2 text-justify">
+              <div className="space-y-2.5 text-justify">
                 {sec.paragraphs.map((p, pIdx) => (
                   <p key={pIdx} className="text-[12px] leading-relaxed text-[#171A1F]">
                     {p}
@@ -479,11 +479,11 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
               </div>
 
               {sec.items && sec.items.length > 0 && (
-                <ul className="mt-2 space-y-1 pl-1">
+                <ul className="mt-2.5 space-y-1.5 pl-1">
                   {sec.items.map((item, iIdx) => (
                     <li
                       key={iIdx}
-                      className="text-[11.5px] leading-relaxed text-[#171A1F]/90 flex items-start gap-1.5"
+                      className="text-[11.5px] leading-relaxed text-[#171A1F]/90 flex items-start gap-2"
                     >
                       <span className="text-[#FF6B1F] font-black mt-0.5 shrink-0">–</span>
                       <span className="text-justify">{item}</span>
@@ -532,10 +532,11 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                 </div>
               )}
 
+              {/* Na tela interativa, as notas permanecem como bloco legível; na impressão, são fixadas no rodapé da folha */}
               {sec.footnotes && sec.footnotes.length > 0 && (
                 <aside
                   aria-label={`Notas da Seção ${sec.number}`}
-                  className="conce-proposal-footnote-block mt-4 pt-2.5 border-t border-dashed border-[#171A1F]/20 space-y-0.5 text-left"
+                  className="conce-proposal-footnote-block mt-4 pt-2.5 border-t border-dashed border-[#171A1F]/20 space-y-0.5 text-left print:hidden"
                 >
                   {sec.footnotes.map((fn, fIdx) => (
                     <p
@@ -641,6 +642,29 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
               <span className="italic text-[#FF6B1F] font-semibold">{CONCE_COMPANY.slogan}</span>
             </div>
           </section>
+
+          {/* RODAPÉ FIXO NA BASE DA FOLHA (APENAS NA IMPRESSÃO)
+              Em @media print, position: fixed fixa este rodapé na base da área útil de cada folha impressa,
+              garantindo que as notas técnicas e identificação fiquem sempre na última linha da folha,
+              sem quebras artificiais nem flutuação no meio do texto. */}
+          <footer
+            aria-label="Rodapé impresso da folha"
+            className="conce-proposal-page-footer print:block hidden"
+          >
+            <div className="flex items-center justify-between border-t border-[#171A1F]/20 pt-1 text-[7.5pt] text-[#171A1F]/70">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-[#294C87]">CONCE ENGENHARIA</span>
+                <span>•</span>
+                <span>Proposta Técnica e Comercial — {cleanCode}</span>
+              </div>
+              <div className="flex items-center gap-2 italic">
+                <span>
+                  Nota: Validade {cleanValidityDays} dias {cleanValidityType} • RT:{' '}
+                  {CONCE_COMPANY.responsavelTecnico} ({CONCE_COMPANY.registroCrea})
+                </span>
+              </div>
+            </div>
+          </footer>
         </article>
       </main>
 

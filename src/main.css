@@ -418,9 +418,11 @@
     }
 
     /* ============================================================
-       PROPOSTA TÉCNICA E COMERCIAL — CAPA ISOLADA + CORPO PAGINADO
-       Capa ocupa exatamente a Página 1 contendo APENAS a marca institucional
-       CONCE ENGENHARIA LTDA, com quebra obrigatória para a Página 2.
+       PROPOSTA TÉCNICA E COMERCIAL — IMPRESSÃO SIMPLES, LIMPA E ROBUSTA
+       - Capa na Página 1 com CONCE / ENGENHARIA LTDA e quebra forçada.
+       - Páginas 2+ em fluxo contínuo e natural (sem quebras desnecessárias).
+       - Espaçamento vertical generoso e legível entre parágrafos, listas e tabelas.
+       - Notas e rodapés fixados na BASE DA FOLHA através do footer fixo de página.
        ============================================================ */
     #conce-printable-presentation .conce-proposal-cover {
       box-sizing: border-box !important;
@@ -459,9 +461,7 @@
       break-before: page !important;
     }
 
-    /* Cabeçalho do corpo da proposta (topo da página 2)
-       A linha horizontal superior fica encostada na margem superior da página 2,
-       com margem e padding nulos no topo da impressão. */
+    /* Cabeçalho do corpo da proposta (topo da página 2) */
     header.conce-proposal-body-header,
     .conce-proposal-body-header,
     header.conce-proposal-header,
@@ -481,7 +481,7 @@
       box-sizing: border-box !important;
       margin-top: 0 !important;
       padding-top: 0 !important;
-      margin-bottom: 0 !important;
+      margin-bottom: 2mm !important;
       padding-bottom: 0 !important;
     }
 
@@ -492,16 +492,14 @@
       visibility: visible !important;
     }
 
-    /* Linha divisória horizontal logo acima do título — próxima da margem superior */
+    /* Linha divisória horizontal logo acima do título */
     .conce-proposal-meta-line {
       margin-top: 0 !important;
       padding-top: 0 !important;
-      padding-bottom: 1.5mm !important;
+      padding-bottom: 2mm !important;
     }
 
-    /* Título PROPOSTA TÉCNICA E COMERCIAL na página 2:
-       Deslocado mais para baixo com respiro generoso em relação à linha divisória
-       do topo, conferindo equilíbrio e harmonia visual ao documento na folha A4. */
+    /* Título PROPOSTA TÉCNICA E COMERCIAL na página 2 */
     .conce-proposal-title {
       display: block !important;
       visibility: visible !important;
@@ -510,109 +508,99 @@
       break-after: auto !important;
       page-break-after: auto !important;
       overflow: visible !important;
-      margin-top: 6mm !important;
-      padding-top: 3mm !important;
-      padding-bottom: 4mm !important;
-      margin-bottom: 2mm !important;
+      margin-top: 4mm !important;
+      padding-top: 2mm !important;
+      padding-bottom: 3mm !important;
+      margin-bottom: 3mm !important;
     }
 
     .conce-proposal-identificacao,
-    .conce-proposal-sumario,
-    .conce-proposal-encerramento {
+    .conce-proposal-sumario {
       display: block !important;
       visibility: visible !important;
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
       break-after: auto !important;
       page-break-after: auto !important;
       overflow: visible !important;
       width: 100% !important;
       box-sizing: border-box !important;
+      margin-bottom: 3.5mm !important;
     }
 
     /* Tipografia da tabela de identificação na impressão */
     .conce-proposal-identificacao table {
       font-size: 8.5pt !important;
-      line-height: 1.35 !important;
+      line-height: 1.4 !important;
       border-collapse: collapse !important;
       width: 100% !important;
-      margin-top: 2mm !important;
-      margin-bottom: 2mm !important;
+      margin-top: 2.5mm !important;
+      margin-bottom: 2.5mm !important;
     }
 
     .conce-proposal-identificacao th,
     .conce-proposal-identificacao td {
-      padding: 1.8mm 2.5mm !important;
+      padding: 2mm 3mm !important;
       font-size: 8.5pt !important;
       vertical-align: top !important;
     }
 
     .conce-proposal-sumario ol {
       font-size: 8.5pt !important;
-      line-height: 1.35 !important;
+      line-height: 1.45 !important;
+      margin-top: 1.5mm !important;
+      margin-bottom: 1.5mm !important;
     }
 
-    /* Cada SEÇÃO numerada da proposta: nunca quebrar no meio.
-       Se a seção inteira não couber no restante da folha, ela é empurrada
-       inteira para a folha seguinte (evita seção cortada e folha residual). */
+    .conce-proposal-sumario ol li {
+      margin-bottom: 1mm !important;
+    }
+
+    /* Fluxo contínuo e natural das seções:
+       Permitir que a folha seja preenchida até o fim antes de quebrar.
+       Nunca forçar a seção inteira para outra página a menos que seja um bloco atômico. */
     .conce-proposal-section {
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
       break-after: auto !important;
       page-break-after: auto !important;
       overflow: visible !important;
-      margin: 0 0 4mm 0 !important;
-      padding: 2.5mm 0 3mm 0 !important;
+      margin: 0 0 5mm 0 !important;
+      padding: 3mm 0 2mm 0 !important;
       width: 100% !important;
       box-sizing: border-box !important;
     }
 
-    /* Notas de rodapé da seção na impressão:
-       Ancoradas na parte inferior da folha/seção com linha divisória sutil,
-       tipografia compacta em pt e break-inside: avoid para ficarem sempre
-       junto ao rodapé útil da folha sem flutuar no meio do texto corrido. */
-    .conce-proposal-footnote-block {
-      display: block !important;
-      visibility: visible !important;
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-      margin-top: 5mm !important;
-      padding-top: 2mm !important;
-      padding-bottom: 1mm !important;
-      border-top: 0.5pt dashed rgba(23, 26, 31, 0.25) !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-
-    .conce-proposal-footnote-text {
-      font-size: 8pt !important;
-      line-height: 1.3 !important;
-      color: rgba(23, 26, 31, 0.65) !important;
-      margin: 0.5mm 0 !important;
-    }
-
+    /* Títulos de seção: evitar que fiquem órfãos no fim da folha */
     .conce-proposal-section h2 {
-      font-size: 10pt !important;
+      font-size: 10.5pt !important;
       font-weight: 800 !important;
-      line-height: 1.3 !important;
-      margin-bottom: 2mm !important;
+      line-height: 1.35 !important;
+      margin-top: 1mm !important;
+      margin-bottom: 2.5mm !important;
       break-after: avoid !important;
       page-break-after: avoid !important;
     }
 
+    /* Parágrafos com espaçamento e entrelinha confortáveis (elimina textos colados) */
     .conce-proposal-section p {
       font-size: 9pt !important;
-      line-height: 1.4 !important;
+      line-height: 1.45 !important;
+      margin-bottom: 2mm !important;
       text-align: justify !important;
       text-justify: inter-word !important;
       word-spacing: normal !important;
-      hyphens: auto !important;
-      -webkit-hyphens: auto !important;
+    }
+
+    .conce-proposal-section ul {
+      margin-top: 2mm !important;
+      margin-bottom: 2.5mm !important;
     }
 
     .conce-proposal-section ul li {
       font-size: 8.5pt !important;
-      line-height: 1.35 !important;
+      line-height: 1.4 !important;
+      margin-bottom: 1.5mm !important;
       break-inside: avoid !important;
       page-break-inside: avoid !important;
     }
@@ -622,41 +610,109 @@
       text-justify: inter-word !important;
     }
 
-    /* Dentro de uma seção, tabelas podem fluir entre folhas se necessário */
+    /* Tabelas dentro de seções */
     .conce-proposal-section table {
       break-inside: auto !important;
       page-break-inside: auto !important;
       font-size: 8pt !important;
       width: 100% !important;
       border-collapse: collapse !important;
+      margin-top: 2mm !important;
+      margin-bottom: 2.5mm !important;
     }
 
     .conce-proposal-section th,
     .conce-proposal-section td {
-      padding: 1.5mm 2mm !important;
+      padding: 1.8mm 2.5mm !important;
       font-size: 8pt !important;
+      line-height: 1.35 !important;
+    }
+
+    /* Rodapé fixado na base de cada folha impressa:
+       Em CSS paged media (@page/print), elementos com position: fixed ficam fixados
+       na base da área imprimível (área útil da folha A4) de cada folha.
+       Na tela/modal interativo, este rodapé fica oculto (print-only). */
+    .conce-proposal-page-footer {
+      display: none !important;
+    }
+
+    @media print {
+      .conce-proposal-page-footer {
+        display: block !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        background: #ffffff !important;
+        border-top: 0.5pt solid rgba(23, 26, 31, 0.25) !important;
+        padding-top: 1.5mm !important;
+        padding-bottom: 0 !important;
+        z-index: 9999 !important;
+        font-size: 7.5pt !important;
+        line-height: 1.25 !important;
+        color: rgba(23, 26, 31, 0.7) !important;
+      }
+    }
+
+    /* Bloco de notas gerais da proposta:
+       Concentrado de forma limpa antes do aceite ou ao final das seções,
+       sem quebras artificiais nem ficar solto no meio do texto. */
+    .conce-proposal-footnote-block {
+      display: block !important;
+      visibility: visible !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      margin-top: 3.5mm !important;
+      padding-top: 2mm !important;
+      padding-bottom: 1.5mm !important;
+      border-top: 0.5pt dashed rgba(23, 26, 31, 0.25) !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    .conce-proposal-footnote-text {
+      font-size: 8pt !important;
+      line-height: 1.35 !important;
+      color: rgba(23, 26, 31, 0.7) !important;
+      margin: 1mm 0 !important;
+    }
+
+    /* Encerramento e Aceite */
+    .conce-proposal-encerramento {
+      display: block !important;
+      visibility: visible !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      margin-top: 4mm !important;
+      padding-top: 3mm !important;
     }
 
     .conce-proposal-encerramento p {
       font-size: 9pt !important;
-      line-height: 1.4 !important;
+      line-height: 1.45 !important;
+      margin-bottom: 2mm !important;
       text-align: justify !important;
       text-justify: inter-word !important;
     }
 
-    /* Bloco de destaque de validade posicionado próximo ao rodapé/aceite */
+    /* Bloco de destaque de validade posicionado junto ao aceite */
     .conce-proposal-validity-box {
       break-inside: avoid !important;
       page-break-inside: avoid !important;
-      margin-top: 4mm !important;
-      padding: 2.5mm 3.5mm !important;
+      margin-top: 3.5mm !important;
+      margin-bottom: 4mm !important;
+      padding: 3mm 4mm !important;
       border: 1pt solid rgba(255, 107, 31, 0.6) !important;
       background: rgba(41, 76, 135, 0.04) !important;
     }
 
     .conce-proposal-validity-box p {
-      font-size: 8pt !important;
-      line-height: 1.3 !important;
+      font-size: 8.5pt !important;
+      line-height: 1.35 !important;
       text-align: left !important;
     }
 
