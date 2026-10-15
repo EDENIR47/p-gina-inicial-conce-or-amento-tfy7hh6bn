@@ -579,6 +579,35 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(sec8Text.toLowerCase()).toContain('interferências')
   })
 
+  it('Seção 8 declara formalmente a contratação do Seguro de Obra, apólice mantida durante a vigência e não exoneração do RT', () => {
+    const budget = makeBudget()
+    const summary = calculateFullBudget(budget)
+    const analysis = analyzeBudgetForProposal(budget)
+    const sections = buildProposalSections(budget, summary, analysis)
+
+    const sec8 = sections[7]
+    expect(sec8.number).toBe(8)
+    expect(sec8.title).toBe('CONDIÇÕES COMERCIAIS E GARANTIAS')
+
+    const seguroItem = sec8.items?.find((item) => item.toUpperCase().includes('SEGURO DE OBRA'))
+    expect(seguroItem).toBeDefined()
+
+    const itemText = seguroItem || ''
+    expect(itemText).toContain('SEGURO DE OBRA')
+    expect(itemText.toLowerCase()).toContain('danos materiais')
+    expect(itemText.toLowerCase()).toContain('danos a terceiros')
+    expect(itemText.toLowerCase()).toContain('apólice')
+    expect(itemText.toLowerCase()).toContain('vigência')
+    expect(itemText.toLowerCase()).toContain('custeio')
+    expect(itemText.toLowerCase()).toContain('não exonera')
+    expect(itemText).toContain('RT')
+    expect(itemText).toContain('CREA/RS')
+
+    // Garantir que a proposta como um todo contém a menção ao seguro na Seção 8
+    const sec8FullText = [...sec8.paragraphs, ...(sec8.items || [])].join(' ')
+    expect(sec8FullText.toLowerCase()).toContain('seguro de obra')
+  })
+
   it('anti-regressão: nenhuma menção a "BDI", sigla BDI ou composição de custo direto + BDI aparece nas 8 seções geradas', () => {
     const budget = makeBudget()
     const summary = calculateFullBudget(budget)
