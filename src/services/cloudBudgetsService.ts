@@ -2,6 +2,7 @@ import pb from '@/lib/pocketbase/client'
 import { FullBudget } from '@/types/budgetEngine'
 import { InputQuoteComparison } from '@/types/intelligence'
 import { isPbAuthenticated } from '@/services/authService'
+import { standardizeItemDescription } from '@/lib/budgetsStorage'
 
 export interface CloudOrcamentoRecord {
   id: string
@@ -82,20 +83,17 @@ export function cloudOrcamentoToFullBudget(record: any): FullBudget {
   if (Array.isArray(rawBudget.stages)) {
     rawBudget.stages = rawBudget.stages.map((stg) => ({
       ...stg,
-      name: (stg.name || '').trim().toUpperCase(),
+      name: standardizeItemDescription(stg.name),
       services: (stg.services || []).map((srv) => ({
         ...srv,
-        description: (srv.description || '').trim().toUpperCase(),
+        description: standardizeItemDescription(srv.description),
         composition: srv.composition
           ? {
               ...srv.composition,
-              name: srv.composition.name
-                ? srv.composition.name.trim().toUpperCase()
-                : srv.composition.name,
-              description: (srv.composition.description || '').trim().toUpperCase(),
+              description: standardizeItemDescription(srv.composition.description),
               inputs: (srv.composition.inputs || []).map((inp) => ({
                 ...inp,
-                description: (inp.description || '').trim().toUpperCase(),
+                description: standardizeItemDescription(inp.description),
               })),
             }
           : srv.composition,

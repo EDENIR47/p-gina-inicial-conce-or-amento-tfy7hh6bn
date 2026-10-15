@@ -654,14 +654,8 @@ function sanitizeBudgetDescriptions(budget: FullBudget): FullBudget {
       if (service.composition) {
         let compChanged = false
         const normCompDesc = standardizeItemDescription(service.composition.description)
-        const normCompName = service.composition.name
-          ? standardizeItemDescription(service.composition.name)
-          : service.composition.name
 
-        if (
-          normCompDesc !== service.composition.description ||
-          normCompName !== service.composition.name
-        ) {
+        if (normCompDesc !== service.composition.description) {
           compChanged = true
         }
 
@@ -691,7 +685,6 @@ function sanitizeBudgetDescriptions(budget: FullBudget): FullBudget {
           updatedComp = {
             ...service.composition,
             description: normCompDesc,
-            name: normCompName || service.composition.name,
             inputs: normInputs,
           }
         }
