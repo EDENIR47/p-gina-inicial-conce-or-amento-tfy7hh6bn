@@ -285,13 +285,52 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
       {/* A4 retrato, texto corrido, seções numeradas (não slides).     */}
       {/* ============================================================ */}
       <main
-        className="w-full max-w-4xl space-y-4 print:space-y-0"
+        className="w-full max-w-4xl space-y-6 print:space-y-0"
         id="conce-printable-presentation"
       >
+        {/* ============================================================ */}
+        {/* CAPA EXCLUSIVA DA PROPOSTA (PÁGINA 1 COMPLETA)                */}
+        {/* Contém SOMENTE a marca institucional CONCE ENGENHARIA LTDA    */}
+        {/* centralizada na folha inteira. Sem título, sem tabela,       */}
+        {/* sem sumário, sem datas ou dados adicionais.                   */}
+        {/* Seguido de quebra de página obrigatória para a impressão.    */}
+        {/* ============================================================ */}
+        <section
+          aria-label="Capa da Proposta Comercial"
+          className="conce-proposal-cover bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 flex flex-col items-center justify-center p-8 sm:p-12 relative min-h-[500px] sm:min-h-[720px] md:min-h-[960px] aspect-[1/1.414] print:border-none print:shadow-none print:m-0"
+        >
+          {/* Bloco centralizado de marca CONCE + ENGENHARIA LTDA */}
+          <div className="flex flex-col items-center text-center select-none">
+            <span className="text-6xl sm:text-7xl md:text-8xl font-black font-poppins text-[#171A1F] tracking-tight uppercase leading-none print:text-[56px] print:leading-none print:font-black">
+              <span className="text-[#FF6B1F]">C</span>ONCE
+            </span>
+            <span className="text-sm sm:text-base md:text-lg font-extrabold font-poppins text-[#294C87] uppercase tracking-[0.34em] mt-3 sm:mt-4 print:text-[15px] print:tracking-[0.32em] print:mt-3 print:font-extrabold">
+              ENGENHARIA LTDA
+            </span>
+          </div>
+        </section>
+
+        {/* Separador visual na tela entre a capa e o corpo da proposta (oculto na impressão) */}
+        <div
+          aria-hidden="true"
+          className="print:hidden w-full flex items-center justify-center gap-3 py-1 text-white/40 text-xs select-none"
+        >
+          <div className="h-px bg-white/20 flex-1 max-w-[120px]" />
+          <span className="text-[11px] font-semibold tracking-wider uppercase text-white/50">
+            Página 2 • Conteúdo da Proposta
+          </span>
+          <div className="h-px bg-white/20 flex-1 max-w-[120px]" />
+        </div>
+
+        {/* ============================================================ */}
+        {/* CORPO DO DOCUMENTO (INICIA NA PÁGINA 2 APÓS A QUEBRA)         */}
+        {/* Abre com o título "PROPOSTA TÉCNICA E COMERCIAL", seguido da */}
+        {/* identificação, sumário e seções numeradas de 1 a 8.          */}
+        {/* ============================================================ */}
         <article className="conce-proposal-sheet bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 print:border-none print:shadow-none">
-          {/* CABEÇALHO DA CAPA: MARCA CONCE + ENGENHARIA LTDA ACIMA DO TÍTULO "PROPOSTA TÉCNICA E COMERCIAL" (sem divisória/linha inferior com a frase da proposta) */}
-          <header className="conce-proposal-header px-6 sm:px-10 pt-6 pb-4 print:p-0 print:pt-1 print:pb-3 print:border-b-0 print:block">
-            {/* Metadados do documento (topo do cabeçalho) */}
+          {/* CABEÇALHO DO CORPO DA PROPOSTA (TOPO DA PÁGINA 2) */}
+          <header className="conce-proposal-body-header px-6 sm:px-10 pt-6 pb-2 print:px-0 print:pt-0 print:pb-2 print:block">
+            {/* Metadados do documento (topo da página 2) */}
             <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#171A1F]/10 print:pb-2">
               <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FF6B1F]/15 text-[#FF6B1F] text-[10px] font-black uppercase tracking-wider print:bg-[#FF6B1F]/15 print:text-[#FF6B1F]">
                 Proposta Comercial
@@ -306,28 +345,9 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                 </div>
               </div>
             </div>
-
-            {/* Bloco de Marca CONCE + ENGENHARIA LTDA com hierarquia tipográfica reforçada:
-                1. CONCE grande no topo (mínimo o dobro do tamanho da frase da proposta: 48px em print vs 20-22px do título).
-                2. Primeiro 'C' em laranja (#FF6B1F), restante em Mirage (#171A1F).
-                3. ENGENHARIA LTDA menor como subtítulo abaixo do CONCE em azul Cobalt (#294C87).
-                4. Ambos ACIMA da frase PROPOSTA TÉCNICA E COMERCIAL. */}
-            <div className="pt-4 pb-3 flex flex-col items-center text-center print:pt-3 print:pb-2">
-              <div className="flex flex-col items-center leading-none text-center">
-                <span className="text-5xl sm:text-6xl md:text-7xl font-black font-poppins text-[#171A1F] tracking-tight uppercase leading-none select-none print:text-[48px] print:leading-none print:font-black">
-                  <span className="text-[#FF6B1F]">C</span>ONCE
-                </span>
-                <span className="text-xs sm:text-sm md:text-base font-extrabold font-poppins text-[#294C87] uppercase tracking-[0.32em] mt-2 select-none print:text-[13px] print:tracking-[0.3em] print:mt-1.5 print:font-extrabold">
-                  ENGENHARIA LTDA
-                </span>
-              </div>
-              <p className="text-[10px] text-[#171A1F]/60 pt-1.5 font-medium tracking-wide print:text-[9px] print:pt-1">
-                CNPJ {CONCE_COMPANY.cnpjFormatado} • Porto Alegre/RS
-              </p>
-            </div>
           </header>
 
-          {/* TÍTULO DO DOCUMENTO — PROPOSTA TÉCNICA E COMERCIAL (abaixo da marca) */}
+          {/* TÍTULO DO DOCUMENTO — PROPOSTA TÉCNICA E COMERCIAL (abre a página 2) */}
           <div className="conce-proposal-title px-6 sm:px-10 py-4 sm:py-5 text-center border-b border-[#171A1F]/15 print:px-0 print:py-3 print:border-b print:border-[#171A1F]/15 print:block">
             <h1 className="text-xl sm:text-2xl font-black text-[#171A1F] tracking-tight uppercase print:text-[20px] print:leading-tight">
               {PROPOSAL_DOCUMENT_TITLE}

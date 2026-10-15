@@ -415,19 +415,50 @@
     }
 
     /* ============================================================
-       PROPOSTA TÉCNICA E COMERCIAL — impressão A4 RETRATO paginada
-       (documento contínuo, no padrão do Memorial: sem folha em branco
-       e sem quebrar uma seção numerada no meio da folha)
+       PROPOSTA TÉCNICA E COMERCIAL — CAPA ISOLADA + CORPO PAGINADO
+       Capa ocupa exatamente a Página 1 contendo APENAS a marca institucional
+       CONCE ENGENHARIA LTDA, com quebra obrigatória para a Página 2.
        ============================================================ */
+    #conce-printable-presentation .conce-proposal-cover {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      min-height: 240mm !important;
+      height: 240mm !important;
+      max-height: 244mm !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      border: none !important;
+      box-shadow: none !important;
+      background: #ffffff !important;
+    }
+
+    #conce-printable-presentation .conce-proposal-cover * {
+      visibility: visible !important;
+    }
+
     #conce-printable-presentation .conce-proposal-sheet {
       box-sizing: border-box !important;
       width: 100% !important;
       overflow: visible !important;
       margin: 0 !important;
       padding: 0 !important;
+      page-break-before: always !important;
+      break-before: page !important;
     }
 
-    /* Bloco de cabeçalho da proposta (marca CONCE + ENGENHARIA LTDA), título e identificação */
+    /* Cabeçalho do corpo da proposta (topo da página 2) */
+    header.conce-proposal-body-header,
+    .conce-proposal-body-header,
     header.conce-proposal-header,
     .conce-proposal-header {
       display: block !important;
@@ -445,6 +476,8 @@
       box-sizing: border-box !important;
     }
 
+    header.conce-proposal-body-header *,
+    .conce-proposal-body-header *,
     header.conce-proposal-header *,
     .conce-proposal-header * {
       visibility: visible !important;
