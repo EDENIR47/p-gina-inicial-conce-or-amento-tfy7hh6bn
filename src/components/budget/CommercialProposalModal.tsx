@@ -330,7 +330,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
         {/* Abre com o título "PROPOSTA TÉCNICA E COMERCIAL", seguido da */}
         {/* identificação, sumário e seções numeradas de 1 a 8.          */}
         {/* ============================================================ */}
-        <article className="conce-proposal-sheet bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 flex flex-col min-h-[500px] sm:min-h-[720px] md:min-h-[960px] print:min-h-0 print:border-none print:shadow-none">
+        <article className="conce-proposal-sheet bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 flex flex-col min-h-[842px] sm:min-h-[1050px] md:min-h-[1123px] print:min-h-0 print:border-none print:shadow-none">
           {/* Marcador de numeração de páginas no canto superior direito (a partir da página 2) */}
           <div aria-hidden="true" className="abnt-page-counter print:block hidden select-none" />
 
@@ -548,57 +548,60 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
           ))}
 
           {/* ENCERRAMENTO / ASSINATURAS */}
-          <section className="conce-proposal-encerramento px-6 sm:px-10 py-4 border-t border-[#171A1F]/15 flex-1 flex flex-col justify-between print:px-6 print:py-4 print:flex-none">
-            <div>
-              <p className="text-[12px] leading-relaxed text-[#171A1F] text-justify">
-                Permanecemos à inteira disposição para esclarecimentos adicionais sobre este
-                documento. A aceitação da presente proposta implica a concordância integral com as
-                condições técnicas, comerciais e de garantia aqui estabelecidas, ficando a execução
-                condicionada às autorizações prévias relacionadas na Seção 7, às condições
-                comerciais da Seção 8 e à formalização contratual entre as partes.
-              </p>
+          <section className="conce-proposal-encerramento px-6 sm:px-10 py-4 border-t border-[#171A1F]/15 flex-1 flex flex-col print:px-6 print:py-4 print:flex-none">
+            {/* Texto de encerramento */}
+            <p className="text-[12px] leading-relaxed text-[#171A1F] text-justify">
+              Permanecemos à inteira disposição para esclarecimentos adicionais sobre este
+              documento. A aceitação da presente proposta implica a concordância integral com as
+              condições técnicas, comerciais e de garantia aqui estabelecidas, ficando a execução
+              condicionada às autorizações prévias relacionadas na Seção 7, às condições comerciais
+              da Seção 8 e à formalização contratual entre as partes.
+            </p>
 
-              {/* BLOCO DE ASSINATURAS — ESPAÇO AMPLIADO PARA COLETA DAS ASSINATURAS */}
-              <div className="conce-proposal-signatures print-signatures-block mt-16 pt-8 sm:mt-20 sm:pt-10 print:mt-12 print:pt-6 print:break-inside-avoid">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-12 sm:gap-14 print:grid-cols-2 print:gap-8">
-                  {/* ASSINATURA CONCE */}
-                  <div className="text-center flex flex-col justify-end">
-                    <div className="h-20 sm:h-24 print:h-[22mm]" aria-hidden="true" />
-                    <div className="border-t border-[#171A1F] pt-2 mx-auto w-full max-w-[280px]">
-                      <p className="font-bold text-[11px] text-[#171A1F]">
-                        {CONCE_COMPANY.responsavelTecnico}
-                      </p>
-                      <p className="text-[10px] text-[#294C87] font-semibold">
-                        {CONCE_COMPANY.registroCrea}
-                      </p>
-                      <p className="text-[9.5px] text-[#171A1F]/60">{CONCE_COMPANY.razaoSocial}</p>
-                      <p className="text-[9.5px] text-[#171A1F]/50 mt-1">
-                        Porto Alegre/RS, {formatCurrentDatePTBR()}
-                      </p>
-                    </div>
+            {/* BLOCO DE ASSINATURAS — PERMANECE NO LUGAR CERTO, LOGO APÓS O TEXTO DE ENCERRAMENTO */}
+            {/* Espaçamento preservado para coleta de assinaturas (≈22mm na impressão) sem deslocar para o rodapé */}
+            <div className="conce-proposal-signatures print-signatures-block mt-16 pt-8 sm:mt-20 sm:pt-10 print:mt-12 print:pt-6 print:break-inside-avoid">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-12 sm:gap-14 print:grid-cols-2 print:gap-8">
+                {/* ASSINATURA CONCE */}
+                <div className="text-center flex flex-col justify-end">
+                  <div className="h-20 sm:h-24 print:h-[22mm]" aria-hidden="true" />
+                  <div className="border-t border-[#171A1F] pt-2 mx-auto w-full max-w-[280px]">
+                    <p className="font-bold text-[11px] text-[#171A1F]">
+                      {CONCE_COMPANY.responsavelTecnico}
+                    </p>
+                    <p className="text-[10px] text-[#294C87] font-semibold">
+                      {CONCE_COMPANY.registroCrea}
+                    </p>
+                    <p className="text-[9.5px] text-[#171A1F]/60">{CONCE_COMPANY.razaoSocial}</p>
+                    <p className="text-[9.5px] text-[#171A1F]/50 mt-1">
+                      Porto Alegre/RS, {formatCurrentDatePTBR()}
+                    </p>
                   </div>
+                </div>
 
-                  {/* ACEITE DO CLIENTE */}
-                  <div className="text-center flex flex-col justify-end">
-                    <div className="h-20 sm:h-24 print:h-[22mm]" aria-hidden="true" />
-                    <div className="border-t border-[#171A1F] pt-2 mx-auto w-full max-w-[280px]">
-                      <p className="font-bold text-[11px] text-[#171A1F]">{cleanClientName}</p>
-                      <p className="text-[10px] text-[#FF6B1F] font-bold">
-                        Aceite da Proposta Técnica e Comercial
+                {/* ACEITE DO CLIENTE */}
+                <div className="text-center flex flex-col justify-end">
+                  <div className="h-20 sm:h-24 print:h-[22mm]" aria-hidden="true" />
+                  <div className="border-t border-[#171A1F] pt-2 mx-auto w-full max-w-[280px]">
+                    <p className="font-bold text-[11px] text-[#171A1F]">{cleanClientName}</p>
+                    <p className="text-[10px] text-[#FF6B1F] font-bold">
+                      Aceite da Proposta Técnica e Comercial
+                    </p>
+                    <div className="mt-1.5 space-y-0.5 text-[9.5px] text-[#171A1F]/70">
+                      <p>Data do aceite: _____ / _____ / _________</p>
+                      <p className="text-[8.5px] italic text-[#171A1F]/50">
+                        Assinatura do Contratante ou Representante Legal
                       </p>
-                      <div className="mt-1.5 space-y-0.5 text-[9.5px] text-[#171A1F]/70">
-                        <p>Data do aceite: _____ / _____ / _________</p>
-                        <p className="text-[8.5px] italic text-[#171A1F]/50">
-                          Assinatura do Contratante ou Representante Legal
-                        </p>
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Bloco de identificação institucional fixado no rodapé da folha (ancorado na base na tela) */}
+            {/* Espaçador flexível para empurrar o rodapé institucional para a base da folha, deixando espaço em branco após as assinaturas */}
+            <div className="flex-1 min-h-[48px] sm:min-h-[72px]" aria-hidden="true" />
+
+            {/* BLOCO INSTITUCIONAL FIXADO NA BASE DA ÚLTIMA FOLHA NA TELA (com espaço em branco após as assinaturas) */}
             <div className="conce-proposal-closing-footer mt-auto pt-4 pb-2 border-t border-[#171A1F]/20 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10.5px] text-[#171A1F]/80 print:hidden">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-poppins">
                 <strong className="text-[#171A1F] font-extrabold uppercase tracking-wide">

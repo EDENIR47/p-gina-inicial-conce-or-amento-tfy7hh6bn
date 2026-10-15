@@ -293,6 +293,7 @@
   .conce-proposal-sheet {
     display: flex;
     flex-direction: column;
+    min-height: 297mm;
   }
 
   .conce-proposal-encerramento {
@@ -559,6 +560,16 @@
       box-sizing: border-box !important;
       break-inside: auto !important;
       page-break-inside: auto !important;
+    }
+
+    /* O rodapé de tela do encerramento é mantido oculto na impressão pois a impressão usa o rodapé fixado .conce-proposal-page-footer */
+    .conce-proposal-closing-footer {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
     }
 
     .conce-proposal-validity-box {
