@@ -55,6 +55,7 @@ import { StorageCleanModal } from '@/components/budget/StorageCleanModal'
 import { AbcCurveScreen } from '@/pages/AbcCurveScreen'
 import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
 import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
+import { generateNextBudgetCodeForCurrentYear } from '@/lib/budgetCodeGenerator'
 import {
   QuickEditBudgetModal,
   DeleteBudgetConfirmModal,
@@ -176,14 +177,17 @@ export const BudgetsScreen: React.FC = () => {
   }
 
   // Criação de novo orçamento em branco (sem herdar itens de demonstração)
-  const handleCreateNewBudget = () => {
+  // Código segue a regra CONCE vigente: ORC-ANO-NÚMERO com ano corrente real e
+  // sequência anual iniciando em 100 (ex.: ORC-2026-100, ORC-2026-101...),
+  // buscando o maior número do ano entre localStorage e cloud PocketBase.
+  const handleCreateNewBudget = async () => {
     const newId = `budget-${Date.now()}`
-    const codeNum = budgetsList.length + 1
+    const nextCode = await generateNextBudgetCodeForCurrentYear()
     const todayStr = new Date().toISOString().split('T')[0]
 
     const newBudget: FullBudget = {
       id: newId,
-      code: `ORC-2025-${String(codeNum).padStart(3, '0')}`,
+      code: nextCode,
       title: 'Novo Orçamento de Engenharia',
       status: 'em_andamento',
       createdAt: todayStr,

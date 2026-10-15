@@ -47,7 +47,8 @@ import { getBudgetDeadline } from '@/lib/formatters'
 import { BRAZIL_STATES_LIST, BRAZIL_STATES_CHARGES } from '@/lib/chargesData'
 import { DEFAULT_BDI_CONFIG, calculateFullBudget } from '@/lib/budgetEngine'
 import { UnitSelect } from './UnitSelect'
-import { getStoredCompositions, saveSingleBudget, getStoredFullBudgets } from '@/lib/budgetsStorage'
+import { getStoredCompositions, saveSingleBudget } from '@/lib/budgetsStorage'
+import { generateNextBudgetCodeForCurrentYear } from '@/lib/budgetCodeGenerator'
 import { logAuditEvent, saveBudgetRevision } from '@/lib/intelligenceStorage'
 import { formatCurrencyBRL, getSourceBadgeInfo } from '@/lib/formatters'
 import pb from '@/lib/pocketbase/client'
@@ -199,6 +200,9 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
     setStep('generating')
 
     try {
+      // Código do novo orçamento: regra CONCE vigente (ORC-ANO-NÚMERO, sequência
+      // anual a partir de 100), considerando localStorage + cloud PocketBase.
+      const aiBudgetCode = await generateNextBudgetCodeForCurrentYear()
       const baseUrl = import.meta.env.VITE_POCKETBASE_URL || ''
       const res = await fetch(`${baseUrl}/backend/v1/generate-budget`, {
         method: 'POST',
@@ -247,8 +251,6 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
 
       // Normaliza o objeto retornado no modelo FullBudget da CONCE
       const library = getStoredCompositions()
-      const existingBudgets = getStoredFullBudgets()
-      const budgetCount = existingBudgets.length + 1
       const nowStr = new Date().toISOString()
       const datePart = nowStr.split('T')[0]
 
@@ -388,7 +390,7 @@ export const AiBudgetModal: React.FC<AiBudgetModalProps> = ({
 
       const constructedBudget: FullBudget = {
         id: `budget-ai-${Date.now()}`,
-        code: `ORC-${new Date().getFullYear()}-${String(budgetCount).padStart(3, '0')}`,
+        code: aiBudgetCode,
         title: parsedJson.workName || 'Orçamento de Engenharia Civil',
         status: 'em_analise',
         createdAt: datePart,
