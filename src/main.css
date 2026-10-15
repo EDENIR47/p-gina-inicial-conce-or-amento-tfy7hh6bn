@@ -263,45 +263,50 @@
     }
   }
 
-  /* REGRAS DE IMPRESSÃO PROFISSIONAL CONCE — PADRONIZAÇÃO ABNT NBR 14724 */
-  /* Papel A4 portrait; Margens ABNT NBR 14724:
-     - Superior: 3 cm (30mm)
-     - Esquerda: 3 cm (30mm)
-     - Inferior: 2 cm (20mm)
-     - Direita: 2 cm (20mm)
-     Para evitar que URLs ou títulos do navegador apareçam nas margens, desmarcar
-     a opção "Cabeçalhos e rodapés" na caixa de diálogo de impressão do navegador. */
+  /* ============================================================
+     SISTEMA DETERMINÍSTICO DE IMPRESSÃO / PDF — CONCE ENGENHARIA
+     PADRÃO ABNT NBR 14724 & FOLHA ÚNICA CONCILIADA
+     Margens ABNT NBR 14724:
+     - Superior: 30mm (3cm)
+     - Esquerda: 30mm (3cm)
+     - Inferior: 20mm (2cm)
+     - Direita: 20mm (2cm)
+     Nota para o usuário: desmarcar "Cabeçalhos e rodapés" do navegador
+     para evitar que a URL e a data do browser sobreponham a margem.
+     ============================================================ */
   @page {
     size: A4 portrait;
     margin: 30mm 20mm 20mm 30mm;
   }
 
-  /* Quando o modal de PROPOSTA TÉCNICA E COMERCIAL estiver ativo para impressão:
-     documento A4 RETRATO paginado (mesma geometria do @page global — sem página nomeada),
-     no padrão do Memorial Descritivo. Sem folha em branco e sem seção cortada no meio. */
-  body.conce-printing-presentation {
-    /* Identificador de contexto retrato para a proposta comercial */
+  @page cover-page {
+    size: A4 portrait;
+    margin: 30mm 20mm 20mm 30mm;
+  }
+
+  /* Classes auxiliares na tela para o contador ABNT e rodapé */
+  .abnt-page-counter,
+  .conce-proposal-page-footer {
+    display: none;
   }
 
   @media print {
-    /* 1. Reset básico do documento para impressão limpa e compacta conforme ABNT NBR 14724 */
+    /* 1. RESET GLOBAL DE IMPRESSÃO */
     html {
-      background-color: #ffffff !important;
       background: #ffffff !important;
+      background-color: #ffffff !important;
       margin: 0 !important;
       padding: 0 !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
     }
 
     body {
-      background-color: #ffffff !important;
       background: #ffffff !important;
+      background-color: #ffffff !important;
       color: #171a1f !important;
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
       font-size: 12pt !important;
       line-height: 1.5 !important;
       width: 100% !important;
@@ -314,21 +319,7 @@
       print-color-adjust: exact !important;
     }
 
-    /* Ajuste para documento de Proposta Técnica e Comercial e Memorial em A4 retrato */
-    body.conce-printing-presentation {
-      background-color: #ffffff !important;
-      background: #ffffff !important;
-      color: #171a1f !important;
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
-      font-size: 12pt !important;
-      line-height: 1.5 !important;
-      overflow: visible !important;
-    }
-
-    /* 2. Quando o modal de impressão estiver ativo (.conce-printing no body, .conce-pdf-modal-overlay, .conce-memorial-modal-overlay ou .conce-presentation-modal-overlay presente),
-       ocultar completamente toda a árvore da aplicação (#root) para garantir que NENHUMA página da tela
-       de orçamentos ou do app seja impressa antes da proposta oficial. */
+    /* 2. ISOLAMENTO DO MODAL ATIVO (Oculta todo o restante do app #root) */
     body.conce-printing #root,
     body:has(.conce-pdf-modal-overlay) #root,
     body:has(.conce-memorial-modal-overlay) #root,
@@ -343,7 +334,7 @@
       border: none !important;
     }
 
-    /* Ocultar elementos globais da interface fora dos documentos imprimíveis CONCE (fallback de segurança) */
+    /* Ocultar elementos de UI externa */
     header:not(#conce-printable-presentation header):not(#conce-printable-memorial header):not(
         #conce-printable-proposal header
       ),
@@ -351,7 +342,7 @@
         #conce-printable-proposal footer
       ),
     nav,
-    aside,
+    aside:not(#conce-printable-presentation aside):not(#conce-printable-memorial aside),
     .print\:hidden,
     [aria-label='Painel de Consolidação do Orçamento'] {
       display: none !important;
@@ -362,18 +353,7 @@
       border: none !important;
     }
 
-    /* 3. Desfazer wrappers de layout e posições fixas que causam sobreposição */
-    main {
-      display: block !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      max-width: 100% !important;
-      width: 100% !important;
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* Contêiner modal deve perder backdrop, posição fixa e rolagem na impressão */
+    /* 3. MODAIS: LIMPEZA DE BACKDROP, OVERFLOW E POSIÇÃO FIXA */
     .conce-pdf-modal-overlay,
     .conce-memorial-modal-overlay,
     .conce-presentation-modal-overlay {
@@ -395,7 +375,6 @@
       display: block !important;
     }
 
-    /* Ocultar quaisquer irmãos de #conce-printable-proposal, #conce-printable-memorial ou #conce-printable-presentation dentro do modal na impressão */
     .conce-pdf-modal-overlay > *:not(#conce-printable-proposal),
     .conce-memorial-modal-overlay > *:not(#conce-printable-memorial),
     .conce-presentation-modal-overlay > *:not(#conce-printable-presentation) {
@@ -406,10 +385,7 @@
       padding: 0 !important;
     }
 
-    /* 4. Isolamento estrito do documento imprimível CONCE */
-    /* Com @page margin: 30mm 8mm 20mm 8mm, as margens físicas do navegador garantem os respiros
-       de 3cm no topo e 2cm na base em TODAS as páginas (inclusive após quebras automáticas).
-       O padding interno de 30mm/20mm foi removido do contêiner, mantendo padding zero na impressão. */
+    /* 4. CONTÊINERES PRINCIPAIS IMPRIMÍVEIS */
     #conce-printable-proposal,
     #conce-printable-memorial,
     #conce-printable-presentation {
@@ -427,18 +403,24 @@
     }
 
     /* ============================================================
-       PROPOSTA TÉCNICA E COMERCIAL — IMPRESSÃO SIMPLES, LIMPA E ROBUSTA
-       - Capa na Página 1 com CONCE / ENGENHARIA LTDA e quebra forçada.
-       - Páginas 2+ em fluxo contínuo e natural (sem quebras desnecessárias).
-       - Espaçamento vertical generoso e legível entre parágrafos, listas e tabelas.
-       - Notas e rodapés fixados na BASE DA FOLHA através do footer fixo de página.
+       PROPOSTA TÉCNICA E COMERCIAL — FOLHA POR FOLHA
        ============================================================ */
+
+    /* PÁGINA 1: CAPA EXCLUSIVA
+       - Sem número de página
+       - Sem linha divisória
+       - Somente CONCE (laranja) + ENGENHARIA LTDA (azul)
+       - Perfeitamente centralizada vertical e horizontalmente
+       - Quebra obrigatória após a capa sem gerar folha em branco
+       Área útil vertical disponível = 297mm - 30mm (topo) - 20mm (base) = 247mm.
+       Utilizamos 240mm para garantir enquadramento exato sem overflow. */
     #conce-printable-presentation .conce-proposal-cover {
+      page: cover-page !important;
       box-sizing: border-box !important;
       width: 100% !important;
-      min-height: 232mm !important;
-      height: 235mm !important;
-      max-height: 238mm !important;
+      height: 240mm !important;
+      max-height: 242mm !important;
+      min-height: 235mm !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
@@ -447,10 +429,10 @@
       margin: 0 !important;
       padding: 0 !important;
       overflow: hidden !important;
-      page-break-inside: avoid !important;
       break-inside: avoid !important;
-      page-break-after: always !important;
+      page-break-inside: avoid !important;
       break-after: page !important;
+      page-break-after: always !important;
       border: none !important;
       box-shadow: none !important;
       background: #ffffff !important;
@@ -460,345 +442,351 @@
       visibility: visible !important;
     }
 
+    /* PÁGINA 2 EM DIANTE: CORPO DO DOCUMENTO
+       - Quebra forçada antes para abrir rigorosamente na Página 2
+       - O container tem fluxo natural para preencher até o fim das folhas subsequentes */
     #conce-printable-presentation .conce-proposal-sheet {
       box-sizing: border-box !important;
       width: 100% !important;
       overflow: visible !important;
       margin: 0 !important;
-      padding: 0 !important;
-      page-break-before: always !important;
+      padding: 0 0 16mm 0 !important; /* Espaço na base para o rodapé fixo não cobrir o texto */
       break-before: page !important;
+      page-break-before: always !important;
+      border: none !important;
+      box-shadow: none !important;
     }
 
-    /* Cabeçalho do corpo da proposta (topo da página 2) */
+    /* PÁGINA 2: ABERTURA DO DOCUMENTO
+       Linha de metadados próxima da margem superior de 3cm */
     header.conce-proposal-body-header,
-    .conce-proposal-body-header,
-    header.conce-proposal-header,
-    .conce-proposal-header {
+    .conce-proposal-body-header {
       display: block !important;
       visibility: visible !important;
       height: auto !important;
-      max-height: none !important;
-      opacity: 1 !important;
-      border-bottom: none !important;
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-      break-after: auto !important;
-      page-break-after: auto !important;
-      overflow: visible !important;
       width: 100% !important;
       box-sizing: border-box !important;
       margin-top: 0 !important;
       padding-top: 0 !important;
-      margin-bottom: 2mm !important;
+      margin-bottom: 0 !important;
       padding-bottom: 0 !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      break-after: avoid !important;
+      page-break-after: avoid !important;
     }
 
-    header.conce-proposal-body-header *,
-    .conce-proposal-body-header *,
-    header.conce-proposal-header *,
-    .conce-proposal-header * {
-      visibility: visible !important;
-    }
-
-    /* Linha divisória horizontal logo acima do título */
     .conce-proposal-meta-line {
       margin-top: 0 !important;
       padding-top: 0 !important;
       padding-bottom: 2mm !important;
+      border-bottom: 0.5pt solid rgba(23, 26, 31, 0.2) !important;
     }
 
-    /* Numeração de páginas conforme ABNT NBR 14724:
-       Algarismos arábicos no canto superior direito, iniciando a partir da segunda folha (a capa não é numerada).
-       CSS Paged Media: counter(page) posicionado no canto superior direito. */
-    .abnt-page-counter {
-      display: none !important;
-    }
-
-    @media print {
-      .abnt-page-counter {
-        display: block !important;
-        position: fixed !important;
-        top: -22mm !important;
-        right: 0 !important;
-        font-family:
-          Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
-        font-size: 10pt !important;
-        line-height: 1 !important;
-        color: #171a1f !important;
-        text-align: right !important;
-        z-index: 9999 !important;
-      }
-    }
-
-    /* Título PROPOSTA TÉCNICA E COMERCIAL na página 2 */
+    /* TÍTULO PROPOSTA TÉCNICA E COMERCIAL:
+       Deslocado abaixo da linha de metadados com respiro vertical agradável */
     .conce-proposal-title {
       display: block !important;
       visibility: visible !important;
       break-inside: avoid !important;
       page-break-inside: avoid !important;
-      break-after: auto !important;
-      page-break-after: auto !important;
-      overflow: visible !important;
-      margin-top: 4mm !important;
-      padding-top: 2mm !important;
-      padding-bottom: 3mm !important;
-      margin-bottom: 3mm !important;
+      break-after: avoid !important;
+      page-break-after: avoid !important;
+      margin-top: 8mm !important;
+      padding-top: 0 !important;
+      padding-bottom: 6mm !important;
+      margin-bottom: 4mm !important;
+      text-align: center !important;
+      border-bottom: 0.5pt solid rgba(23, 26, 31, 0.15) !important;
     }
 
+    .conce-proposal-title h1 {
+      font-size: 15pt !important;
+      font-weight: 900 !important;
+      letter-spacing: -0.01em !important;
+      text-transform: uppercase !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      color: #171a1f !important;
+    }
+
+    .conce-proposal-title p {
+      font-size: 9.5pt !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.05em !important;
+      text-transform: uppercase !important;
+      color: #294c87 !important;
+      margin-top: 2mm !important;
+      margin-bottom: 0 !important;
+      text-indent: 0 !important;
+      text-align: center !important;
+    }
+
+    /* TABELA DE IDENTIFICAÇÃO E SUMÁRIO */
     .conce-proposal-identificacao,
     .conce-proposal-sumario {
       display: block !important;
       visibility: visible !important;
-      break-inside: auto !important;
-      page-break-inside: auto !important;
-      break-after: auto !important;
-      page-break-after: auto !important;
-      overflow: visible !important;
       width: 100% !important;
       box-sizing: border-box !important;
-      margin-bottom: 3.5mm !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
+      margin-bottom: 4mm !important;
+      padding: 0 !important;
     }
 
-    /* Tipografia da tabela de identificação na impressão */
     .conce-proposal-identificacao table {
-      font-size: 8.5pt !important;
-      line-height: 1.4 !important;
-      border-collapse: collapse !important;
       width: 100% !important;
-      margin-top: 2.5mm !important;
-      margin-bottom: 2.5mm !important;
+      border-collapse: collapse !important;
+      font-size: 9pt !important;
+      line-height: 1.35 !important;
+      margin-top: 2mm !important;
+      margin-bottom: 2mm !important;
+      border: 0.5pt solid rgba(23, 26, 31, 0.25) !important;
     }
 
-    .conce-proposal-identificacao th,
+    .conce-proposal-identificacao th {
+      width: 32% !important;
+      background-color: rgba(41, 76, 135, 0.06) !important;
+      color: #294c87 !important;
+      font-weight: bold !important;
+      text-transform: uppercase !important;
+      font-size: 8.5pt !important;
+      letter-spacing: 0.04em !important;
+      padding: 2mm 3mm !important;
+      border-bottom: 0.5pt solid rgba(23, 26, 31, 0.15) !important;
+      border-right: 0.5pt solid rgba(23, 26, 31, 0.15) !important;
+      text-align: left !important;
+      vertical-align: top !important;
+    }
+
     .conce-proposal-identificacao td {
       padding: 2mm 3mm !important;
-      font-size: 8.5pt !important;
+      font-size: 9pt !important;
+      color: #171a1f !important;
+      border-bottom: 0.5pt solid rgba(23, 26, 31, 0.15) !important;
       vertical-align: top !important;
     }
 
     .conce-proposal-sumario ol {
-      font-size: 8.5pt !important;
+      font-size: 9pt !important;
       line-height: 1.45 !important;
-      margin-top: 1.5mm !important;
-      margin-bottom: 1.5mm !important;
+      margin-top: 2mm !important;
+      margin-bottom: 2mm !important;
+      padding-left: 5mm !important;
+      color: rgba(23, 26, 31, 0.85) !important;
     }
 
     .conce-proposal-sumario ol li {
-      margin-bottom: 1mm !important;
+      margin-bottom: 1.5mm !important;
     }
 
-    /* Fluxo contínuo e natural das seções:
-       Permitir que a folha seja preenchida até o fim antes de quebrar.
-       Nunca forçar a seção inteira para outra página a menos que seja um bloco atômico. */
+    /* FLUXO NATURAL DAS SEÇÕES (PREENCHIMENTO ATÉ O FIM DA FOLHA)
+       NADA de quebras de página desnecessárias; quebra somente quando o conteúdo
+       naturalmente exceder a folha. Sem seções forçadas para páginas extras. */
     .conce-proposal-section {
+      display: block !important;
+      visibility: visible !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
       break-inside: auto !important;
       page-break-inside: auto !important;
       break-after: auto !important;
       page-break-after: auto !important;
-      overflow: visible !important;
       margin: 0 0 5mm 0 !important;
-      padding: 3mm 0 2mm 0 !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
+      padding: 3mm 0 0 0 !important;
+      border-top: 0.5pt solid rgba(23, 26, 31, 0.15) !important;
     }
 
-    /* Títulos de seção conforme ABNT NBR 14724:
-       Numerados na hierarquia (1, 1.1, etc.), em negrito nos níveis principais, sem ponto final,
-       alinhados à esquerda, sem recuo de parágrafo, sem órfãos no fim da página */
+    /* TÍTULOS DE SEÇÃO ABNT NBR 14724:
+       Numerados em negrito, sem ponto final, alinhados à esquerda, sem recuo,
+       com break-after: avoid para nunca ficarem órfãos no fim da folha */
     .conce-proposal-section h2,
     .abnt-section-title {
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
       font-size: 12pt !important;
       font-weight: bold !important;
       line-height: 1.5 !important;
-      margin-top: 4mm !important;
-      margin-bottom: 3mm !important;
+      color: #171a1f !important;
+      text-transform: uppercase !important;
       text-align: left !important;
       text-indent: 0 !important;
+      margin-top: 3mm !important;
+      margin-bottom: 2.5mm !important;
       break-after: avoid !important;
       page-break-after: avoid !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
     }
 
-    /* Parágrafos com espaçamento e entrelinha ABNT NBR 14724:
-       Fonte 12pt, entrelinha 1,5, texto justificado, recuo de primeira linha de 1,25 cm */
+    /* PARÁGRAFOS ABNT NBR 14724:
+       Corpo 12pt, entrelinha 1,5, justificado, recuo de primeira linha 1,25cm,
+       espaçamento normal entre parágrafos (3mm) */
     .conce-proposal-section p,
     .abnt-paragraph {
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
       font-size: 12pt !important;
       line-height: 1.5 !important;
-      margin-bottom: 3mm !important;
+      color: #171a1f !important;
       text-align: justify !important;
       text-justify: inter-word !important;
       text-indent: 1.25cm !important;
+      margin-top: 0 !important;
+      margin-bottom: 3mm !important;
       word-spacing: normal !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
     }
 
+    /* LISTAS E ITENS DENTRO DAS SEÇÕES */
     .conce-proposal-section ul {
       margin-top: 2mm !important;
-      margin-bottom: 3mm !important;
+      margin-bottom: 3.5mm !important;
       padding-left: 1.25cm !important;
+      list-style-type: none !important;
     }
 
     .conce-proposal-section ul li {
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
       font-size: 12pt !important;
       line-height: 1.5 !important;
-      margin-bottom: 1.5mm !important;
+      color: #171a1f !important;
+      margin-bottom: 2mm !important;
+      text-align: justify !important;
+      text-justify: inter-word !important;
       break-inside: avoid !important;
       page-break-inside: avoid !important;
-      text-align: justify !important;
-      text-justify: inter-word !important;
     }
 
-    .conce-proposal-section ul li span {
-      text-align: justify !important;
-      text-justify: inter-word !important;
-    }
-
-    /* Tabelas dentro de seções — área útil 100%, sem estourar margem */
+    /* TABELAS DENTRO DE SEÇÕES:
+       Dentro da área útil (100%), 10pt simples, sem estourar margem */
     .conce-proposal-section table {
-      break-inside: auto !important;
-      page-break-inside: auto !important;
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
-      font-size: 10pt !important;
-      line-height: 1.2 !important;
       width: 100% !important;
       max-width: 100% !important;
       border-collapse: collapse !important;
-      margin-top: 2.5mm !important;
-      margin-bottom: 3mm !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
+      font-size: 10pt !important;
+      line-height: 1.25 !important;
+      margin-top: 3mm !important;
+      margin-bottom: 4mm !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
     }
 
-    .conce-proposal-section th,
+    .conce-proposal-section th {
+      background-color: #294c87 !important;
+      color: #ffffff !important;
+      font-weight: bold !important;
+      font-size: 9.5pt !important;
+      padding: 2mm 3mm !important;
+      border: 0.5pt solid rgba(41, 76, 135, 0.4) !important;
+    }
+
     .conce-proposal-section td {
-      padding: 1.8mm 2.5mm !important;
-      font-size: 10pt !important;
-      line-height: 1.2 !important;
+      padding: 2mm 3mm !important;
+      font-size: 9.5pt !important;
+      color: #171a1f !important;
+      border: 0.5pt solid rgba(23, 26, 31, 0.2) !important;
     }
 
-    /* Rodapé fixado na base de cada folha impressa (ABNT: notas de rodapé tamanho 10, espaçamento simples):
-       Em CSS paged media (@page/print), elementos com position: fixed ficam fixados
-       na base da área imprimível (área útil da folha A4) de cada folha.
-       Na tela/modal interativo, este rodapé fica oculto (print-only). */
-    .conce-proposal-page-footer {
-      display: none !important;
-    }
-
-    @media print {
-      .conce-proposal-page-footer {
-        display: block !important;
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-        background: #ffffff !important;
-        border-top: 0.5pt solid rgba(23, 26, 31, 0.25) !important;
-        padding-top: 1.5mm !important;
-        padding-bottom: 0 !important;
-        z-index: 9999 !important;
-        font-family:
-          Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
-        font-size: 10pt !important;
-        line-height: 1 !important;
-        color: rgba(23, 26, 31, 0.8) !important;
-      }
-    }
-
-    /* Bloco de notas gerais da proposta: ABNT NBR 14724 — fonte 10pt, espaçamento simples */
-    .conce-proposal-footnote-block,
-    .abnt-footnote {
-      display: block !important;
-      visibility: visible !important;
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-      margin-top: 3.5mm !important;
-      padding-top: 2mm !important;
-      padding-bottom: 1.5mm !important;
-      border-top: 0.5pt dashed rgba(23, 26, 31, 0.25) !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-      font-size: 10pt !important;
-      line-height: 1.2 !important;
-    }
-
-    .conce-proposal-footnote-text,
-    .abnt-footnote-text {
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
-      font-size: 10pt !important;
-      line-height: 1.2 !important;
-      color: rgba(23, 26, 31, 0.75) !important;
-      margin: 1mm 0 !important;
-      text-indent: 0 !important;
-    }
-
-    /* Encerramento e Aceite */
+    /* ENCERRAMENTO E ACEITE */
     .conce-proposal-encerramento {
       display: block !important;
       visibility: visible !important;
-      break-inside: auto !important;
-      page-break-inside: auto !important;
       width: 100% !important;
       box-sizing: border-box !important;
-      margin-top: 4mm !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
+      margin-top: 5mm !important;
       padding-top: 3mm !important;
+      border-top: 0.5pt solid rgba(23, 26, 31, 0.15) !important;
     }
 
     .conce-proposal-encerramento p {
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
       font-size: 12pt !important;
       line-height: 1.5 !important;
-      margin-bottom: 3mm !important;
+      color: #171a1f !important;
       text-align: justify !important;
       text-justify: inter-word !important;
       text-indent: 1.25cm !important;
+      margin-bottom: 3.5mm !important;
     }
 
-    /* Bloco de destaque de validade posicionado junto ao aceite */
     .conce-proposal-validity-box {
       break-inside: avoid !important;
       page-break-inside: avoid !important;
-      margin-top: 3.5mm !important;
-      margin-bottom: 4mm !important;
+      margin-top: 4mm !important;
+      margin-bottom: 5mm !important;
       padding: 3mm 4mm !important;
-      border: 1pt solid rgba(255, 107, 31, 0.6) !important;
-      background: rgba(41, 76, 135, 0.04) !important;
+      border: 1pt solid #ff6b1f !important;
+      background-color: rgba(41, 76, 135, 0.04) !important;
     }
 
     .conce-proposal-validity-box p {
-      font-size: 8.5pt !important;
+      font-size: 9pt !important;
       line-height: 1.35 !important;
+      text-indent: 0 !important;
+      margin-bottom: 0 !important;
       text-align: left !important;
     }
 
-    /* 5. Seções e fluxo contínuo sem quebras forçadas (sem folhas vazias e sem texto espaçado) */
-    .print-page-section {
-      display: block !important;
-      position: relative !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      margin: 0 0 0.5rem 0 !important;
-      padding: 0 !important;
-      box-sizing: border-box !important;
-      overflow: visible !important;
-      break-inside: auto !important;
-      page-break-inside: auto !important;
-      break-after: auto !important;
-      page-break-after: auto !important;
+    /* BLOCO DE ASSINATURAS */
+    .print-signatures-block {
+      margin-top: 8mm !important;
+      padding-top: 4mm !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
     }
 
-    /* Padrão ABNT NBR 14724 para Memorial Descritivo na Impressão */
+    /* ============================================================
+       RODAPÉ FIXO NA BASE DA FOLHA (ABNT NBR 14724):
+       Notas de rodapé 10pt simples, fixadas na base de cada folha impressa
+       via position: fixed; bottom: 0. O contêiner de capa (.conce-proposal-cover)
+       não usa o rodapé pois a capa é exclusiva e limpa.
+       ============================================================ */
+    .conce-proposal-page-footer {
+      display: block !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      background: #ffffff !important;
+      border-top: 0.5pt solid rgba(23, 26, 31, 0.3) !important;
+      padding-top: 1.5mm !important;
+      padding-bottom: 0 !important;
+      z-index: 9999 !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
+      font-size: 9pt !important;
+      line-height: 1.2 !important;
+      color: rgba(23, 26, 31, 0.8) !important;
+    }
+
+    /* ============================================================
+       NUMERAÇÃO DE PÁGINAS ABNT NBR 14724:
+       Algarismos arábicos no canto superior direito a partir da 2ª folha.
+       Posicionado em position: fixed no topo direito da área útil.
+       ============================================================ */
+    .abnt-page-counter {
+      display: block !important;
+      position: fixed !important;
+      top: -18mm !important;
+      right: 0 !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
+      font-size: 10pt !important;
+      line-height: 1 !important;
+      color: #171a1f !important;
+      text-align: right !important;
+      z-index: 9999 !important;
+    }
+
+    /* ============================================================
+       PADRÃO ABNT NBR 14724 PARA MEMORIAL DESCRITIVO
+       ============================================================ */
     #conce-printable-memorial {
-      font-family:
-        Arial, 'Helvetica Neue', Helvetica, 'Times New Roman', Times, sans-serif !important;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
       font-size: 12pt !important;
       line-height: 1.5 !important;
       color: #171a1f !important;
@@ -837,7 +825,7 @@
 
     #conce-printable-memorial table {
       font-size: 10pt !important;
-      line-height: 1.2 !important;
+      line-height: 1.25 !important;
       width: 100% !important;
       max-width: 100% !important;
     }
@@ -845,75 +833,59 @@
     #conce-printable-memorial th,
     #conce-printable-memorial td {
       font-size: 10pt !important;
-      line-height: 1.2 !important;
+      line-height: 1.25 !important;
     }
 
-    /* Capa institucional contínua e compacta:
-       - Não força quebra de página: o conteúdo subsequente entra logo em seguida na mesma folha.
-       - Altura natural/compacta (auto, sem fixar 265mm), eliminando espaços em branco residuais.
-       - break-inside: avoid para manter o cabeçalho/bloco da capa íntegro caso caiba na folha.
-    */
+    /* SEÇÕES DO MEMORIAL E PDF EXPORT:
+       Preenchimento contínuo, sem quebras forçadas desnecessárias */
+    .print-page-section {
+      display: block !important;
+      position: relative !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 0 4mm 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
+      overflow: visible !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
+      break-after: auto !important;
+      page-break-after: auto !important;
+    }
+
     .print-cover-page {
       box-sizing: border-box !important;
       width: 100% !important;
-      min-height: 0 !important;
       height: auto !important;
+      min-height: 0 !important;
       max-height: none !important;
       overflow: visible !important;
-      margin: 0 0 0.5rem 0 !important;
+      margin: 0 0 4mm 0 !important;
       padding: 3mm 4mm !important;
-      page-break-after: auto !important;
-      break-after: auto !important;
-      page-break-inside: avoid !important;
       break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      break-after: auto !important;
+      page-break-after: auto !important;
     }
 
-    /* Formato de Valor Final (página única fechada de exata 1 folha, preservado a pedido do cliente)
-       Na folha A4 total de 297mm x 210mm com margens físicas de @page (30mm topo e 20mm base),
-       a área útil vertical disponível por folha é exatamente 297mm - 50mm = 247mm.
-       Fixamos a altura do cartão de valor final em 240mm (máx 244mm) para garantir que feche
-       em EXATAMENTE 1 folha física, sem empurrar quebra nem gerar folha em branco residual. */
     .print-single-page {
       box-sizing: border-box !important;
       width: 100% !important;
-      min-height: 0 !important;
       height: 240mm !important;
-      max-height: 244mm !important;
+      max-height: 242mm !important;
       overflow: hidden !important;
-      margin: 0 0 0 0 !important;
+      margin: 0 !important;
       padding: 3.5mm 4.5mm !important;
-      page-break-inside: avoid !important;
       break-inside: avoid !important;
-      page-break-after: auto !important;
+      page-break-inside: avoid !important;
       break-after: auto !important;
-    }
-
-    /* Classes utilitárias de quebra — sem forçar quebras automáticas */
-    .print\:page-break-after-always,
-    .print-break-after,
-    .print-force-page-break {
       page-break-after: auto !important;
-      break-after: auto !important;
     }
 
-    .print\:page-break-inside-avoid,
-    .print-break-avoid {
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-
-    /* Bloco de assinaturas formais: respiro reforçado da última linha de texto e proteção contra quebra órfã */
-    .print-signatures-block {
-      margin-top: 18pt !important;
-      padding-top: 14pt !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-
-    /* Tabelas em impressão: cabeçalhos repetidos e sem linhas cortadas ao meio */
+    /* REGRAS DE TABELAS */
     table {
-      page-break-inside: auto !important;
       break-inside: auto !important;
+      page-break-inside: auto !important;
       width: 100% !important;
       max-width: 100% !important;
     }
@@ -922,24 +894,22 @@
       display: table-header-group !important;
     }
 
-    /* Evitar que tfoot seja repetido em cada página caso alguma tabela use tfoot */
     tfoot {
       display: table-row-group !important;
     }
 
     tr {
-      page-break-inside: avoid !important;
       break-inside: avoid !important;
+      page-break-inside: avoid !important;
     }
 
-    /* Otimização de densidade para impressão */
     th,
     td {
-      padding-top: 4px !important;
-      padding-bottom: 4px !important;
+      padding-top: 3px !important;
+      padding-bottom: 3px !important;
     }
 
-    /* Desabilitar animações durante a impressão */
+    /* DESATIVAR ANIMAÇÕES E TRANSIÇÕES */
     *,
     *::before,
     *::after {

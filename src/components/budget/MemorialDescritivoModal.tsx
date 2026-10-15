@@ -568,11 +568,11 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
             return (
               <article
                 key={stage.stageId}
-                className="print-page-section print-break-avoid border border-[#171A1F]/20 rounded-xl overflow-hidden shadow-xs print:shadow-none"
-                style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                className="print-page-section border border-[#171A1F]/20 rounded-xl overflow-hidden shadow-xs print:shadow-none"
               >
+                {' '}
                 {/* Cabeçalho da Etapa */}
-                <div className="bg-[#294C87] text-white p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="bg-[#294C87] text-white p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 print:break-inside-avoid print:page-break-inside-avoid">
                   <div className="flex items-center gap-2.5">
                     <span className="px-2 py-0.5 rounded-md bg-[#FF6B1F] text-white font-mono font-extrabold text-xs">
                       ETAPA {stage.stageCode}
@@ -588,7 +588,6 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
                       : 'serviços discriminados'}
                   </span>
                 </div>
-
                 {/* Observações da Etapa e Foto (se houver) */}
                 {(stage.notes || (includePhotos && stage.photoUrl)) && (
                   <div className="p-3 bg-[#F8F9FA] border-b border-[#171A1F]/10 space-y-2">
@@ -619,7 +618,6 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
                     )}
                   </div>
                 )}
-
                 {/* Lista de Serviços da Etapa */}
                 <div className="divide-y divide-[#171A1F]/10 p-3 sm:p-4 space-y-4">
                   {stage.services.map((service, sIndex) => {
@@ -694,10 +692,7 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
         </section>
 
         {/* 6. RESPONSABILIDADE TÉCNICA E NORMAS APLICÁVEIS */}
-        <section
-          className="print-page-section print-signatures-block border-t-2 border-[#171A1F]/20 pt-6 space-y-4"
-          style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
-        >
+        <section className="print-page-section print-signatures-block border-t-2 border-[#171A1F]/20 pt-6 space-y-4">
           <div className="bg-[#F8F9FA] p-3.5 rounded-xl border border-[#171A1F]/15 text-xs text-[#171A1F]/85 space-y-1.5">
             <span className="font-bold text-[#294C87] uppercase tracking-wide block">
               Garantia e Responsabilidade Técnica:

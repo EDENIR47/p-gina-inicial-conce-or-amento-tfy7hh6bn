@@ -341,6 +341,9 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
         {/* identificação, sumário e seções numeradas de 1 a 8.          */}
         {/* ============================================================ */}
         <article className="conce-proposal-sheet bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 print:border-none print:shadow-none">
+          {/* Marcador de numeração de páginas ABNT NBR 14724 no canto superior direito (a partir da página 2) */}
+          <div aria-hidden="true" className="abnt-page-counter print:block hidden select-none" />
+
           {/* CABEÇALHO DO CORPO DA PROPOSTA (TOPO DA PÁGINA 2) */}
           <header className="conce-proposal-body-header px-6 sm:px-10 pt-6 pb-1 print:px-0 print:pt-0 print:pb-0 print:block">
             {/* Metadados do documento (topo da página 2) — linha superior mais rente ao topo */}
@@ -645,20 +648,13 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
 
           {/* RODAPÉ FIXO NA BASE DA FOLHA (APENAS NA IMPRESSÃO)
               Em @media print, position: fixed fixa este rodapé na base da área útil de cada folha impressa,
-              garantindo que as notas técnicas e identificação fiquem sempre na última linha da folha,
-              sem quebras artificiais nem flutuação no meio do texto. */}
-          {/* Marcador de numeração de páginas ABNT NBR 14724 no canto superior direito (oculto na capa) */}
-          <div aria-hidden="true" className="abnt-page-counter print:block hidden select-none" />
-
-          {/* RODAPÉ FIXO NA BASE DA FOLHA (APENAS NA IMPRESSÃO)
-              Em @media print, position: fixed fixa este rodapé na base da área útil de cada folha impressa,
-              garantindo que as notas técnicas e identificação fiquem sempre na última linha da folha,
-              sem quebras artificiais nem flutuação no meio do texto, com tipografia ABNT (10pt, simples). */}
+              garantindo que as notas técnicas e identificação fiquem sempre na base da folha (rodapé de verdade),
+              com tipografia ABNT (10pt simples, sem quebras no meio do texto). */}
           <footer
             aria-label="Rodapé impresso da folha"
             className="conce-proposal-page-footer print:block hidden"
           >
-            <div className="flex items-center justify-between border-t border-[#171A1F]/20 pt-1 text-[10pt] text-[#171A1F]/80">
+            <div className="flex items-center justify-between pt-1 text-[9pt] text-[#171A1F]/80">
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-[#294C87]">CONCE ENGENHARIA</span>
                 <span>•</span>
