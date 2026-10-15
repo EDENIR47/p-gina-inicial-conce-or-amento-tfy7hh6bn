@@ -49,6 +49,7 @@ import { BudgetTotalsBar } from '@/components/budget/BudgetTotalsBar'
 import { PdfExportModal, PdfExportMode } from '@/components/budget/PdfExportModal'
 import { MemorialDescritivoModal } from '@/components/budget/MemorialDescritivoModal'
 import { CommercialProposalModal } from '@/components/budget/CommercialProposalModal'
+import { DisposalCertificateModal } from '@/components/budget/DisposalCertificateModal'
 import { RevisionsModal } from '@/components/budget/RevisionsModal'
 import { AuditTrailModal } from '@/components/budget/AuditTrailModal'
 import { StorageCleanModal } from '@/components/budget/StorageCleanModal'
@@ -154,6 +155,7 @@ export const BudgetsScreen: React.FC = () => {
   const [pdfInitialMode, setPdfInitialMode] = useState<PdfExportMode>('simplificado')
   const [isMemorialModalOpen, setIsMemorialModalOpen] = useState(false)
   const [isCommercialModalOpen, setIsCommercialModalOpen] = useState(false)
+  const [isDisposalModalOpen, setIsDisposalModalOpen] = useState(false)
   const [isRevisionsModalOpen, setIsRevisionsModalOpen] = useState(false)
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
   const [isCleanModalOpen, setIsCleanModalOpen] = useState(false)
@@ -692,6 +694,32 @@ export const BudgetsScreen: React.FC = () => {
                     </span>
                   </button>
 
+                  {/* Botão de Ficha de Descarte & Certificado de Destino Final no topo */}
+                  <button
+                    type="button"
+                    onClick={() => setIsDisposalModalOpen(true)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shadow-xs focus:outline-none focus:ring-2 cursor-pointer ${
+                      activeBudget.disposalDocument
+                        ? 'bg-emerald-600/15 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-500/40 focus:ring-emerald-500'
+                        : 'bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white border border-[#294C87]/30 focus:ring-[#294C87]'
+                    }`}
+                    title={
+                      activeBudget.disposalDocument
+                        ? `Ficha de Descarte anexada como documento oficial (v${activeBudget.disposalDocument.version}). Clique para visualizar, editar certificados ou reimprimir A4.`
+                        : 'Gerar Ficha de Descarte de cada tipo de resíduo com Certificado de Destino Final (CONAMA 307)'
+                    }
+                    aria-label="Abrir ficha de descarte de resíduos e certificado de destino final"
+                  >
+                    {activeBudget.disposalDocument ? (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    ) : null}
+                    <span>
+                      {activeBudget.disposalDocument
+                        ? `Ficha de Descarte Anexada (v${activeBudget.disposalDocument.version})`
+                        : 'Ficha de Descarte'}
+                    </span>
+                  </button>
+
                   {/* Botão de Memorial Descritivo no topo */}
                   <button
                     type="button"
@@ -826,6 +854,7 @@ export const BudgetsScreen: React.FC = () => {
             onOpenExcelExport={() => exportBudgetSpreadsheet(activeBudget, 'completo')}
             onOpenMemorialModal={() => setIsMemorialModalOpen(true)}
             onOpenCommercialModal={() => setIsCommercialModalOpen(true)}
+            onOpenDisposalModal={() => setIsDisposalModalOpen(true)}
             onOpenRevisionsModal={() => {
               ensureInitialRevision(activeBudget)
               setIsRevisionsModalOpen(true)
@@ -1471,6 +1500,29 @@ export const BudgetsScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => {
                                   setActiveBudget(b)
+                                  setIsDisposalModalOpen(true)
+                                }}
+                                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border active:scale-95 cursor-pointer ${
+                                  b.disposalDocument
+                                    ? 'bg-emerald-600/15 hover:bg-emerald-600 text-emerald-800 hover:text-white border-emerald-500/40'
+                                    : 'bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white border border-[#294C87]/30'
+                                }`}
+                                title="Ficha de Descarte de Resíduos com Certificado de Destino Final"
+                              >
+                                {b.disposalDocument && (
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                )}
+                                <span>
+                                  {b.disposalDocument
+                                    ? `Descarte (v${b.disposalDocument.version})`
+                                    : 'Ficha Descarte'}
+                                </span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveBudget(b)
                                   setIsMemorialModalOpen(true)
                                 }}
                                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white text-xs font-bold transition-colors cursor-pointer"
@@ -1687,6 +1739,26 @@ export const BudgetsScreen: React.FC = () => {
                                   type="button"
                                   onClick={() => {
                                     setActiveBudget(b)
+                                    setIsDisposalModalOpen(true)
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
+                                    b.disposalDocument
+                                      ? 'bg-emerald-600/15 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-500/40'
+                                      : 'bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white border border-[#294C87]/30'
+                                  }`}
+                                  title="Ficha de Descarte de Resíduos por Material"
+                                >
+                                  <span>
+                                    {b.disposalDocument
+                                      ? `Descarte (v${b.disposalDocument.version})`
+                                      : 'Ficha Descarte'}
+                                  </span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveBudget(b)
                                     setIsMemorialModalOpen(true)
                                   }}
                                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white font-bold text-xs transition-colors cursor-pointer"
@@ -1857,6 +1929,23 @@ export const BudgetsScreen: React.FC = () => {
             setBudgetsList(getStoredFullBudgets())
             showToast(
               `Apresentação Comercial v${updatedWithPresentation.presentationDocument?.version || 1} anexada com sucesso!`,
+            )
+          }}
+        />
+      )}
+
+      {/* Modal de Ficha de Descarte de Cada Tipo de Material & Certificado de Destino Final */}
+      {isDisposalModalOpen && activeBudget && (
+        <DisposalCertificateModal
+          key={`disposal-${activeBudget.id}`}
+          budget={activeBudget}
+          isOpen={isDisposalModalOpen}
+          onClose={() => setIsDisposalModalOpen(false)}
+          onAttachDisposalToBudget={(updatedWithDisposal) => {
+            setActiveBudget(updatedWithDisposal)
+            setBudgetsList(getStoredFullBudgets())
+            showToast(
+              `Ficha de Descarte v${updatedWithDisposal.disposalDocument?.version || 1} anexada com sucesso!`,
             )
           }}
         />
