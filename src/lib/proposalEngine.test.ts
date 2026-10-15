@@ -557,11 +557,11 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(sec8Text).toContain('DIAS 2 E 15')
     expect(sec8Text.toLowerCase()).toContain('útil')
 
-    // 3. Pagamento atrelado à emissão da nota fiscal referente ao período medido com prazo de 15 dias corridos
+    // 3. Pagamento atrelado à emissão da nota fiscal referente ao período medido com prazo de 5 dias úteis
     expect(sec8Text.toLowerCase()).toContain('nota fiscal')
     expect(sec8Text.toLowerCase()).toContain('período medido')
     expect(sec8Text.toLowerCase()).toContain('atrelado')
-    expect(sec8Text).toContain('15 (quinze) dias corridos')
+    expect(sec8Text).toContain('5 (cinco) dias úteis')
 
     // 4. Garantia legal Art. 618 Código Civil (solidez e segurança, 5 anos)
     expect(sec8Text).toContain('Art. 618')
