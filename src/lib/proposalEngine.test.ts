@@ -398,7 +398,7 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(prazo.items?.some((i) => i.includes('responsabilidade: CONCE'))).toBe(true)
   })
 
-  it('instalações no escopo elevam complexidade e adicionam autorização de concessionárias', () => {
+  it('instalações no escopo elevam complexidade, mas JAMAIS adicionam autorização de concessionárias na Seção 7', () => {
     const budget = makeBudget()
     budget.stages.push({
       id: 'stage-3',
@@ -427,7 +427,74 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     const sections = buildProposalSections(budget, calculateFullBudget(budget), analysis)
     const prazo = sections[6]
     const fullText = [...prazo.paragraphs, ...(prazo.items || [])].join(' ')
-    expect(fullText).toContain('concessionária')
+    // Regra rígida: nenhuma menção a concessionárias
+    expect(fullText.toLowerCase()).not.toContain('concessionária')
+    expect(fullText.toLowerCase()).not.toContain('concessionaria')
+  })
+
+  it('Seção 7 inclui complemento "quando necessário" em ocupação de via pública e declaração da SIMPLE ESTRUTURAL', () => {
+    const budget = makeBudget()
+    const analysis = analyzeBudgetForProposal(budget)
+    const sections = buildProposalSections(budget, calculateFullBudget(budget), analysis)
+    const prazo = sections[6]
+    const fullText = [...prazo.paragraphs, ...(prazo.items || [])].join(' ')
+
+    // 1. Ausência de concessionárias
+    expect(fullText.toLowerCase()).not.toContain('concessionária')
+    expect(fullText.toLowerCase()).not.toContain('concessionaria')
+
+    // 2. Complemento "quando necessário" no item de ocupação de via pública
+    const viaPublicaItem = prazo.items?.find((i) =>
+      i.toLowerCase().includes('ocupação de via pública'),
+    )
+    expect(viaPublicaItem).toBeDefined()
+    expect(viaPublicaItem?.toLowerCase()).toContain('quando necessário')
+    expect(viaPublicaItem).toContain('responsabilidade: Contratante')
+
+    // 3. Presença obrigatória da declaração da empresa SIMPLE ESTRUTURAL
+    expect(fullText).toContain('SIMPLE ESTRUTURAL')
+    expect(fullText).toContain('projeto estrutural complementar')
+  })
+
+  it('declaração institucional da SIMPLE ESTRUTURAL permanece presente mesmo em orçamento sem demolição ou remoção', () => {
+    const cleanBudget: FullBudget = {
+      ...makeBudget(),
+      stages: [
+        {
+          id: 'stage-pnt',
+          order: 1,
+          code: '01',
+          name: 'PINTURA',
+          services: [
+            {
+              id: 'srv-pnt',
+              order: 1,
+              code: '01.01',
+              description: 'Pintura látex acrílica em paredes internas',
+              unit: 'm2',
+              quantity: 100,
+              composition: makeComposition('Pintura', [
+                {
+                  description: 'Tinta acrílica',
+                  category: 'material',
+                  coefficient: 1,
+                  unitCost: 10,
+                },
+              ]),
+            },
+          ],
+        },
+      ],
+    }
+
+    const analysis = analyzeBudgetForProposal(cleanBudget)
+    const sections = buildProposalSections(cleanBudget, calculateFullBudget(cleanBudget), analysis)
+    const prazo = sections[6]
+    const fullText = [...prazo.paragraphs, ...(prazo.items || [])].join(' ')
+
+    expect(fullText).toContain('SIMPLE ESTRUTURAL')
+    expect(fullText).toContain('projeto estrutural complementar')
+    expect(fullText.toLowerCase()).not.toContain('concessionária')
   })
 
   it('motor normaliza acentos e é puro (determinístico entre execuções)', () => {

@@ -597,18 +597,10 @@ export function buildProposalAuthorizations(
 
   if (analysis.volume.hasRemovalServices) {
     auths.push({
-      title: 'Ocupação de via pública para posicionamento de caçambas',
+      title:
+        'Ocupação de via pública para posicionamento de caçambas e sinalização, quando necessário',
       description:
-        'Quando o posicionamento de caçambas estanques exigir ocupação de logradouro público, obtenção da autorização de ocupação de via junto à Prefeitura e, quando exigido, do plano de gerenciamento de resíduos da construção civil (PGRCC) municipal.',
-      responsibility: 'Contratante',
-    })
-  }
-
-  if (analysis.hasInstallations) {
-    auths.push({
-      title: 'Autorizações junto às concessionárias',
-      description:
-        'Solicitação às concessionárias de energia elétrica, água e esgoto (e gás canalizado, quando houver) de cortes, religamentos, alteração de ramais ou aprovação de projetos de rede afetados pela execução.',
+        'Quando o posicionamento de caçambas estanques e a respectiva sinalização exigirem ocupação de logradouro público, obtenção da autorização de ocupação de via junto à Prefeitura e, quando exigido, do plano de gerenciamento de resíduos da construção civil (PGRCC) municipal, aplicável apenas quando necessário.',
       responsibility: 'Contratante',
     })
   }
@@ -617,7 +609,7 @@ export function buildProposalAuthorizations(
     auths.push({
       title: 'Projeto estrutural complementar / laudo técnico',
       description:
-        'Quando a execução envolver remoção ou intervenção em elementos estruturais, apresentação prévia de projeto estrutural complementar ou laudo técnico assinado por engenheiro habilitado, com ART específica, antes do início dos trabalhos correspondentes.',
+        'Quando a execução envolver intervenção em elementos estruturais, o projeto estrutural complementar está em fase de conclusão sob responsabilidade da empresa SIMPLE ESTRUTURAL, com a respectiva ART específica antes do início dos trabalhos correspondentes.',
       responsibility: 'Conjunta',
     })
   }
@@ -871,11 +863,15 @@ export function buildProposalSections(
   )
 
   prazoParagraphs.push(
+    'Declaração institucional sobre projeto complementar: declara-se que o projeto estrutural complementar já está sendo concluído pela empresa SIMPLE ESTRUTURAL, garantindo o devido embasamento técnico e a conformidade normativa das intervenções previstas.',
+  )
+
+  prazoParagraphs.push(
     'As autorizações prévias previstas em lei e/ou em norma condominial para este tipo de intervenção são as relacionadas a seguir. A deflagração dos serviços pressupõe a entrega das autorizações de responsabilidade do contratante; atrasos nessas liberações repercutem proporcionalmente no prazo total de execução.',
   )
 
   prazoParagraphs.push(
-    'A presente enumeração é uma previsão técnica das autorizações usualmente exigidas para obras da natureza orçada, sem substituir a verificação específica junto ao condomínio, à Prefeitura e às concessionárias, que poderá apontar exigências adicionais.',
+    'A presente enumeração é uma previsão técnica das autorizações usualmente exigidas para obras da natureza orçada, sem substituir a verificação específica junto ao condomínio e à Prefeitura, que poderá apontar exigências adicionais.',
   )
 
   const sections: ProposalSectionData[] = [
