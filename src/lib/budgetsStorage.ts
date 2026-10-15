@@ -580,7 +580,53 @@ export function normalizeInputDescription(desc?: string | null): string {
     return correctLower
   })
 
+  // 5. "calição" -> "caliça" (preservando maiúsculas e minúsculas)
+  result = result.replace(/\bcali[çc][ãa]o\b/gi, (match) => {
+    const isUpper = match === match.toUpperCase()
+    const isTitle = /^[A-Z]/.test(match)
+    if (isUpper) return 'CALIÇA'
+    if (isTitle) return 'Caliça'
+    return 'caliça'
+  })
+
   return result
+}
+
+/**
+ * Padroniza descrições de itens de orçamento para CAIXA ALTA uniforme,
+ * aplicando regras semânticas obrigatórias (AUCATEX mantido, CALIÇA, etc.).
+ */
+export function standardizeItemDescription(desc?: string | null): string {
+  if (!desc || typeof desc !== 'string') return ''
+  const trimmed = desc.trim().replace(/\s+/g, ' ')
+  if (!trimmed) return ''
+
+  // Converter para CAIXA ALTA
+  let upper = trimmed.toUpperCase()
+
+  // a. "CALIÇÃO" -> "CALIÇA" (regra de ouro)
+  upper = upper.replace(/CALI[ÇC][ÃA]O/g, 'CALIÇA')
+
+  // b. Preservar marca real "AUCATEX"
+  upper = upper.replace(/\bAUCATEX\b/g, 'AUCATEX')
+
+  // c. "ENCARREGADO DE OBRA" -> "ENCARREGADO DA OBRA"
+  upper = upper.replace(/\bENCARREGAD[OA]S?\s+(?:DE\s+)?OBRA\b/g, 'ENCARREGADO DA OBRA')
+
+  // d. "CAÇAMBA(S) DE ENTULHO" -> "CAÇAMBA(S) DE ENTULHOS"
+  upper = upper.replace(/\bCA[ÇC]AMBAS\s+(?:DE\s+)?ENTULHOS?\b/g, 'CAÇAMBAS DE ENTULHOS')
+  upper = upper.replace(/\bCA[ÇC]AMBA\s+(?:DE\s+)?ENTULHOS?\b/g, 'CAÇAMBA DE ENTULHOS')
+
+  // e. "SACOS DE RÁFIA" -> "SACO DE RÁFIA"
+  upper = upper.replace(/\bSACOS\s+DE\s+R[AÁ]FIAS?\b/g, 'SACO DE RÁFIA')
+  upper = upper.replace(/\bSACO\s+DE\s+RAFIA\b/g, 'SACO DE RÁFIA')
+
+  // f. "CAROINTEIRO" -> "CARPINTEIRO"
+  upper = upper.replace(/\bCAROIN+TEIR([OA]S?)\b/g, (_, s: string) => {
+    return `CARPINTEIR${s}`
+  })
+
+  return upper
 }
 
 /**
@@ -592,9 +638,14 @@ function sanitizeBudgetDescriptions(budget: FullBudget): FullBudget {
   let anyChanged = false
   const updatedStages = budget.stages.map((stage) => {
     let stageChanged = false
+    const normStageName = standardizeItemDescription(stage.name)
+    if (normStageName !== stage.name) {
+      stageChanged = true
+    }
+
     const updatedServices = (stage.services || []).map((service) => {
       let serviceChanged = false
-      const normServiceDesc = normalizeInputDescription(service.description)
+      const normServiceDesc = standardizeItemDescription(service.description)
       if (normServiceDesc !== service.description) {
         serviceChanged = true
       }
@@ -602,13 +653,20 @@ function sanitizeBudgetDescriptions(budget: FullBudget): FullBudget {
       let updatedComp = service.composition
       if (service.composition) {
         let compChanged = false
-        const normCompDesc = normalizeInputDescription(service.composition.description)
-        if (normCompDesc !== service.composition.description) {
+        const normCompDesc = standardizeItemDescription(service.composition.description)
+        const normCompName = service.composition.name
+          ? standardizeItemDescription(service.composition.name)
+          : service.composition.name
+
+        if (
+          normCompDesc !== service.composition.description ||
+          normCompName !== service.composition.name
+        ) {
           compChanged = true
         }
 
         const normInputs = (service.composition.inputs || []).map((inp) => {
-          const normInpDesc = normalizeInputDescription(inp.description)
+          const normInpDesc = standardizeItemDescription(inp.description)
           let targetCategory = inp.category
           if (
             (inp.category === 'material' || !inp.category) &&
@@ -633,6 +691,7 @@ function sanitizeBudgetDescriptions(budget: FullBudget): FullBudget {
           updatedComp = {
             ...service.composition,
             description: normCompDesc,
+            name: normCompName || service.composition.name,
             inputs: normInputs,
           }
         }
@@ -651,7 +710,7 @@ function sanitizeBudgetDescriptions(budget: FullBudget): FullBudget {
 
     if (stageChanged) {
       anyChanged = true
-      return { ...stage, services: updatedServices }
+      return { ...stage, name: normStageName, services: updatedServices }
     }
     return stage
   })

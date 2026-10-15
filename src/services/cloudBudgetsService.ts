@@ -63,7 +63,7 @@ export function fullBudgetToCloudPayload(budget: FullBudget, userId: string) {
  */
 export function cloudOrcamentoToFullBudget(record: any): FullBudget {
   const payload = record.payload || {}
-  return {
+  const rawBudget: FullBudget = {
     ...payload,
     id: record.local_id || record.id,
     code: record.code || payload.code,
@@ -77,6 +77,33 @@ export function cloudOrcamentoToFullBudget(record: any): FullBudget {
     createdAt: payload.createdAt || record.created?.split('T')[0],
     updatedAt: record.updated || payload.updatedAt || new Date().toISOString(),
   }
+
+  // Sanitiza descrições padronizando tipografia sem tocar em nenhum número
+  if (Array.isArray(rawBudget.stages)) {
+    rawBudget.stages = rawBudget.stages.map((stg) => ({
+      ...stg,
+      name: (stg.name || '').trim().toUpperCase(),
+      services: (stg.services || []).map((srv) => ({
+        ...srv,
+        description: (srv.description || '').trim().toUpperCase(),
+        composition: srv.composition
+          ? {
+              ...srv.composition,
+              name: srv.composition.name
+                ? srv.composition.name.trim().toUpperCase()
+                : srv.composition.name,
+              description: (srv.composition.description || '').trim().toUpperCase(),
+              inputs: (srv.composition.inputs || []).map((inp) => ({
+                ...inp,
+                description: (inp.description || '').trim().toUpperCase(),
+              })),
+            }
+          : srv.composition,
+      })),
+    }))
+  }
+
+  return rawBudget
 }
 
 /**

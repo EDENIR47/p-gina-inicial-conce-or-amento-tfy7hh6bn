@@ -397,7 +397,7 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
         id: initialService?.id || `serv-${Date.now()}`,
         order: initialService?.order || effectiveNextOrder,
         code: code.trim() || `${activeStageCode}.${String(effectiveNextOrder).padStart(2, '0')}`,
-        description: description.trim(),
+        description: description.trim().toUpperCase(),
         unit: unit.trim() || 'un',
         quantity: Number(quantity) || 0,
         composition: finalComposition,

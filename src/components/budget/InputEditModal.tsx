@@ -77,7 +77,7 @@ export const InputEditModal: React.FC<InputEditModalProps> = ({
     onSave({
       id: initialInput?.id || `inp-${Date.now()}`,
       code: code.trim() || 'INSP-001',
-      description: description.trim(),
+      description: description.trim().toUpperCase(),
       unit: unit.trim() || 'un',
       category,
       coefficient: Number(coefficient),
