@@ -596,32 +596,49 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
               </div>
             </div>
 
-            <div className="mt-6 pt-3 border-t border-[#171A1F]/10 flex flex-wrap items-center justify-between gap-2 text-[10px] text-[#171A1F]/60">
-              <span>
-                <strong className="text-[#171A1F]">{CONCE_COMPANY.nomeFantasia}</strong> • CNPJ{' '}
-                {CONCE_COMPANY.cnpjFormatado} • {cleanCode}
-              </span>
-              <span className="italic text-[#FF6B1F] font-semibold">{CONCE_COMPANY.slogan}</span>
+            {/* Bloco de identificação institucional fixado no fechamento / rodapé da última folha */}
+            <div className="conce-proposal-closing-footer mt-6 pt-3 border-t border-[#171A1F]/15 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10.5px] text-[#171A1F]/75 print:hidden">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-poppins">
+                <strong className="text-[#171A1F] font-extrabold uppercase tracking-wide">
+                  CONCE ENGENHARIA E CONSULTORIA
+                </strong>
+                <span className="text-[#171A1F]/40">•</span>
+                <span className="font-medium text-[#171A1F]/90">CNPJ 57.149.101/0001-46</span>
+                <span className="text-[#171A1F]/40">•</span>
+                <span className="font-mono text-[10px] text-[#294C87] font-semibold">
+                  {cleanCode}
+                </span>
+              </div>
+              <div className="font-poppins text-xs font-semibold text-[#FF6B1F] tracking-tight">
+                CONCE é Conceito. CONCE é Concreto.
+              </div>
             </div>
           </section>
 
-          {/* RODAPÉ FIXO NA BASE DA FOLHA (APENAS NA IMPRESSÃO)
-              Em @media print, position: fixed fixa este rodapé na base da área útil de cada folha impressa,
-              garantindo que as notas técnicas e identificação fiquem na base da folha. */}
+          {/* RODAPÉ INSTITUCIONAL FIXADO NA BASE DA FOLHA NA IMPRESSÃO A4
+              Em @media print, position: fixed ancora este bloco no limite inferior útil de cada página,
+              com identificação institucional padronizada CONCE ENGENHARIA E CONSULTORIA, CNPJ e tagline. */}
           <footer
             aria-label="Rodapé impresso da folha"
             className="conce-proposal-page-footer print:block hidden"
           >
-            <div className="flex items-center justify-between px-6 pt-1 text-[8.5pt] text-[#171A1F]/80">
+            <div className="flex items-center justify-between px-6 pt-1.5 pb-0.5 text-[8.5pt] text-[#171A1F]/80 font-poppins">
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-[#294C87]">CONCE ENGENHARIA</span>
-                <span>•</span>
-                <span>Proposta Técnica e Comercial — {cleanCode}</span>
+                <span className="font-extrabold text-[#171A1F] uppercase tracking-wide">
+                  CONCE ENGENHARIA E CONSULTORIA
+                </span>
+                <span className="text-[#171A1F]/40">•</span>
+                <span className="font-medium text-[#171A1F]/90">CNPJ 57.149.101/0001-46</span>
+                <span className="text-[#171A1F]/40">•</span>
+                <span className="font-mono text-[8pt] text-[#294C87]">{cleanCode}</span>
               </div>
-              <div className="flex items-center gap-2 italic">
-                <span>
-                  Nota: Validade {cleanValidityDays} dias {cleanValidityType} • RT:{' '}
-                  {CONCE_COMPANY.responsavelTecnico} ({CONCE_COMPANY.registroCrea})
+              <div className="flex items-center gap-3">
+                <span className="text-[8pt] text-[#171A1F]/65 italic">
+                  Validade: {cleanValidityDays} dias {cleanValidityType}
+                </span>
+                <span className="text-[#171A1F]/30">•</span>
+                <span className="font-semibold text-[#FF6B1F] text-[8.5pt] tracking-tight">
+                  CONCE é Conceito. CONCE é Concreto.
                 </span>
               </div>
             </div>

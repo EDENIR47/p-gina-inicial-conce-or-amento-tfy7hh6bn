@@ -559,7 +559,7 @@
 
     /* ============================================================
        RODAPÉ FIXO NA BASE DA FOLHA
-       Notas e identificação fixadas na base da folha via position: fixed
+       Identificação institucional e notas fixadas na base da folha via position: fixed
        ============================================================ */
     .conce-proposal-page-footer {
       display: block !important;
@@ -572,7 +572,7 @@
       background: #ffffff !important;
       border-top: 1px solid rgba(23, 26, 31, 0.2) !important;
       padding-top: 1.5mm !important;
-      padding-bottom: 0 !important;
+      padding-bottom: 0.5mm !important;
       z-index: 9999 !important;
       font-size: 8.5pt !important;
       line-height: 1.2 !important;

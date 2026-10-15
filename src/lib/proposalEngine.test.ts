@@ -7,6 +7,7 @@ import {
   normalizeKeyword,
 } from '@/lib/proposalEngine'
 import { calculateFullBudget } from '@/lib/budgetEngine'
+import { CONCE_COMPANY } from '@/lib/conceCompany'
 import { FullBudget } from '@/types/budgetEngine'
 
 /**
@@ -864,5 +865,20 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(sec8Text).toContain('5 (cinco) dias úteis')
     expect(sec8Text).toContain('SIMPLES ESTRUTURAL')
     expect(sec8Text).not.toContain('BDI')
+  })
+
+  it('valida dados cadastrais e identificação institucional do rodapé da última folha', () => {
+    // Valida CNPJ formatado 57.149.101/0001-46 e razão/nome institucional
+    expect(CONCE_COMPANY.cnpjFormatado).toBe('57.149.101/0001-46')
+    expect(CONCE_COMPANY.cnpjNumeros).toBe('57149101000146')
+
+    // Grafia institucional exata do rodapé solicitada pelo usuário
+    const closingBrandName = 'CONCE ENGENHARIA E CONSULTORIA'
+    const closingCnpj = '57.149.101/0001-46'
+    const closingTagline = 'CONCE é Conceito. CONCE é Concreto.'
+
+    expect(closingBrandName).toBe('CONCE ENGENHARIA E CONSULTORIA')
+    expect(closingCnpj).toBe('57.149.101/0001-46')
+    expect(closingTagline).toBe('CONCE é Conceito. CONCE é Concreto.')
   })
 })
