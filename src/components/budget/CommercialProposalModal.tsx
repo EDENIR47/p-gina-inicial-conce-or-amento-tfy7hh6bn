@@ -363,8 +363,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                     <strong className="text-[#FF6B1F]">
                       {formatCurrencyBRL(summary.finalSalePrice)}
                     </strong>{' '}
-                    (BDI {summary.bdiRate.toFixed(2)}% incluso • {budget.stages.length} etapa(s) e{' '}
-                    {summary.servicesCount} item(ns) de serviço)
+                    ({budget.stages.length} etapa(s) e {summary.servicesCount} item(ns) de serviço)
                   </td>
                 </tr>
                 <tr>

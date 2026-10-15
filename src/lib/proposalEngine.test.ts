@@ -451,7 +451,7 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(fullText.toLowerCase()).not.toContain('concessionaria')
   })
 
-  it('Seção 7 inclui complemento "quando necessário" em ocupação de via pública e declaração da SIMPLE ESTRUTURAL', () => {
+  it('Seção 7 inclui complemento "quando necessário" em ocupação de via pública e declaração da SIMPLES ESTRUTURAL', () => {
     const budget = makeBudget()
     const analysis = analyzeBudgetForProposal(budget)
     const sections = buildProposalSections(budget, calculateFullBudget(budget), analysis)
@@ -470,12 +470,13 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(viaPublicaItem?.toLowerCase()).toContain('quando necessário')
     expect(viaPublicaItem).toContain('responsabilidade: Contratante')
 
-    // 3. Presença obrigatória da declaração da empresa SIMPLE ESTRUTURAL
-    expect(fullText).toContain('SIMPLE ESTRUTURAL')
+    // 3. Presença obrigatória da declaração da empresa SIMPLES ESTRUTURAL (com S)
+    expect(fullText).toContain('SIMPLES ESTRUTURAL')
+    expect(fullText).not.toContain('SIMPLE ESTRUTURAL')
     expect(fullText).toContain('projeto estrutural complementar')
   })
 
-  it('declaração institucional da SIMPLE ESTRUTURAL permanece presente mesmo em orçamento sem demolição ou remoção', () => {
+  it('declaração institucional da SIMPLES ESTRUTURAL permanece presente mesmo em orçamento sem demolição ou remoção', () => {
     const cleanBudget: FullBudget = {
       ...makeBudget(),
       stages: [
@@ -511,9 +512,30 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     const prazo = sections[6]
     const fullText = [...prazo.paragraphs, ...(prazo.items || [])].join(' ')
 
-    expect(fullText).toContain('SIMPLE ESTRUTURAL')
+    expect(fullText).toContain('SIMPLES ESTRUTURAL')
+    expect(fullText).not.toContain('SIMPLE ESTRUTURAL')
     expect(fullText).toContain('projeto estrutural complementar')
     expect(fullText.toLowerCase()).not.toContain('concessionária')
+  })
+
+  it('anti-regressão: nenhuma menção a "BDI", sigla BDI ou composição de custo direto + BDI aparece nas 7 seções geradas', () => {
+    const budget = makeBudget()
+    const summary = calculateFullBudget(budget)
+    const analysis = analyzeBudgetForProposal(budget)
+    const sections = buildProposalSections(budget, summary, analysis)
+
+    expect(sections).toHaveLength(7)
+
+    const allSectionsText = sections
+      .map(
+        (sec) =>
+          `${sec.title} ${sec.paragraphs.join(' ')} ${(sec.items || []).join(' ')} ${(sec.footnotes || []).join(' ')}`,
+      )
+      .join(' ')
+
+    // Teste estrito: palavra/sigla BDI isolada (regex case-insensitive de fronteira de palavra)
+    expect(allSectionsText).not.toMatch(/\bBDI\b/i)
+    expect(allSectionsText.toLowerCase()).not.toContain('custo direto')
   })
 
   it('motor normaliza acentos e é puro (determinístico entre execuções)', () => {

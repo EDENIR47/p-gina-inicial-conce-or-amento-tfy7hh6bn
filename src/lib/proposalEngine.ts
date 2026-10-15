@@ -609,7 +609,7 @@ export function buildProposalAuthorizations(
     auths.push({
       title: 'Projeto estrutural complementar / laudo técnico',
       description:
-        'Quando a execução envolver intervenção em elementos estruturais, o projeto estrutural complementar está em fase de conclusão sob responsabilidade da empresa SIMPLE ESTRUTURAL, com a respectiva ART específica antes do início dos trabalhos correspondentes.',
+        'Quando a execução envolver intervenção em elementos estruturais, o projeto estrutural complementar está em fase de conclusão sob responsabilidade da empresa SIMPLES ESTRUTURAL, com a respectiva ART específica antes do início dos trabalhos correspondentes.',
       responsibility: 'Conjunta',
     })
   }
@@ -861,7 +861,7 @@ export function buildProposalSections(
   )
 
   prazoParagraphs.push(
-    'Declaração institucional sobre projeto complementar: declara-se que o projeto estrutural complementar já está sendo concluído pela empresa SIMPLE ESTRUTURAL, garantindo o devido embasamento técnico e a conformidade normativa das intervenções previstas.',
+    'Declaração institucional sobre projeto complementar: declara-se que o projeto estrutural complementar já está sendo concluído pela empresa SIMPLES ESTRUTURAL, garantindo o devido embasamento técnico e a conformidade normativa das intervenções previstas.',
   )
 
   prazoParagraphs.push(
