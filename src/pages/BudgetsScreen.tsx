@@ -26,6 +26,7 @@ import {
   Sparkles,
   History,
   Eye,
+  Hash,
 } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { AiBudgetModal } from '@/components/budget/AiBudgetModal'
@@ -52,6 +53,7 @@ import { CommercialProposalModal } from '@/components/budget/CommercialProposalM
 import { RevisionsModal } from '@/components/budget/RevisionsModal'
 import { AuditTrailModal } from '@/components/budget/AuditTrailModal'
 import { StorageCleanModal } from '@/components/budget/StorageCleanModal'
+import { RenumberBudgetsModal } from '@/components/budget/RenumberBudgetsModal'
 import { AbcCurveScreen } from '@/pages/AbcCurveScreen'
 import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
 import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
@@ -158,6 +160,7 @@ export const BudgetsScreen: React.FC = () => {
   const [isRevisionsModalOpen, setIsRevisionsModalOpen] = useState(false)
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
   const [isCleanModalOpen, setIsCleanModalOpen] = useState(false)
+  const [isRenumberModalOpen, setIsRenumberModalOpen] = useState(false)
 
   // Modo de exibição na tela de orçamentos: 'cards' ou 'gerenciar'
   const [viewMode, setViewMode] = useState<'cards' | 'gerenciar'>('cards')
@@ -1173,6 +1176,16 @@ export const BudgetsScreen: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2.5">
               <button
                 type="button"
+                onClick={() => setIsRenumberModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 text-xs sm:text-sm font-bold transition-all border border-amber-500/30 shadow-sm cursor-pointer"
+                title="Atualizar códigos existentes para o padrão oficial CONCE (ORC-ANO-Nº a partir de 100)"
+              >
+                <Hash className="w-4 h-4 text-[#FF6B1F]" />
+                <span>Atualizar Códigos</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setIsCleanModalOpen(true)}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] text-xs sm:text-sm font-semibold transition-all border border-[#171A1F]/10 cursor-pointer"
                 title="Limpeza profunda de dados de demonstração e registros órfãos"
@@ -1565,10 +1578,19 @@ export const BudgetsScreen: React.FC = () => {
                     Gerenciamento Geral de Orçamentos
                   </h3>
                   <p className="text-xs text-[#171A1F]/60">
-                    Altere dados cadastrais, status ou exclua orçamentos que não foram realizados de
-                    verdade.
+                    Altere dados cadastrais, status, códigos ou exclua orçamentos que não foram
+                    realizados de verdade.
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRenumberModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 text-xs font-bold transition-all border border-amber-500/30 cursor-pointer self-start sm:self-auto"
+                  title="Atualizar códigos existentes para o padrão oficial CONCE (ORC-ANO-Nº a partir de 100)"
+                >
+                  <Hash className="w-4 h-4 text-[#FF6B1F]" />
+                  <span>Atualizar Códigos</span>
+                </button>
               </div>
 
               {/* Estado Vazio na Aba Gerenciar se não houver orçamentos */}
@@ -1783,7 +1805,22 @@ export const BudgetsScreen: React.FC = () => {
               }
               showToast('Varredura e limpeza concluídas com sucesso!')
             }}
-          />{' '}
+          />
+
+          {/* Modal de Renumeração dos Orçamentos Existentes (Regra Canônica CONCE) */}
+          <RenumberBudgetsModal
+            isOpen={isRenumberModalOpen}
+            onClose={() => setIsRenumberModalOpen(false)}
+            budgets={budgetsList}
+            onSuccess={(updatedBudgets) => {
+              setBudgetsList(updatedBudgets)
+              if (activeBudget) {
+                const refreshed = updatedBudgets.find((b) => b.id === activeBudget.id)
+                if (refreshed) setActiveBudget(refreshed)
+              }
+              showToast('Identificação dos orçamentos atualizada para o padrão oficial!')
+            }}
+          />
         </div>
       )}
 

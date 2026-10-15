@@ -311,7 +311,7 @@ export function buildMemorialDocumentData(
 
     return {
       budgetId: budget.id,
-      budgetCode: budget.code || 'ORC-2025-001',
+      budgetCode: budget.code || `ORC-${new Date().getFullYear()}-100`,
       budgetTitle: budget.title || budget.work?.name || 'Memorial Descritivo de Obra',
       generatedAt: saved.generatedAt || new Date().toISOString(),
       updatedAt: saved.updatedAt || new Date().toISOString(),
@@ -384,7 +384,7 @@ export function buildMemorialDocumentData(
 
   return {
     budgetId: budget.id,
-    budgetCode: budget.code || 'ORC-2025-001',
+    budgetCode: budget.code || `ORC-${new Date().getFullYear()}-100`,
     budgetTitle: budget.title || budget.work?.name || 'Memorial Descritivo de Obra',
     generatedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
