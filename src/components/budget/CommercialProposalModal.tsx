@@ -124,6 +124,12 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
   const cleanDeadline = formatBudgetDeadline(budget.work)
 
   const handlePrint = () => {
+    const originalTitle = typeof document !== 'undefined' ? document.title : ''
+    const safeBudgetCode = cleanCode.replace(/[^a-zA-Z0-9_-]/g, '_')
+    if (typeof document !== 'undefined') {
+      document.title = `Proposta-Tecnica-e-Comercial-${safeBudgetCode}`
+    }
+
     logAuditEvent({
       budgetId: budget.id,
       action: 'exportacao_pdf',
@@ -135,6 +141,13 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
     })
     document.body.classList.add('conce-printing-presentation')
     window.print()
+
+    setTimeout(() => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('conce-printing-presentation')
+        document.title = originalTitle
+      }
+    }, 500)
   }
 
   const handleAttachPresentation = () => {
@@ -297,14 +310,14 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
         {/* ============================================================ */}
         <section
           aria-label="Capa da Proposta Comercial"
-          className="conce-proposal-cover bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 flex flex-col items-center justify-center p-8 sm:p-12 relative min-h-[500px] sm:min-h-[720px] md:min-h-[960px] aspect-[1/1.414] print:border-none print:shadow-none print:m-0"
+          className="conce-proposal-cover bg-white text-[#171A1F] shadow-2xl border border-[#171A1F]/20 flex flex-col items-center justify-center p-8 sm:p-12 relative min-h-[500px] sm:min-h-[720px] md:min-h-[960px] aspect-[1/1.414] print:border-none print:shadow-none print:m-0 print:p-0 print:w-full print:aspect-auto"
         >
           {/* Bloco centralizado de marca CONCE + ENGENHARIA LTDA */}
-          <div className="flex flex-col items-center text-center select-none">
-            <span className="text-6xl sm:text-7xl md:text-8xl font-black font-poppins text-[#171A1F] tracking-tight uppercase leading-none print:text-[56px] print:leading-none print:font-black">
+          <div className="flex flex-col items-center text-center select-none w-full print:w-full">
+            <span className="text-6xl sm:text-7xl md:text-8xl font-black font-poppins text-[#171A1F] tracking-tight uppercase leading-none print:text-[46pt] print:leading-none print:font-black">
               <span className="text-[#FF6B1F]">C</span>ONCE
             </span>
-            <span className="text-sm sm:text-base md:text-lg font-extrabold font-poppins text-[#294C87] uppercase tracking-[0.34em] mt-3 sm:mt-4 print:text-[15px] print:tracking-[0.32em] print:mt-3 print:font-extrabold">
+            <span className="text-sm sm:text-base md:text-lg font-extrabold font-poppins text-[#294C87] uppercase tracking-[0.34em] mt-3 sm:mt-4 print:text-[12pt] print:tracking-[0.34em] print:mt-3 print:font-extrabold">
               ENGENHARIA LTDA
             </span>
           </div>
@@ -349,10 +362,10 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
 
           {/* TÍTULO DO DOCUMENTO — PROPOSTA TÉCNICA E COMERCIAL (abre a página 2, com mais respiro vertical abaixo da linha) */}
           <div className="conce-proposal-title px-6 sm:px-10 pt-7 pb-4 sm:pt-8 sm:pb-5 text-center border-b border-[#171A1F]/15 print:px-0 print:border-b print:border-[#171A1F]/15 print:block">
-            <h1 className="text-xl sm:text-2xl font-black text-[#171A1F] tracking-tight uppercase print:text-[20px] print:leading-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-[#171A1F] tracking-tight uppercase print:text-[14pt] print:leading-tight">
               {PROPOSAL_DOCUMENT_TITLE}
             </h1>
-            <p className="text-[11px] text-[#294C87] font-bold uppercase tracking-wider mt-1 print:text-[10px]">
+            <p className="text-[11px] text-[#294C87] font-bold uppercase tracking-wider mt-1 print:text-[9pt]">
               {cleanTitle}
             </p>
           </div>
@@ -470,7 +483,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
               )}
 
               {sec.table && (
-                <div className="mt-3 overflow-x-auto">
+                <div className="mt-3 overflow-x-auto print:overflow-visible">
                   <table className="w-full text-[10px] border border-[#171A1F]/25">
                     <thead>
                       <tr className="bg-[#294C87] text-white">
@@ -565,31 +578,35 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             </div>
 
             {/* BLOCO DE ASSINATURAS COM DATA E LOCAL DO ACEITE */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-9 print:mt-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-9 print:mt-8 print:grid-cols-2 print:gap-6 print:break-inside-avoid">
               <div className="text-center">
                 <div className="border-t border-[#171A1F] pt-2 mx-auto max-w-[280px]">
-                  <p className="font-bold text-[11px] text-[#171A1F]">
+                  <p className="font-bold text-[11px] text-[#171A1F] print:text-[9.5pt]">
                     {CONCE_COMPANY.responsavelTecnico}
                   </p>
-                  <p className="text-[10px] text-[#294C87] font-semibold">
+                  <p className="text-[10px] text-[#294C87] font-semibold print:text-[8.5pt]">
                     {CONCE_COMPANY.registroCrea}
                   </p>
-                  <p className="text-[9.5px] text-[#171A1F]/60">{CONCE_COMPANY.razaoSocial}</p>
-                  <p className="text-[9.5px] text-[#171A1F]/50 mt-1">
+                  <p className="text-[9.5px] text-[#171A1F]/60 print:text-[8pt]">
+                    {CONCE_COMPANY.razaoSocial}
+                  </p>
+                  <p className="text-[9.5px] text-[#171A1F]/50 mt-1 print:text-[7.5pt]">
                     Porto Alegre/RS, {formatCurrentDatePTBR()}
                   </p>
                 </div>
               </div>
               <div className="text-center">
                 <div className="border-t border-[#171A1F] pt-2 mx-auto max-w-[280px]">
-                  <p className="font-bold text-[11px] text-[#171A1F]">{cleanClientName}</p>
-                  <p className="text-[10px] text-[#FF6B1F] font-bold">
+                  <p className="font-bold text-[11px] text-[#171A1F] print:text-[9.5pt]">
+                    {cleanClientName}
+                  </p>
+                  <p className="text-[10px] text-[#FF6B1F] font-bold print:text-[8.5pt]">
                     Aceite da Proposta Técnica e Comercial
                   </p>
-                  <div className="mt-1.5 space-y-0.5 text-[9.5px] text-[#171A1F]/70">
+                  <div className="mt-1.5 space-y-0.5 text-[9.5px] text-[#171A1F]/70 print:text-[8pt]">
                     <p>Local do aceite: ________________________ / _____</p>
                     <p>Data do aceite: _____ / _____ / _________</p>
-                    <p className="text-[8.5px] italic text-[#171A1F]/50">
+                    <p className="text-[8.5px] italic text-[#171A1F]/50 print:text-[7pt]">
                       Assinatura do Contratante ou Representante Legal
                     </p>
                   </div>

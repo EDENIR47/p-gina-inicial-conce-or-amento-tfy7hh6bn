@@ -840,4 +840,29 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(fullItemsText).not.toContain('REVESTIMENTOS, PISOS E ACABAMENTOS')
     expect(fullItemsText).not.toContain('INSTALAÇÕES PREDIAIS')
   })
+
+  it('valida regras de impressão e estilização A4 da Proposta Técnica e Comercial', () => {
+    // Garante que o título do documento para impressão está correto
+    expect(PROPOSAL_DOCUMENT_TITLE).toBe('PROPOSTA TÉCNICA E COMERCIAL')
+
+    // Garante que nenhuma menção a LEED ou GBC existe
+    const budget = makeBudget()
+    const summary = calculateFullBudget(budget)
+    const analysis = analyzeBudgetForProposal(budget)
+    const sections = buildProposalSections(budget, summary, analysis)
+
+    const fullContent = sections
+      .map((s) => [s.title, ...s.paragraphs, ...(s.items || [])].join(' '))
+      .join(' ')
+
+    expect(fullContent).not.toMatch(/LEED/i)
+    expect(fullContent).not.toMatch(/Green Building/i)
+
+    // Cláusula de pagamento e parceiro
+    const sec8 = sections[7]
+    const sec8Text = [...sec8.paragraphs, ...(sec8.items || [])].join(' ')
+    expect(sec8Text).toContain('5 (cinco) dias úteis')
+    expect(sec8Text).toContain('SIMPLES ESTRUTURAL')
+    expect(sec8Text).not.toContain('BDI')
+  })
 })

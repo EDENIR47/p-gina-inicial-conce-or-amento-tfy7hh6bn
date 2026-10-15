@@ -307,11 +307,14 @@
       print-color-adjust: exact !important;
     }
 
-    /* Ajuste para documento em apresentação A4 paisagem */
+    /* Ajuste para documento de Proposta Técnica e Comercial em A4 retrato */
     body.conce-printing-presentation {
       background-color: #ffffff !important;
       background: #ffffff !important;
       color: #171a1f !important;
+      font-size: 9.5pt !important;
+      line-height: 1.4 !important;
+      overflow: visible !important;
     }
 
     /* 2. Quando o modal de impressão estiver ativo (.conce-printing no body, .conce-pdf-modal-overlay, .conce-memorial-modal-overlay ou .conce-presentation-modal-overlay presente),
@@ -422,9 +425,9 @@
     #conce-printable-presentation .conce-proposal-cover {
       box-sizing: border-box !important;
       width: 100% !important;
-      min-height: 240mm !important;
-      height: 240mm !important;
-      max-height: 244mm !important;
+      min-height: 232mm !important;
+      height: 235mm !important;
+      max-height: 238mm !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
@@ -523,6 +526,30 @@
       break-after: auto !important;
       page-break-after: auto !important;
       overflow: visible !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Tipografia da tabela de identificação na impressão */
+    .conce-proposal-identificacao table {
+      font-size: 8.5pt !important;
+      line-height: 1.35 !important;
+      border-collapse: collapse !important;
+      width: 100% !important;
+      margin-top: 2mm !important;
+      margin-bottom: 2mm !important;
+    }
+
+    .conce-proposal-identificacao th,
+    .conce-proposal-identificacao td {
+      padding: 1.8mm 2.5mm !important;
+      font-size: 8.5pt !important;
+      vertical-align: top !important;
+    }
+
+    .conce-proposal-sumario ol {
+      font-size: 8.5pt !important;
+      line-height: 1.35 !important;
     }
 
     /* Cada SEÇÃO numerada da proposta: nunca quebrar no meio.
@@ -535,14 +562,62 @@
       page-break-after: auto !important;
       overflow: visible !important;
       margin: 0 0 4mm 0 !important;
-      padding: 0 0 3mm 0 !important;
+      padding: 2.5mm 0 3mm 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
 
-    /* Dentro de uma seção, a tabela de volumes pode fluir entre folhas
-       (linhas individuais permanecem íntegras pela regra global de `tr`). */
+    .conce-proposal-section h2 {
+      font-size: 10pt !important;
+      font-weight: 800 !important;
+      line-height: 1.3 !important;
+      margin-bottom: 2mm !important;
+      break-after: avoid !important;
+      page-break-after: avoid !important;
+    }
+
+    .conce-proposal-section p {
+      font-size: 9pt !important;
+      line-height: 1.4 !important;
+      text-align: justify !important;
+      text-justify: inter-word !important;
+      word-spacing: normal !important;
+      hyphens: auto !important;
+      -webkit-hyphens: auto !important;
+    }
+
+    .conce-proposal-section ul li {
+      font-size: 8.5pt !important;
+      line-height: 1.35 !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+
+    .conce-proposal-section ul li span {
+      text-align: justify !important;
+      text-justify: inter-word !important;
+    }
+
+    /* Dentro de uma seção, tabelas podem fluir entre folhas se necessário */
     .conce-proposal-section table {
       break-inside: auto !important;
       page-break-inside: auto !important;
+      font-size: 8pt !important;
+      width: 100% !important;
+      border-collapse: collapse !important;
+    }
+
+    .conce-proposal-section th,
+    .conce-proposal-section td {
+      padding: 1.5mm 2mm !important;
+      font-size: 8pt !important;
+    }
+
+    .conce-proposal-encerramento p {
+      font-size: 9pt !important;
+      line-height: 1.4 !important;
+      text-align: justify !important;
+      text-justify: inter-word !important;
     }
 
     /* 5. Seções e fluxo contínuo sem quebras forçadas (sem folhas vazias e sem texto espaçado) */
