@@ -289,6 +289,22 @@
     display: none;
   }
 
+  /* Na visualização em tela, garante que o encerramento da proposta expanda e ancore o rodapé institucional no final da folha */
+  .conce-proposal-sheet {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .conce-proposal-encerramento {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+  }
+
+  .conce-proposal-closing-footer {
+    margin-top: auto;
+  }
+
   @media print {
     /* 1. RESET GLOBAL DE IMPRESSÃO — PRESERVA FONTE POPPINS DA TELA */
     html {
