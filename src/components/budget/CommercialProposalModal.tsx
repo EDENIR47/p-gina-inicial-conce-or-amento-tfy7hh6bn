@@ -92,13 +92,16 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
     return doc.budgetCode !== ownCode
   }, [budget.presentationDocument, budget.code])
 
-  const hasAttachedPresentation = useMemo(() => {
-    return Boolean(
-      budget.presentationDocument &&
-      budget.presentationDocument.version > 0 &&
-      !isStalePresentation,
-    )
+  //Documento anexado válido: apenas um anexo cujo budgetCode confere com este orçamento.
+  //Um anexo resquício de outro orçamento é tratado como INEXISTENTE para todo o modal
+  //(badge de versão, numeração do próximo anexo e data de anexação) — o documento
+  //exibido/gerado sempre vem das etapas do orçamento aberto, nunca do anexo.
+  const ownPresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    return doc && doc.version > 0 && !isStalePresentation ? doc : null
   }, [budget.presentationDocument, isStalePresentation])
+
+  const hasAttachedPresentation = Boolean(ownPresentation)
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -182,11 +185,13 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
 
   const handleAttachPresentation = () => {
     const now = new Date().toISOString()
-    const nextVersion = (budget.presentationDocument?.version || 0) + 1
+    //Versão incrementa APENAS a partir de anexo próprio: anexo resquício de outro
+    //orçamento não pode definir o número da versão nem a data original de anexação.
+    const nextVersion = (ownPresentation?.version || 0) + 1
 
     const presentationData = {
       version: nextVersion,
-      attachedAt: budget.presentationDocument?.attachedAt || now,
+      attachedAt: ownPresentation?.attachedAt || now,
       updatedAt: now,
       budgetCode: cleanCode,
       budgetTitle: cleanTitle,
@@ -322,7 +327,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
             )}
             <span>
               {hasAttachedPresentation
-                ? `Anexada (v${budget.presentationDocument?.version || 1}) • Atualizar`
+                ? `Anexada (v${ownPresentation?.version || 1}) • Atualizar`
                 : 'Anexar ao Orçamento'}
             </span>
           </button>
