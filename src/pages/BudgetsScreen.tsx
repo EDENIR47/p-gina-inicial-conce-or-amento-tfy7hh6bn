@@ -60,6 +60,7 @@ import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
 import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
 import { generateNextBudgetCodeForCurrentYear } from '@/lib/budgetCodeGenerator'
 import { getOwnPresentationDocument } from '@/lib/presentationGuard'
+import { syncEngine } from '@/services/syncEngine'
 import {
   QuickEditBudgetModal,
   DeleteBudgetConfirmModal,
@@ -1924,6 +1925,31 @@ export const BudgetsScreen: React.FC = () => {
             showToast(
               `Proposta Técnica e Comercial v${getOwnPresentationDocument(updatedWithPresentation)?.version || 1} anexada com sucesso!`,
             )
+          }}
+        />
+      )}
+
+      {/* Modal de Limpeza Assistida de Resquícios — sempre interativo: confirmação na tela + Desfazer.
+          Ao aplicar: persiste local, recalcula totais, atualiza a lista e dispara o sync do
+          orçamento completo (etapas, serviços, composições, insumos) para o cloud. */}
+      {isResidueModalOpen && activeBudget && (
+        <ResidueCleanupModal
+          key={`residue-${activeBudget.id}`}
+          budget={activeBudget}
+          onClose={() => setIsResidueModalOpen(false)}
+          onApply={(cleaned, summary) => {
+            setActiveBudget(cleaned)
+            saveSingleBudget(cleaned)
+            setBudgetsList(getStoredFullBudgets())
+            // Desfazer (summary === null) também reenvia o estado restaurado ao cloud.
+            syncEngine.enqueueBudgetSave(cleaned)
+            if (summary) {
+              showToast(
+                `Limpeza concluída: ${summary.removedServices} serviço(s) e ${summary.removedStages} etapa(s) removidos. Totais recalculados e sync ao cloud disparado.`,
+              )
+            } else {
+              showToast('Limpeza desfeita — árvore anterior restaurada e reenviada ao cloud.')
+            }
           }}
         />
       )}
