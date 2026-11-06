@@ -27,6 +27,7 @@ import {
   History,
   Eye,
   Hash,
+  Eraser,
 } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { AiBudgetModal } from '@/components/budget/AiBudgetModal'
@@ -63,6 +64,8 @@ import {
   QuickEditBudgetModal,
   DeleteBudgetConfirmModal,
 } from '@/components/budget/ManageBudgetModals'
+import { ResidueCleanupModal } from '@/components/budget/ResidueCleanupModal'
+import type { ResidueCleanupSummary } from '@/lib/residueDetector'
 
 export const BudgetsScreen: React.FC = () => {
   const location = useLocation()
@@ -98,6 +101,9 @@ export const BudgetsScreen: React.FC = () => {
   // vinda a navegação de onde vier (menu, F5 na URL base, volta de /composicoes, retorno do Dashboard).
   const [activeBudget, setActiveBudget] = useState<FullBudget | null>(null)
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
+  // LIMPEZA ASSISTIDA DE RESQUÍCIOS na árvore do orçamento aberto
+  // (vindos de duplicação — ex.: ORC-2026-108 herdando serviços de construção nova do ORC-2026-100)
+  const [isResidueModalOpen, setIsResidueModalOpen] = useState(false)
 
   // Limpeza de chaves órfãs residuais no localStorage e tratamento de deep link explícito via location.state.openBudgetId.
   // Deep link para abrir um orçamento específico SÓ via ação EXPLÍCITA do usuário (ex.: botão "Abrir no editor" do Dashboard, clique num card).
@@ -731,6 +737,18 @@ export const BudgetsScreen: React.FC = () => {
                   >
                     <History className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                     <span>Revisões</span>
+                  </button>
+
+                  {/* Limpeza assistida de resquícios na árvore do orçamento aberto */}
+                  <button
+                    type="button"
+                    onClick={() => setIsResidueModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-600/10 hover:bg-red-600 text-red-700 hover:text-white border border-red-600/30 text-[11px] font-bold transition-all shadow-xs focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                    title="Revisar e remover serviços de outra obra herdados por duplicação (sempre com confirmação)"
+                    aria-label="Abrir limpeza assistida de resquícios da árvore"
+                  >
+                    <Eraser className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>Limpar Resquícios</span>
                   </button>
                 </div>
 

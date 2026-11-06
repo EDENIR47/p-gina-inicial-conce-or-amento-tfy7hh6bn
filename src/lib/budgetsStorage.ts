@@ -1190,10 +1190,45 @@ export function saveSingleBudget(budget: FullBudget): void {
 
   saveFullBudgets(updated)
 
-  // Dispara envio em background para o PocketBase
+  // Dispara envio em background para o PocketBase.
+  // CORREÇÃO (ORC-2026-108 não existia no cloud): gravação vai "cloud-first" —
+  // o getFirstListItem do fluxo normal da fila retorna 404 depois que o CREATE já
+  // aconteceu (ou corre corrida entre chamadas rápidas), o que fazia a fila falhar
+  // e descartar a tarefa após 5 tentativas. Aqui o registro existente é localizado
+  // ANTES (por local_id ou código) e atualizado diretamente; só enfileira quando
+  // a verificação direta não for possível.
   try {
     import('@/services/syncEngine')
-      .then(({ syncEngine }) => {
+      .then(async ({ syncEngine }) => {
+        try {
+          const { default: pb } = await import('@/lib/pocketbase/client')
+          const { isPbAuthenticated } = await import('@/services/authService')
+          const currentUserId = pb.authStore.record?.id
+
+          if (isPbAuthenticated() && currentUserId) {
+            let existingId: string | null = null
+            try {
+              const existing = await pb
+                .collection('orcamentos')
+                .getFirstListItem(
+                  `user = "${currentUserId}" && (local_id = "${budget.id}" || code = "${budget.code}")`,
+                )
+              if (existing) existingId = existing.id
+            } catch {
+              /* 404: ainda não existe no cloud — pode criar via fila */
+            }
+
+            if (existingId) {
+              const { fullBudgetToCloudPayload } = await import('@/services/cloudBudgetsService')
+              await pb
+                .collection('orcamentos')
+                .update(existingId, fullBudgetToCloudPayload(sanitizedBudget, currentUserId))
+              return
+            }
+          }
+        } catch {
+          /* falhou o caminho direto: segue pelo fluxo normal da fila */
+        }
         syncEngine.enqueueBudgetSave(sanitizedBudget)
       })
       .catch(() => {})
