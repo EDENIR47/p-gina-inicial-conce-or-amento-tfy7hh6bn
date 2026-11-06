@@ -38,6 +38,7 @@ import {
   ListOrdered,
   FileDown,
   Loader2,
+  Trash2,
 } from 'lucide-react'
 import { saveSingleBudget } from '@/lib/budgetsStorage'
 import { syncEngine } from '@/services/syncEngine'
@@ -245,6 +246,43 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
     showToast(`Proposta v${nextVersion} anexada com sucesso ao orçamento!`)
   }
 
+  // EXCLUIR PROPOSTA: remove o presentationDocument anexado deste orçamento (local + cloud).
+  // A proposta deste orçamento é sempre regenerada a partir das etapas atuais
+  // (buildProposalSections) — a exclusão apenas descarta o documento salvo/anexado.
+  const handleDeletePresentation = () => {
+    if (!hasAttachedPresentation) return
+    const confirmed = window.confirm(
+      `Excluir a Proposta Técnica e Comercial anexada (v${ownPresentation?.version || 1}) do orçamento ${cleanCode}?\n\nO documento salvo será apagado do registro local e da nuvem. Esta ação não pode ser desfeita.`,
+    )
+    if (!confirmed) return
+
+    const now = new Date().toISOString()
+    // Remoção explícita do anexo (undefined no spread => a chave some do registro e do payload cloud)
+    const updatedBudget: FullBudget = {
+      ...budget,
+      presentationDocument: undefined,
+      updatedAt: now,
+    }
+
+    // Persistir localmente (registro limpo sobrescreve o antigo) e subir a correção para o cloud
+    saveSingleBudget(updatedBudget)
+    syncEngine.enqueueBudgetSave(updatedBudget)
+
+    logAuditEvent({
+      budgetId: budget.id,
+      action: 'anexo_apresentacao',
+      title: 'Proposta Técnica e Comercial Excluída do Orçamento',
+      details: `Documento ${PROPOSAL_DOCUMENT_TITLE} anexado (v${ownPresentation?.version || 1}) foi EXCLUÍDO do orçamento ${cleanCode} pelo usuário. O registro ficou sem proposta anexada.`,
+      userName: CONCE_COMPANY.responsavelTecnicoCompleto,
+    })
+
+    if (onAttachPresentationToBudget) {
+      onAttachPresentationToBudget(updatedBudget)
+    }
+
+    showToast('Proposta excluída. O botão "Anexar ao Orçamento" gera agora uma proposta nova.')
+  }
+
   const modalContent = (
     <div className="conce-presentation-modal-overlay fixed inset-0 z-50 bg-[#171A1F]/90 backdrop-blur-md flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:overflow-visible">
       {/* Toast de notificação de anexo */}
@@ -330,6 +368,18 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
                 : 'Anexar ao Orçamento'}
             </span>
           </button>
+
+          {hasAttachedPresentation && (
+            <button
+              type="button"
+              onClick={handleDeletePresentation}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-600/90 hover:bg-red-600 text-white text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer active:scale-95 border border-red-400/40"
+              title="Excluir a proposta anexada deste orçamento (solicita confirmação antes de apagar)"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Excluir proposta</span>
+            </button>
+          )}
 
           <button
             type="button"

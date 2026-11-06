@@ -1922,8 +1922,11 @@ export const BudgetsScreen: React.FC = () => {
           onAttachPresentationToBudget={(updatedWithPresentation) => {
             setActiveBudget(updatedWithPresentation)
             setBudgetsList(getStoredFullBudgets())
+            const ownDoc = getOwnPresentationDocument(updatedWithPresentation)
             showToast(
-              `Proposta Técnica e Comercial v${getOwnPresentationDocument(updatedWithPresentation)?.version || 1} anexada com sucesso!`,
+              ownDoc
+                ? `Proposta Técnica e Comercial v${ownDoc.version} anexada com sucesso!`
+                : 'Proposta Técnica e Comercial excluída do orçamento.',
             )
           }}
         />

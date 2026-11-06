@@ -286,7 +286,20 @@ class SyncEngine {
             !cloudBudgets.some((cb) => cb.id === lb.id || cb.code === lb.code),
         )
 
-        // Mescla: orçamentos do cloud (salvo os com pendência local de gravação) + locais reais não no cloud
+        // Mescla com LAST-WRITE-WINS por updatedAt: o registro atualizado mais
+        // recentemente (local ou cloud) prevalece. Isso impede que o pull sobrescreva
+        // o estado local limpo/recém-editado pelo estado antigo do cloud.
+        const getUpdatedAtMs = (b: FullBudget): number => {
+          const raw = (b as unknown as { updatedAt?: string })?.updatedAt
+          const ms = raw ? Date.parse(raw) : NaN
+          return Number.isFinite(ms) ? ms : 0
+        }
+
+        const localById = new Map(currentLocal.map((lb) => [lb.id, lb]))
+        const localByCode = new Map(
+          currentLocal.filter((lb) => lb.code).map((lb) => [lb.code as string, lb]),
+        )
+
         const merged: FullBudget[] = []
 
         for (const cb of cloudBudgets) {
@@ -294,6 +307,21 @@ class SyncEngine {
             const pending = this.queue.find((t) => t.budget?.id === cb.id)?.budget
             if (pending) merged.push(pending)
             else merged.push(cb)
+            continue
+          }
+
+          const localMatch =
+            localById.get(cb.id) ?? (cb.code ? localByCode.get(cb.code) : undefined)
+
+          if (!localMatch) {
+            merged.push(cb)
+            continue
+          }
+
+          if (getUpdatedAtMs(localMatch) > getUpdatedAtMs(cb)) {
+            // Local mais recente vence — e precisa voltar para o cloud
+            merged.push(localMatch)
+            this.enqueueBudgetSave(localMatch)
           } else {
             merged.push(cb)
           }
