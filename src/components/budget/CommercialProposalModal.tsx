@@ -1,4 +1,270 @@
-/**
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+
+  const showToast = (msg: string) => {
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+
+=======
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])/**
  * CONCE — Serviço de Engenharia e Consultoria LTDA
  * Modal da PROPOSTA TÉCNICA E COMERCIAL (documento comercial de engenharia — NÃO slides)
  *
@@ -81,9 +347,211 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
     [budget, summary, analysis],
   )
 
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  }, [budget.presentationDocument, budget.code])
+
   const hasAttachedPresentation = useMemo(() => {
-    return Boolean(budget.presentationDocument && budget.presentationDocument.version > 0)
-  }, [budget.presentationDocument])
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+
+  const showToast = (msg: string) => {
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
+  // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
+  // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  const isStalePresentation = useMemo(() => {
+    const doc = budget.presentationDocument
+    if (!doc || !doc.budgetCode) return false
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+    const ownCode = sanitizeDocumentText(budget.code) || ''
+    return doc.budgetCode !== ownCode
+  }, [budget.presentationDocument, budget.code])
+=======
+  }, [budget.presentationDocument, budget.code])
+
+  const hasAttachedPresentation = useMemo(() => {
+    return Boolean(
+      budget.presentationDocument &&
+        budget.presentationDocument.version > 0 &&
+        !isStalePresentation,
+    )
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
+  }, [budget.presentationDocument, isStalePresentation])
+
+  const showToast = (msg: string) => {
+=======
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
