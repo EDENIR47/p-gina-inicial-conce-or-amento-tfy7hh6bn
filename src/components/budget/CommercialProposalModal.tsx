@@ -21,7 +21,8 @@
  *   via @page + break-inside: avoid, no mesmo padrão do Memorial Descritivo).
  * - ANEXAR AO ORÇAMENTO: mesmo campo/fluxo presentationDocument do FullBudget, com
  *   versionamento v1/v2..., persistência local (saveSingleBudget) e sincronização cloud
- *   pela fila existente (syncEngine.enqueueBudgetSave).
+ *   pela fila existente (syncEngine.enqueueBudgetSave). A versão incrementa a partir da
+ *   ANEXADA PRÓPRIA anterior (guard de procedência em src/lib/presentationGuard.ts).
  *
  * Identidade visual CONCE (Mirage #171A1F, Cobalt #294C87, Pumpkin #FF6B1F).
  */
@@ -57,6 +58,7 @@ import {
   buildProposalSections,
 } from '@/lib/proposalEngine'
 import { downloadProposalDocx } from '@/lib/exportProposalDocx'
+import { getOwnPresentationDocument } from '@/lib/presentationGuard'
 
 export interface CommercialProposalModalProps {
   budget: FullBudget
@@ -84,22 +86,11 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
   // Proteção anti-contaminação: um presentationDocument cujo budgetCode NÃO corresponde
   // a este orçamento é resquício de outro objeto (ex.: cópia/duplicação/sincronização)
   // e deve ser ignorado — a proposta deste orçamento nunca exibe dados de outro.
-  // O fallback espelha o fallback usado na gravação do documento (cleanCode).
-  const isStalePresentation = useMemo(() => {
-    const doc = budget.presentationDocument
-    if (!doc || !doc.budgetCode) return false
-    const ownCode = sanitizeDocumentText(budget.code) || 'ORC-CONCE'
-    return doc.budgetCode !== ownCode
-  }, [budget.presentationDocument, budget.code])
-
-  //Documento anexado válido: apenas um anexo cujo budgetCode confere com este orçamento.
-  //Um anexo resquício de outro orçamento é tratado como INEXISTENTE para todo o modal
-  //(badge de versão, numeração do próximo anexo e data de anexação) — o documento
-  //exibido/gerado sempre vem das etapas do orçamento aberto, nunca do anexo.
-  const ownPresentation = useMemo(() => {
-    const doc = budget.presentationDocument
-    return doc && doc.version > 0 && !isStalePresentation ? doc : null
-  }, [budget.presentationDocument, isStalePresentation])
+  // Regra centralizada em src/lib/presentationGuard.ts (mesmo guard usado nos badges/botões).
+  const ownPresentation = useMemo(
+    () => getOwnPresentationDocument(budget) ?? null,
+    [budget.presentationDocument, budget.code],
+  )
 
   const hasAttachedPresentation = Boolean(ownPresentation)
 

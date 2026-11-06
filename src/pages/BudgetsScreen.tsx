@@ -58,6 +58,7 @@ import { AbcCurveScreen } from '@/pages/AbcCurveScreen'
 import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
 import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
 import { generateNextBudgetCodeForCurrentYear } from '@/lib/budgetCodeGenerator'
+import { getOwnPresentationDocument } from '@/lib/presentationGuard'
 import {
   QuickEditBudgetModal,
   DeleteBudgetConfirmModal,
@@ -314,6 +315,12 @@ export const BudgetsScreen: React.FC = () => {
       ...JSON.parse(JSON.stringify(b)),
       id: newBudgetId,
       code: `${b.code}-COP`,
+      // Anexo de Proposta Técnica e Comercial é PROVENIENTE DESTE orçamento:
+      // nunca copiar o presentationDocument do orçamento original (guard de
+      // procedência em src/lib/presentationGuard.ts).
+      presentationDocument: undefined,
+      // Memorial descritivo salvo também é próprio do orçamento: não herdar.
+      savedMemorial: undefined,
       title: b.title ? `${b.title} (Cópia)` : `${b.work.name} (Cópia)`,
       status: 'em_andamento',
       createdAt: new Date().toISOString().split('T')[0],
@@ -678,23 +685,23 @@ export const BudgetsScreen: React.FC = () => {
                     type="button"
                     onClick={() => setIsCommercialModalOpen(true)}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shadow-xs focus:outline-none focus:ring-2 cursor-pointer ${
-                      activeBudget.presentationDocument
+                      getOwnPresentationDocument(activeBudget)
                         ? 'bg-emerald-600/15 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-500/40 focus:ring-emerald-500'
                         : 'bg-[#FF6B1F]/10 hover:bg-[#FF6B1F] text-[#FF6B1F] hover:text-white border border-[#FF6B1F]/30 focus:ring-[#FF6B1F]'
                     }`}
                     title={
-                      activeBudget.presentationDocument
-                        ? `Proposta anexada como documento oficial (v${activeBudget.presentationDocument.version}). Clique para visualizar, reimprimir ou exportar PDF.`
+                      getOwnPresentationDocument(activeBudget)
+                        ? `Proposta anexada como documento oficial (v${getOwnPresentationDocument(activeBudget)!.version}). Clique para visualizar, reimprimir ou exportar PDF.`
                         : 'Gerar Proposta Técnica e Comercial (documento A4 com 7 seções)'
                     }
                     aria-label="Abrir proposta técnica e comercial ou documento anexado"
                   >
-                    {activeBudget.presentationDocument ? (
+                    {getOwnPresentationDocument(activeBudget) ? (
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     ) : null}
                     <span>
-                      {activeBudget.presentationDocument
-                        ? `Proposta Anexada (v${activeBudget.presentationDocument.version})`
+                      {getOwnPresentationDocument(activeBudget)
+                        ? `Proposta Anexada (v${getOwnPresentationDocument(activeBudget)!.version})`
                         : 'Proposta'}
                     </span>
                   </button>
@@ -1466,20 +1473,20 @@ export const BudgetsScreen: React.FC = () => {
                                   setIsCommercialModalOpen(true)
                                 }}
                                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-extrabold transition-all border active:scale-95 cursor-pointer ${
-                                  b.presentationDocument
+                                  getOwnPresentationDocument(b)
                                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-400/40 shadow-sm shadow-emerald-600/20'
                                     : 'bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white border-white/20 shadow-sm shadow-orange-500/20'
                                 }`}
                                 title={
-                                  b.presentationDocument
-                                    ? `Proposta anexada como documento (v${b.presentationDocument.version}). Clique para abrir, reimprimir ou baixar PDF.`
+                                  getOwnPresentationDocument(b)
+                                    ? `Proposta anexada como documento (v${getOwnPresentationDocument(b)!.version}). Clique para abrir, reimprimir ou baixar PDF.`
                                     : 'Proposta Técnica e Comercial (documento A4 com 7 seções)'
                                 }
                               >
                                 <Eye className="w-3.5 h-3.5 text-white" />
                                 <span>
-                                  {b.presentationDocument
-                                    ? `Proposta (v${b.presentationDocument.version})`
+                                  {getOwnPresentationDocument(b)
+                                    ? `Proposta (v${getOwnPresentationDocument(b)!.version})`
                                     : 'Proposta'}
                                 </span>
                               </button>
@@ -1692,20 +1699,20 @@ export const BudgetsScreen: React.FC = () => {
                                     setIsCommercialModalOpen(true)
                                   }}
                                   className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
-                                    b.presentationDocument
+                                    getOwnPresentationDocument(b)
                                       ? 'bg-emerald-600/15 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-500/40'
                                       : 'bg-[#FF6B1F]/10 hover:bg-[#FF6B1F] text-[#FF6B1F] hover:text-white border border-[#FF6B1F]/30'
                                   }`}
                                   title={
-                                    b.presentationDocument
-                                      ? `Proposta anexada (v${b.presentationDocument.version}). Clique para abrir e imprimir.`
+                                    getOwnPresentationDocument(b)
+                                      ? `Proposta anexada (v${getOwnPresentationDocument(b)!.version}). Clique para abrir e imprimir.`
                                       : 'Proposta Técnica e Comercial (documento A4 com 7 seções)'
                                   }
                                 >
                                   <Eye className="w-3.5 h-3.5" />
                                   <span>
-                                    {b.presentationDocument
-                                      ? `Prop. (Doc v${b.presentationDocument.version})`
+                                    {getOwnPresentationDocument(b)
+                                      ? `Prop. (Doc v${getOwnPresentationDocument(b)!.version})`
                                       : 'Proposta'}
                                   </span>
                                 </button>
@@ -1897,7 +1904,7 @@ export const BudgetsScreen: React.FC = () => {
             setActiveBudget(updatedWithPresentation)
             setBudgetsList(getStoredFullBudgets())
             showToast(
-              `Proposta Técnica e Comercial v${updatedWithPresentation.presentationDocument?.version || 1} anexada com sucesso!`,
+              `Proposta Técnica e Comercial v${getOwnPresentationDocument(updatedWithPresentation)?.version || 1} anexada com sucesso!`,
             )
           }}
         />
