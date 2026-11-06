@@ -199,6 +199,56 @@ const INSTALLATION_KEYWORDS = [
   'climatizacao',
 ]
 
+/**
+ * Evidência construtiva REAL: só estas expressões (verbos/qualificadores de obra nova)
+ * reclassificam um serviço de demolição/remoção como processo construtivo a executar.
+ * Substrings vagas ("execucao", "instalacao", "fechamento", "confeccao") NÃO bastam:
+ * "Remoção de instalações existentes", "Demolição com execução de escoramento" e
+ * "Remoção de fechamento" não são obra nova.
+ */
+const CONSTRUCTIVE_EVIDENCE_KEYWORDS = [
+  'execucao de nova',
+  'execucao de novo',
+  'execucao da nova',
+  'execucao de obra nova',
+  'construcao de nova',
+  'construcao de novo',
+  'construcao de obra nova',
+  'confeccao de nova',
+  'confeccao de novo',
+  'concretagem de nova',
+  'concretagem de novo',
+  'assentamento de nova',
+  'assentamento de novo',
+  'instalacao de nova',
+  'instalacao de novo',
+  'montagem de nova',
+  'montagem de novo',
+  'aplicacao de nova',
+  'aplicacao de novo',
+  'reconstrucao',
+  'nova laje',
+  'nova viga',
+  'novo pilar',
+  'nova sapata',
+  'nova fundacao',
+  'nova alvenaria',
+  'nova parede',
+  'novo piso',
+  'nova instalacao',
+  'pintura nova',
+  'reboco novo',
+  'chapisco',
+  'fiada',
+]
+
+/**
+ * Flexões do verbo de remoção/demolição que indicam ETAPA de remoção mesmo sem
+ * as palavras do léxico REMOVAL_KEYWORDS. Usado APENAS na classificação da Seção 2
+ * (não interfere na análise de volume/resíduos da Seção 6).
+ */
+const REMOVED_FLEXION_KEYWORDS = ['retirado', 'removido', 'demolido', 'desmontado', 'desmonte']
+
 const METHOD_TAG_KEYWORDS: Record<string, string[]> = {
   'Serviços preliminares e canteiro': [
     'canteiro',
@@ -550,28 +600,26 @@ export function analyzeBudgetForProposal(budget: FullBudget): ProposalAnalysis {
   const hasConstructiveServicesFor = (keywords: string[]): boolean => {
     return stages.some((stage) => {
       const svs = Array.isArray(stage.services) ? stage.services : []
+      const normStg = normalizeKeyword(stage.name || '')
       return svs.some((service) => {
         const normDesc = normalizeKeyword(service.description || '')
-        const normStg = normalizeKeyword(stage.name || '')
         const matchesKw = matchesAny(normDesc, keywords) || matchesAny(normStg, keywords)
         if (!matchesKw) return false
-        // Se for serviço de demolição/remoção/retirada, não conta como execução construtiva do elemento
-        const isDemolitionOnly =
-          matchesAny(normDesc, REMOVAL_KEYWORDS) &&
-          !matchesAny(normDesc, [
-            'assentamento',
-            'execucao',
-            'construcao',
-            'instalacao',
-            'confeccao',
-            'fechamento',
-            'chapisco',
-            'emboço',
-            'reboco',
-            'pintura nova',
-            'fiada',
-          ])
-        return !isDemolitionOnly
+
+        // 1) A classificação olha TAMBÉM o nome da ETAPA: quando a etapa é de
+        //    demolição/remoção (ex.: "REMOÇÃO DA ESTRUTURA", "DEMOBILIZAÇÃO"), os serviços
+        //    dela só contam como processo construtivo se descreverem execução de obra nova.
+        const constructiveEvidence =
+          matchesAny(normDesc, CONSTRUCTIVE_EVIDENCE_KEYWORDS) ||
+          matchesAny(normStg, CONSTRUCTIVE_EVIDENCE_KEYWORDS)
+
+        // Serviço fora de etapa de demolição e sem palavras de remoção: construtivo legítimo
+        const isRemovalStage = matchesAny(normStg, REMOVAL_KEYWORDS)
+        const isRemovalService = matchesAny(normDesc, REMOVAL_KEYWORDS)
+        if (!isRemovalStage && !isRemovalService) return true
+
+        // Serviço ou etapa de remoção: só é construtivo se houver evidência real de obra nova
+        return constructiveEvidence
       })
     })
   }

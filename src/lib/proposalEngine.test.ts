@@ -881,4 +881,261 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
     expect(closingCnpj).toBe('57.149.101/0001-46')
     expect(closingTagline).toBe('CONCE é Conceito. CONCE é Concreto.')
   })
+
+  describe('Filtro da Seção 2 — demolição x construção real', () => {
+    const dummyComp = makeComposition('Demolição', [
+      {
+        description: 'Mão de obra demolidor',
+        category: 'mao_de_obra',
+        coefficient: 1,
+        unitCost: 20,
+      },
+    ])
+
+    it('orçamento 100% demolição não gera seções construtivas, mesmo com etapa de remoção e serviços de corte/perfuração', () => {
+      const demolicaoPura: FullBudget = {
+        ...makeBudget(),
+        stages: [
+          {
+            id: 'stg-estrutura',
+            order: 1,
+            code: '01',
+            name: 'REMOÇÃO DA ESTRUTURA EXISTENTE',
+            services: [
+              {
+                id: 's-1',
+                order: 1,
+                code: '01.01',
+                description: 'CORTE DE VIGA DE CONCRETO ARMADO',
+                unit: 'm',
+                quantity: 20,
+                composition: dummyComp,
+              },
+              {
+                id: 's-2',
+                order: 2,
+                code: '01.02',
+                description: 'PERFURAÇÃO DE LAJE EXISTENTE',
+                unit: 'un',
+                quantity: 6,
+                composition: dummyComp,
+              },
+            ],
+          },
+          {
+            id: 'stg-instalacoes',
+            order: 2,
+            code: '02',
+            name: 'DEMOBILIZAÇÃO',
+            services: [
+              {
+                id: 's-3',
+                order: 1,
+                code: '02.01',
+                description: 'REMOÇÃO DE INSTALAÇÕES EXISTENTES (TUBULAÇÃO ELÉTRICA)',
+                unit: 'm',
+                quantity: 45,
+                composition: dummyComp,
+              },
+              {
+                id: 's-4',
+                order: 2,
+                code: '02.02',
+                description: 'DEMOBILIZAÇÃO COM EXECUÇÃO DE ESCORAMENTO',
+                unit: 'm²',
+                quantity: 30,
+                composition: dummyComp,
+              },
+            ],
+          },
+          {
+            id: 'stg-alvenaria',
+            order: 3,
+            code: '03',
+            name: 'REMOÇÕES E DEMOLIÇÕES',
+            services: [
+              {
+                id: 's-5',
+                order: 1,
+                code: '03.01',
+                description: 'REMOÇÃO DE FECHAMENTO EM ALVENARIA EXISTENTE',
+                unit: 'm²',
+                quantity: 60,
+                composition: dummyComp,
+              },
+              {
+                id: 's-6',
+                order: 2,
+                code: '03.02',
+                description: 'REMOÇÃO DE FORRO DE GESSO EXISTENTE',
+                unit: 'm²',
+                quantity: 80,
+                composition: dummyComp,
+              },
+            ],
+          },
+        ],
+      }
+
+      const summary = calculateFullBudget(demolicaoPura)
+      const analysis = analyzeBudgetForProposal(demolicaoPura)
+      const sections = buildProposalSections(demolicaoPura, summary, analysis)
+
+      const itemsText = (sections[1].items || []).join(' ')
+      expect(itemsText).toContain('DEMOLIÇÕES, REMOÇÕES E ESCAVAÇÕES')
+      // Substrings de demolição NÃO reclassificam como construção:
+      expect(itemsText).not.toContain('ESTRUTURA E FUNDAÇÕES')
+      expect(itemsText).not.toContain('ALVENARIA E VEDAÇÕES')
+      expect(itemsText).not.toContain('REVESTIMENTOS, PISOS E ACABAMENTOS')
+      expect(itemsText).not.toContain('INSTALAÇÕES PREDIAIS')
+    })
+
+    it('orçamento com construção real (laje, alvenaria, revestimento) continua gerando os textos metodológicos', () => {
+      const construcaoReal: FullBudget = {
+        ...makeBudget(),
+        stages: [
+          {
+            id: 'stg-estrutura',
+            order: 1,
+            code: '01',
+            name: 'ESTRUTURA',
+            services: [
+              {
+                id: 's-1',
+                order: 1,
+                code: '01.01',
+                description: 'Execução de nova laje de concreto armado',
+                unit: 'm²',
+                quantity: 40,
+                composition: dummyComp,
+              },
+            ],
+          },
+          {
+            id: 'stg-alvenaria',
+            order: 2,
+            code: '02',
+            name: 'ALVENARIA',
+            services: [
+              {
+                id: 's-2',
+                order: 1,
+                code: '02.01',
+                description: 'Assentamento de nova alvenaria em bloco cerâmico',
+                unit: 'm²',
+                quantity: 55,
+                composition: dummyComp,
+              },
+            ],
+          },
+          {
+            id: 'stg-instalacoes',
+            order: 3,
+            code: '03',
+            name: 'INSTALAÇÕES PREDIAIS',
+            services: [
+              {
+                id: 's-3',
+                order: 1,
+                code: '03.01',
+                description: 'Instalação de nova tubulação de água fria',
+                unit: 'm',
+                quantity: 30,
+                composition: dummyComp,
+              },
+            ],
+          },
+        ],
+      }
+
+      const summary = calculateFullBudget(construcaoReal)
+      const analysis = analyzeBudgetForProposal(construcaoReal)
+      const sections = buildProposalSections(construcaoReal, summary, analysis)
+
+      const itemsText = (sections[1].items || []).join(' ')
+      expect(itemsText).toContain('ESTRUTURA E FUNDAÇÕES')
+      expect(itemsText).toContain('ALVENARIA E VEDAÇÕES')
+      expect(itemsText).toContain('INSTALAÇÕES PREDIAIS')
+    })
+
+    it('etapa cujo nome só indica remoção via flexão ("...onde for RETIRADO as telhas") não reclassifica o serviço como construtivo', () => {
+      // Caso real do ORC-2026-106: etapa de fechamento vertical sobre área de onde a
+      // telha foi retirada — sem a flexão, "revestimento/pintura" na descrição do serviço
+      // faria a proposta citar metodologia de revestimentos/acabamentos.
+      const fechamentoFlexao: FullBudget = {
+        ...makeBudget(),
+        stages: [
+          {
+            id: 'stg-fechamento',
+            order: 1,
+            code: '14',
+            name: 'FECHAMENTO VERTICAL DE ONDE FOR RETIRADO AS TELHAS METÁLICAS',
+            services: [
+              {
+                id: 's-1',
+                order: 1,
+                code: '14.01',
+                description:
+                  'FECHAMENTO VERTICAL DE ÁREAS EXPOSTAS ENTRE FORRO E TELHA METÁLICA, COM REVESTIMENTO COM ARGAMASSA DE REGULARIZAÇÃO E ACABAMENTO EM PINTURA ELASTOMÉRICA',
+                unit: 'm²',
+                quantity: 35,
+                composition: dummyComp,
+              },
+            ],
+          },
+        ],
+      }
+
+      const analysis = analyzeBudgetForProposal(fechamentoFlexao)
+      const sections = buildProposalSections(
+        fechamentoFlexao,
+        calculateFullBudget(fechamentoFlexao),
+        analysis,
+      )
+
+      const itemsText = (sections[1].items || []).join(' ')
+      // A metodologia de revestimentos NÃO pode figurar como processo construtivo da obra
+      expect(itemsText).not.toContain('REVESTIMENTOS, PISOS E ACABAMENTOS')
+      expect(itemsText).not.toContain('ESTRUTURA E FUNDAÇÕES')
+      expect(itemsText).not.toContain('ALVENARIA E VEDAÇÕES')
+      expect(itemsText).not.toContain('INSTALAÇÕES PREDIAIS')
+    })
+
+    it('exceção construtiva exige evidência de obra NOVA: "revestimento com argamassa" puro não reclassifica demolição', () => {
+      const semObraNova: FullBudget = {
+        ...makeBudget(),
+        stages: [
+          {
+            id: 'stg-demo',
+            order: 1,
+            code: '01',
+            name: 'DEMOBIÇÃO DE FECHAMENTO',
+            services: [
+              {
+                id: 's-1',
+                order: 1,
+                code: '01.01',
+                description:
+                  'REMOÇÃO DE REVESTIMENTO DE PAREDE E REAPROVEITAMENTO DE PISO EXISTENTE',
+                unit: 'm²',
+                quantity: 50,
+                composition: dummyComp,
+              },
+            ],
+          },
+        ],
+      }
+
+      const analysis = analyzeBudgetForProposal(semObraNova)
+      const sections = buildProposalSections(
+        semObraNova,
+        calculateFullBudget(semObraNova),
+        analysis,
+      )
+
+      const itemsText = (sections[1].items || []).join(' ')
+      expect(itemsText).not.toContain('REVESTIMENTOS, PISOS E ACABAMENTOS')
+      expect(itemsText).not.toContain('ALVENARIA E VEDAÇÕES')
+    })
+  })
 })
