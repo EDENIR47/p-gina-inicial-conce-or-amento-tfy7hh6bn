@@ -372,4 +372,85 @@ describe('memorialEngine', () => {
       'Especificação técnica customizada salva pelo usuário para o porcelanato.',
     )
   })
+
+  it('REGRA PERMANENTE: memorial salvo pertencente a OUTRO orçamento (resquício) não contamina o memorial do orçamento aberto', () => {
+    // Cenário de duplicação: savedMemorial do ORC-2026-100 (revestimentos) copiado
+    // para dentro do registro de um orçamento de DEMOLIÇÃO (etapas diferentes).
+    const contaminatedBudget: FullBudget = {
+      ...mockBudget,
+      code: 'ORC-2026-106',
+      savedMemorial: {
+        generatedAt: '2026-10-01T10:00:00.000Z',
+        updatedAt: '2026-10-01T11:00:00.000Z',
+        generalIntroduction: 'Introdução salva do ORC-2026-100 (OUTRO orçamento).',
+        includeStagePhotos: false,
+        includeSummary: true,
+        stages: [
+          {
+            stageId: 'stg-outro',
+            stageCode: '02',
+            stageName: 'REVESTIMENTOS INTERNOS DO ORC-2026-100',
+            notes: 'Nota de outro orçamento',
+            photoUrl: null,
+            services: [
+              {
+                serviceId: 'srv-outro',
+                serviceCode: '02.01',
+                serviceDescription: 'Assentamento de porcelanato polido 90x90 em piso',
+                unit: 'm²',
+                quantity: 150,
+                technicalSpecification: 'Especificação do OUTRO orçamento.',
+              },
+            ],
+          },
+        ],
+      },
+      stages: [
+        {
+          id: 'stg-106',
+          order: 1,
+          code: '01',
+          name: 'DEMOLIÇÃO DA SALA 903',
+          services: [
+            {
+              id: 'srv-106',
+              order: 1,
+              code: '01.01',
+              description: 'Demolição de parede de alvenaria',
+              unit: 'm²',
+              quantity: 30,
+              composition: mockServiceWithComposition.composition,
+            },
+          ],
+        },
+      ],
+    }
+
+    const doc = buildMemorialDocumentData(
+      { ...contaminatedBudget, savedMemorial: undefined },
+      {
+        useSavedIfAvailable: true,
+      },
+    )
+
+    // O documento gerado contém apenas as etapas do orçamento aberto
+    expect(doc.stages).toHaveLength(1)
+    expect(doc.stages[0].stageName).toBe('DEMOLIÇÃO DA SALA 903')
+    expect(doc.stages[0].services[0].serviceDescription).toBe('Demolição de parede de alvenaria')
+
+    // Nada do memorial do outro orçamento entra no documento
+    expect(doc.generalIntroduction).not.toContain('ORC-2026-100')
+    const allText = doc.stages
+      .map((st) => [
+        st.stageName,
+        st.notes ?? '',
+        ...st.services.map((s) => `${s.serviceDescription} ${s.technicalSpecification}`),
+      ])
+      .flat()
+      .join(' ')
+    expect(allText).not.toContain('REVESTIMENTOS INTERNOS DO ORC-2026-100')
+    expect(allText).not.toContain('Assentamento de porcelanato polido 90x90')
+    expect(allText).not.toContain('Especificação do OUTRO orçamento.')
+    expect(allText).not.toContain('Nota de outro orçamento')
+  })
 })

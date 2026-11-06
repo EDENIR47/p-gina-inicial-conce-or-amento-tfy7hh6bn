@@ -45,6 +45,7 @@ import {
   generateDefaultGeneralIntroduction,
 } from '@/lib/memorialEngine'
 import { formatCurrentDatePTBR } from '@/lib/formatters'
+import { getOwnSavedMemorial } from '@/lib/presentationGuard'
 
 export interface MemorialDescritivoModalProps {
   budget: FullBudget
@@ -59,31 +60,37 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
   onClose,
   onSaveMemorialToBudget,
 }) => {
+  // REGRA PERMANENTE: o memorial salvo só é usado se pertencer a ESTE orçamento.
+  // Um savedMemorial gravado em outro código (resquício de duplicação/sincronização) é
+  // tratado como inexistente — o memorial é então 100% gerado das etapas do orçamento aberto.
+  const ownSavedMemorial = useMemo(() => getOwnSavedMemorial(budget) ?? null, [budget])
   const hasSavedVersion = useMemo(() => {
-    return !!(
-      budget.savedMemorial &&
-      budget.savedMemorial.stages &&
-      budget.savedMemorial.stages.length > 0
-    )
-  }, [budget.savedMemorial])
+    return !!(ownSavedMemorial && ownSavedMemorial.stages && ownSavedMemorial.stages.length > 0)
+  }, [ownSavedMemorial])
+
+  // Memorial "efetivo": o próprio, ou nada (nunca o de outro orçamento)
+  const effectiveSavedMemorial = ownSavedMemorial ?? undefined
 
   // Estados de controle do memorial
   const [includePhotos, setIncludePhotos] = useState<boolean>(
-    budget.savedMemorial?.includeStagePhotos ?? false,
+    effectiveSavedMemorial?.includeStagePhotos ?? false,
   )
   const [includeSummary, setIncludeSummary] = useState<boolean>(
-    budget.savedMemorial?.includeSummary ?? true,
+    effectiveSavedMemorial?.includeSummary ?? true,
   )
   const [isEditMode, setIsEditMode] = useState<boolean>(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   // Modelo de dados em edição
   const [memorialData, setMemorialData] = useState<MemorialDocumentData>(() =>
-    buildMemorialDocumentData(budget, {
-      useSavedIfAvailable: hasSavedVersion,
-      includeStagePhotos: budget.savedMemorial?.includeStagePhotos ?? false,
-      includeSummary: budget.savedMemorial?.includeSummary ?? true,
-    }),
+    buildMemorialDocumentData(
+      effectiveSavedMemorial ? budget : { ...budget, savedMemorial: undefined },
+      {
+        useSavedIfAvailable: hasSavedVersion,
+        includeStagePhotos: effectiveSavedMemorial?.includeStagePhotos ?? false,
+        includeSummary: effectiveSavedMemorial?.includeSummary ?? true,
+      },
+    ),
   )
 
   // Referência do ID do orçamento para sincronizar APENAS quando o ID mudar de fato
@@ -94,14 +101,17 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
   useEffect(() => {
     if (currentBudgetIdRef.current !== budget.id) {
       currentBudgetIdRef.current = budget.id
-      setIncludePhotos(budget.savedMemorial?.includeStagePhotos ?? false)
-      setIncludeSummary(budget.savedMemorial?.includeSummary ?? true)
+      setIncludePhotos(effectiveSavedMemorial?.includeStagePhotos ?? false)
+      setIncludeSummary(effectiveSavedMemorial?.includeSummary ?? true)
       setMemorialData(
-        buildMemorialDocumentData(budget, {
-          useSavedIfAvailable: hasSavedVersion,
-          includeStagePhotos: budget.savedMemorial?.includeStagePhotos ?? false,
-          includeSummary: budget.savedMemorial?.includeSummary ?? true,
-        }),
+        buildMemorialDocumentData(
+          effectiveSavedMemorial ? budget : { ...budget, savedMemorial: undefined },
+          {
+            useSavedIfAvailable: hasSavedVersion,
+            includeStagePhotos: effectiveSavedMemorial?.includeStagePhotos ?? false,
+            includeSummary: effectiveSavedMemorial?.includeSummary ?? true,
+          },
+        ),
       )
     }
   }, [budget.id, hasSavedVersion])
@@ -185,19 +195,19 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
   }
 
   // Usar memorial salvo (se existir)
-  // Recarrega diretamente as especificações de budget.savedMemorial com pareamento resiliente
+  // Recarrega as especificações do memorial PRÓPRIO (guard) com pareamento resiliente
   const handleRestoreSaved = () => {
-    if (!hasSavedVersion) return
+    if (!hasSavedVersion || !effectiveSavedMemorial) return
     const restored = buildMemorialDocumentData(budget, {
       useSavedIfAvailable: true,
-      includeStagePhotos: budget.savedMemorial?.includeStagePhotos ?? includePhotos,
-      includeSummary: budget.savedMemorial?.includeSummary ?? includeSummary,
+      includeStagePhotos: effectiveSavedMemorial.includeStagePhotos ?? includePhotos,
+      includeSummary: effectiveSavedMemorial.includeSummary ?? includeSummary,
     })
-    if (budget.savedMemorial?.includeStagePhotos !== undefined) {
-      setIncludePhotos(budget.savedMemorial.includeStagePhotos)
+    if (effectiveSavedMemorial.includeStagePhotos !== undefined) {
+      setIncludePhotos(effectiveSavedMemorial.includeStagePhotos)
     }
-    if (budget.savedMemorial?.includeSummary !== undefined) {
-      setIncludeSummary(budget.savedMemorial.includeSummary)
+    if (effectiveSavedMemorial.includeSummary !== undefined) {
+      setIncludeSummary(effectiveSavedMemorial.includeSummary)
     }
     setMemorialData(restored)
     showToast('Versão salva do memorial restaurada com sucesso!')
@@ -234,8 +244,10 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
     }
 
     const updatedBudget: FullBudget = {
+      // Base = orçamento aberto com o resquício de savedMemorial de outro orçamento
+      // NEUTRALIZADO antes do spread — a gravação só pode produzir memorial próprio.
       ...budget,
-      savedMemorial: savedPayload,
+      savedMemorial: effectiveSavedMemorial ? budget.savedMemorial : undefined,
       updatedAt: new Date().toISOString(),
     }
 

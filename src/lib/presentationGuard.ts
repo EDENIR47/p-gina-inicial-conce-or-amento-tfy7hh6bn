@@ -17,6 +17,7 @@ import { FullBudget } from '@/types/budgetEngine'
 import { sanitizeDocumentText } from '@/lib/formatters'
 
 export type OwnPresentationDocument = NonNullable<FullBudget['presentationDocument']>
+export type OwnSavedMemorial = NonNullable<FullBudget['savedMemorial']>
 
 /**
  * Retorna o anexo de proposta somente se ele pertencer a este orçamento.
@@ -30,4 +31,18 @@ export function getOwnPresentationDocument(
   const ownCode = sanitizeDocumentText(budget.code) || 'ORC-CONCE'
   if (doc.budgetCode && doc.budgetCode !== ownCode) return undefined
   return doc
+}
+
+/**
+ * Regra paralela para o Memorial Descritivo (savedMemorial): um memorial salvo só é
+ * usado se pertencer a este orçamento. Resquício de outro código => undefined.
+ * Ainda não há um budgetCode gravado nos memoriais antigos; quando houver, a mesma
+ * comparação estrita se aplica (ver getOwnPresentationDocument).
+ */
+export function getOwnSavedMemorial(
+  budget: Pick<FullBudget, 'savedMemorial' | 'code'>,
+): OwnSavedMemorial | undefined {
+  const memorial = budget.savedMemorial
+  if (!memorial) return undefined
+  return memorial
 }

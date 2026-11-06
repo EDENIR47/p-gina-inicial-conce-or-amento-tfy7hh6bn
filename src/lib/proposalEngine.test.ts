@@ -1101,6 +1101,66 @@ describe('PROPOSTA TÉCNICA E COMERCIAL — documento (não slides)', () => {
       expect(itemsText).not.toContain('INSTALAÇÕES PREDIAIS')
     })
 
+    it('REGRA PERMANENTE: proposta gerada de um orçamento com anexo presentationDocument CONTAMINADO (budgetCode de outro orçamento) contém SOMENTE as etapas do orçamento aberto', () => {
+      // Simula exatamente o cenário ORC-2026-100 → ORC-2026-106: duplicação copiou o
+      // presentationDocument do ORC-2026-100 para dentro do registro do ORC-2026-106.
+      const contaminatedBudget: FullBudget = {
+        ...makeBudget(),
+        code: 'ORC-2026-106',
+        presentationDocument: {
+          budgetCode: 'ORC-2026-100',
+          version: 3,
+          generatedAt: '2026-10-01T10:00:00Z',
+          doc: '<html><body>PROPOSTA DO ORC-2026-100</body></html>',
+        } as any,
+        // Etapas do orçamento aberto (106): demolição apenas
+        stages: [
+          {
+            id: 'stg-106',
+            order: 1,
+            code: '01',
+            name: 'DEMOLIÇÃO DA SALA 903',
+            services: [
+              {
+                id: 'srv-106',
+                order: 1,
+                code: '01.01',
+                description: 'Demolição de parede de alvenaria com remoção de entulho',
+                unit: 'm²',
+                quantity: 30,
+                composition: makeComposition('Revestimentos', [
+                  {
+                    description: 'Mão de obra demolidor',
+                    category: 'mao_de_obra',
+                    coefficient: 1,
+                    unitCost: 20,
+                  },
+                ]),
+              },
+            ],
+          },
+        ],
+      }
+
+      const sections = buildProposalSections(
+        contaminatedBudget,
+        calculateFullBudget(contaminatedBudget),
+        analyzeBudgetForProposal(contaminatedBudget),
+      )
+      const allSectionsText = sections
+        .map((s) => [s.title, ...s.paragraphs, ...(s.items || [])].join(' '))
+        .join(' ')
+
+      // Conteúdo vem das etapas do orçamento aberto
+      expect(allSectionsText).toContain('DEMOLIÇÃO DA SALA 903')
+      // NUNCA contém etapa/texto de outro orçamento (etapa do ORC-2026-100)
+      expect(allSectionsText).not.toContain('ACABAMENTOS')
+      expect(allSectionsText).not.toContain('Pintura de paredes internas')
+      // O código citado na proposta é o do orçamento aberto, não o do resquício
+      expect(allSectionsText).not.toContain('ORC-2026-100')
+      expect(allSectionsText).toContain('ORC-2026-106')
+    })
+
     it('exceção construtiva exige evidência de obra NOVA: "revestimento com argamassa" puro não reclassifica demolição', () => {
       const semObraNova: FullBudget = {
         ...makeBudget(),

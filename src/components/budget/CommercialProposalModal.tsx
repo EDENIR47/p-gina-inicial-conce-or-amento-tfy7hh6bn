@@ -91,8 +91,13 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
     () => getOwnPresentationDocument(budget) ?? null,
     [budget.presentationDocument, budget.code],
   )
-
+  // Fonte única do estado "anexada": o próprio guard (nunca budget.presentationDocument direto)
   const hasAttachedPresentation = Boolean(ownPresentation)
+  // Anexo resquício de outro orçamento é tratado como inexistente: descartado imediatamente
+  // para que NENHUM fluxo deste modal (sumário, seções, DOCX, impressão/PDF, anexar) o use.
+  const presentationRecord = ownPresentation
+    ? { presentationDocument: ownPresentation }
+    : { presentationDocument: undefined }
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -209,7 +214,10 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
     }
 
     const updatedBudget: FullBudget = {
+      // Base = orçamento aberto com o anexo resquício NEUTRALIZADO (undefined) antes do
+      // spread — garante que nunca se preserve um presentationDocument de outro orçamento.
       ...budget,
+      ...presentationRecord,
       presentationDocument: presentationData,
       updatedAt: now,
     }
