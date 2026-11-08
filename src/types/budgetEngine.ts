@@ -65,6 +65,7 @@ export interface BudgetService {
   unitPriceSource?: 'Composição' | 'Usuário' | string // Fonte comprovada do preço unitário do serviço (regra CONCE: nenhum valor sem fonte)
   customBdiPercent?: number // Opcional: BDI diferenciado para este serviço (ex.: fornecimento de equipamentos)
   laborSharePercent?: number // Fração estimada de mão de obra (%) para serviços de preço direto (default 40%)
+  faturamentoDireto?: boolean // Produto terceirizado faturado direto com o cliente final: sai da BASE do DAS (Simples Nacional), mas continua no valor total de venda
   notes?: string
 }
 
@@ -289,12 +290,15 @@ export interface CalculationSummary {
   totalTaxesRate: number // % impostos
   totalTaxesAmount: number // R$ impostos
   finalSalePrice: number // Preço de Venda Final da Obra
+  dasExcludedAmount?: number // R$ de itens produto terceirizado faturado direto (fora da base do DAS)
+  dasCalculationBase?: number // R$ base efetiva de cálculo do DAS (finalSalePrice - dasExcludedAmount)
   stagesSubtotals: Array<{
     stageId: string
     code: string
     name: string
     directCost: number
     withBdi: number
+    withBdiExcluded?: number // parte de withBdi fora da base do DAS (produto terceirizado faturado direto)
     percentageOfTotal: number
   }>
   servicesCount: number

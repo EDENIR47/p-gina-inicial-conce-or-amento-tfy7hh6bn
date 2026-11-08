@@ -577,6 +577,7 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
   const stagesSubtotals = budget.stages.map((stage) => {
     let stageDirect = 0
     let stageWithBdi = 0
+    let stageWithBdiExcluded = 0
 
     stage.services.forEach((service) => {
       const sQty = Number(service.quantity) || 0
@@ -593,6 +594,10 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
 
       stageDirect += sDirect
       stageWithBdi += sWithBdi
+      // Produto terceirizado faturado direto: fora da BASE do DAS (não altera o valor de venda)
+      if (service.faturamentoDireto) {
+        stageWithBdiExcluded += sWithBdi
+      }
     })
 
     return {
@@ -601,6 +606,7 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
       name: stage.name,
       directCost: Number(stageDirect.toFixed(2)),
       withBdi: Number(stageWithBdi.toFixed(2)),
+      withBdiExcluded: Number(stageWithBdiExcluded.toFixed(2)), // parte de withBdi fora da base do DAS
       percentageOfTotal: 0, // calculado abaixo
     }
   })
@@ -622,7 +628,21 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
   const finalTotalDirectCost =
     sumStagesDirect > 0 ? sumStagesDirect : Number(totalDirectCost.toFixed(2))
   const bdiAmount = Number(Math.max(0, totalWithBdi - finalTotalDirectCost).toFixed(2))
-  const totalTaxesAmount = Number(((totalWithBdi * taxesTotal) / 100).toFixed(2))
+
+  // REGRA TRIBUTÁRIA DO USUÁRIO (Eng. Edenir Souza da Rosa - CREA/RS-252397):
+  // "MEU DAS NÃO DEVE SER CALCULADO EM CIMA DE PRODUTO TERCEIRIZADO POIS SERÁ FATURADO DIRETO
+  // COM CLIENTE FINAL" — itens marcados como faturamentoDireto (produto terceirizado faturado
+  // direto com o cliente) saem da BASE de cálculo do tributo sobre faturamento (DAS no Simples
+  // Nacional), porque não passam pelo faturamento da CONCE e nele não incide Simples Nacional.
+  // A ALÍQUOTA permanece intacta; o cliente continua pagando o valor cheio do item (que segue
+  // no total de venda com BDI); apenas o tributo em R$ deixa de incidir sobre ele.
+  // A base efetiva é a soma dos preços de venda (c/ BDI) dos serviços NÃO faturados direto,
+  // espelhando a mesma regra de centavos dos subtotais por etapa.
+  const dasExcludedAmount = Number(
+    stagesSubtotals.reduce((acc, st) => acc + st.withBdiExcluded, 0).toFixed(2),
+  )
+  const dasCalculationBase = Number(Math.max(0, totalWithBdi - dasExcludedAmount).toFixed(2))
+  const totalTaxesAmount = Number(((dasCalculationBase * taxesTotal) / 100).toFixed(2))
 
   return {
     taxRegime,
@@ -640,6 +660,8 @@ export function calculateFullBudget(budget: FullBudget): CalculationSummary {
     totalTaxesRate: taxesTotal,
     totalTaxesAmount,
     finalSalePrice: totalWithBdi,
+    dasExcludedAmount,
+    dasCalculationBase,
     stagesSubtotals,
     servicesCount,
     inputsCount,

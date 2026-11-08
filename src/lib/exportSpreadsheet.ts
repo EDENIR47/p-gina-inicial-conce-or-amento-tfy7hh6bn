@@ -212,6 +212,17 @@ export function exportBudgetSpreadsheet(
   budgetRows.push(['Encargos Sociais Aplicados:', summary.socialChargesAmount])
   budgetRows.push(['Custo Direto Total da Obra:', summary.totalDirectCost])
   budgetRows.push(['Margem de BDI Total:', summary.bdiAmount])
+  // REGRA TRIBUTÁRIA: produto terceirizado faturado direto com o cliente final sai da BASE do DAS
+  if ((summary.dasExcludedAmount ?? 0) > 0.009) {
+    budgetRows.push([
+      'Produto Terceirizado Faturado Direto (fora da base do DAS):',
+      summary.dasExcludedAmount ?? 0,
+    ])
+    budgetRows.push([
+      'Base de Cálculo do DAS:',
+      summary.dasCalculationBase ?? summary.finalSalePrice,
+    ])
+  }
   budgetRows.push(['Tributos e Impostos Calculados:', summary.totalTaxesAmount])
   budgetRows.push(['PREÇO FINAL DE VENDA DA OBRA:', summary.finalSalePrice])
 

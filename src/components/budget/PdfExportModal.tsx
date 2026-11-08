@@ -1706,6 +1706,16 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         {summary.totalTaxesRate.toFixed(2)}%
                       </span>
                     </div>
+                    {(summary.dasExcludedAmount ?? 0) > 0.009 && (
+                      <div className="flex justify-between py-1 border-b border-[#171A1F]/5">
+                        <span>
+                          Base de Cálculo do DAS (produto terceirizado faturado direto excluído):
+                        </span>
+                        <span className="font-mono font-bold">
+                          {formatCurrencyBRL(summary.dasCalculationBase ?? summary.finalSalePrice)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-white border border-[#171A1F]/10 text-[11px] text-[#171A1F]/70">

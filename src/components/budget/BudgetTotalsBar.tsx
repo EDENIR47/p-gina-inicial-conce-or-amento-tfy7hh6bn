@@ -253,7 +253,13 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
         </div>
 
         {/* Tributos */}
-        <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+        <div
+          className={`p-3 rounded-xl border ${
+            (summary.dasExcludedAmount ?? 0) > 0.009
+              ? 'bg-amber-500/10 border-amber-400/50'
+              : 'bg-white/5 border-white/10'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-white/60 uppercase font-semibold">
               {budget.chargesConfig?.taxRegime === 'simples_nacional'
@@ -285,6 +291,33 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
           <span className="text-[10px] text-white/60">Venda c/ BDI</span>
         </div>
       </div>
+
+      {/* Nota de conferência: Base efetiva de cálculo do DAS (itens produto terceirizado faturado direto excluídos) */}
+      {(summary.dasExcludedAmount ?? 0) > 0.009 && (
+        <div className="rounded-xl border border-amber-400/50 bg-amber-500/10 p-3 flex flex-col gap-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-amber-300 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Base de cálculo do DAS (produto terceirizado faturado direto excluído):
+            </span>
+            <span className="font-mono font-bold text-white">
+              {formatCurrencyBRL(summary.dasCalculationBase ?? summary.finalSalePrice)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-white/70">
+            <span>
+              Preço total de venda (c/ BDI): {formatCurrencyBRL(summary.finalSalePrice)} − Produto
+              terceirizado fora da base: {formatCurrencyBRL(summary.dasExcludedAmount ?? 0)}
+            </span>
+          </div>
+          <span className="text-[10px] text-amber-200/80">
+            Alíquota DAS aplicada apenas sobre a base: {summary.totalTaxesRate.toFixed(2)}% ×{' '}
+            {formatCurrencyBRL(summary.dasCalculationBase ?? summary.finalSalePrice)} ={' '}
+            {formatCurrencyBRL(summary.totalTaxesAmount)}. O produto terceirizado é faturado direto
+            com o cliente final e não incide Simples Nacional, mas segue no valor total da obra.
+          </span>
+        </div>
+      )}
 
       {/* Relação Analítica de Subtotais por Etapa com % de Peso */}
       <div className="pt-2 border-t border-white/10 space-y-2">

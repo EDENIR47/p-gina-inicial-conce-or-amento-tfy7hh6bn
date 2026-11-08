@@ -84,6 +84,9 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
       : '40',
   )
   const [notes, setNotes] = useState(initialService?.notes || '')
+  const [faturamentoDireto, setFaturamentoDireto] = useState<boolean>(
+    initialService?.faturamentoDireto ?? false,
+  )
   // Se for serviço novo ou existente, verificar se a composição possui insumos
   const defaultCompInputs = defaultComp.inputs || []
   const hasCompInputs = defaultCompInputs.length > 0
@@ -160,6 +163,7 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
             : '40',
         )
         setNotes(initialService.notes || '')
+        setFaturamentoDireto(initialService.faturamentoDireto ?? false)
 
         const compInputs = comp.inputs || []
         const compCost = compInputs.length > 0 ? calculateCompositionUnitCost(comp) : 0
@@ -198,6 +202,7 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
         setCustomBdiPercent('')
         setLaborSharePercent('40')
         setNotes('')
+        setFaturamentoDireto(false)
         setUnitPrice('')
         setUnitPriceSource('Usuário')
       }
@@ -406,6 +411,7 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
         customBdiPercent: customBdi,
         laborSharePercent: parsedLaborShare,
         notes: notes.trim(),
+        faturamentoDireto,
       },
       selectedStageId,
     )
@@ -774,6 +780,26 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
                 />
               </div>
             </div>
+
+            {/* Marcação tributária: produto terceirizado faturado direto com o cliente final */}
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-amber-400/60 bg-amber-50 cursor-pointer select-none hover:bg-amber-100/70 transition-colors">
+              <input
+                type="checkbox"
+                checked={faturamentoDireto}
+                onChange={(e) => setFaturamentoDireto(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-[#FF6B1F] cursor-pointer"
+              />
+              <span className="text-xs leading-relaxed">
+                <span className="font-bold text-[#171A1F] block">
+                  Produto terceirizado — faturado direto com o cliente final
+                </span>
+                <span className="text-[#171A1F]/60 block mt-0.5">
+                  O item continua no valor total de venda da obra (o cliente paga o produto), mas
+                  sai da BASE de cálculo do DAS, pois é faturado diretamente com o cliente final e
+                  não passa pelo faturamento da CONCE (não incide Simples Nacional sobre ele).
+                </span>
+              </span>
+            </label>
 
             {/* Totalizador Prévio */}
             <div className="p-3.5 rounded-xl bg-[#171A1F]/5 border border-[#171A1F]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">

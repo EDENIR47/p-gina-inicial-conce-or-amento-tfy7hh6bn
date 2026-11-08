@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { resequenceBudgetStages, isRealSinapiComposition } from './budgetEngine'
-import { BudgetStage, BudgetComposition } from '@/types/budgetEngine'
+import {
+  resequenceBudgetStages,
+  isRealSinapiComposition,
+  calculateFullBudget,
+} from './budgetEngine'
+import { BudgetStage, BudgetComposition, FullBudget } from '@/types/budgetEngine'
 
 function mockComposition(overrides: Partial<BudgetComposition> = {}): BudgetComposition {
   return {
@@ -377,5 +381,94 @@ describe('resequenceBudgetStages (Engenharia de Sequenciamento de Etapas e Servi
     expect(isRealSinapiComposition(mockComposition({ code: '87529', source: 'SINAPI' }))).toBe(true)
     expect(isRealSinapiComposition(mockComposition({ code: 'SINAPI-88309' }))).toBe(true)
     expect(isRealSinapiComposition(mockComposition({ code: '94793' }))).toBe(true)
+  })
+})
+
+describe('calculateFullBudget — Base de cálculo do DAS (produto terceirizado faturado direto)', () => {
+  const makeService = (
+    id: string,
+    unitPrice: number,
+    quantity: number,
+    faturamentoDireto?: boolean,
+  ) => ({
+    id,
+    order: 1,
+    code: '01.01',
+    description: `Serviço ${id}`,
+    unit: 'un',
+    quantity,
+    composition: mockComposition({ id: `comp-${id}`, unitCost: 0, inputs: [] }),
+    unitPrice,
+    unitPriceSource: 'Usuário',
+    faturamentoDireto,
+  })
+
+  const makeBudget = (services: ReturnType<typeof makeService>[]): FullBudget =>
+    ({
+      id: 'orc-test',
+      code: 'ORC-TEST',
+      status: 'rascunho',
+      author: 'Eng. Edenir',
+      client: {
+        name: 'Cliente',
+        document: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+      },
+      work: { name: 'Obra Teste', address: '', city: 'Porto Alegre', state: 'RS' },
+      chargesConfig: {
+        uf: 'RS',
+        taxRegime: 'simples_nacional',
+        simplesDasRate: 11,
+        isRelieved: false,
+      },
+      bdiConfig: {
+        administrationCentral: 0,
+        risk: 0,
+        insuranceAndGuarantee: 0,
+        financialExpenses: 0,
+        profit: 0,
+        taxes: { simplesDas: 11 },
+      },
+      stages: [{ id: 'st1', order: 1, code: '01', name: 'Etapa 1', services }],
+    }) as unknown as FullBudget
+
+  it('sem itens terceirizados: DAS = 11% do total e base = valor total (idêntico ao comportamento anterior)', () => {
+    const budget = makeBudget([makeService('a', 100, 1), makeService('b', 200, 2)])
+    const s = calculateFullBudget(budget)
+
+    expect(s.finalSalePrice).toBe(500)
+    expect(s.dasExcludedAmount ?? 0).toBe(0)
+    expect(s.dasCalculationBase ?? 0).toBe(500)
+    expect(s.totalTaxesRate).toBe(11)
+    expect(s.totalTaxesAmount).toBe(55)
+  })
+
+  it('com item terceirizado faturado direto: sai da base do DAS mas permanece no valor total de venda', () => {
+    const budget = makeBudget([
+      makeService('a', 100, 1),
+      makeService('terc', 400, 1, true), // produto terceirizado faturado direto
+    ])
+    const s = calculateFullBudget(budget)
+
+    expect(s.finalSalePrice).toBe(500) // cliente continua pagando o produto
+    expect(s.dasExcludedAmount).toBe(400)
+    expect(s.dasCalculationBase).toBe(100)
+    expect(s.totalTaxesRate).toBe(11) // alíquota CONCE preservada (11%)
+    expect(s.totalTaxesAmount).toBe(11) // 11% × 100, não 11% × 500
+  })
+
+  it('base do DAS coerente com a soma das etapas: dasCalculationBase = finalSalePrice - dasExcludedAmount', () => {
+    const budget = makeBudget([makeService('a', 100, 1), makeService('terc', 90.5, 3, true)])
+    const s = calculateFullBudget(budget)
+
+    expect(s.dasExcludedAmount).toBeCloseTo(271.5, 2)
+    expect(Number((s.finalSalePrice - (s.dasExcludedAmount ?? 0)).toFixed(2))).toBeCloseTo(
+      s.dasCalculationBase ?? 0,
+      2,
+    )
   })
 })
