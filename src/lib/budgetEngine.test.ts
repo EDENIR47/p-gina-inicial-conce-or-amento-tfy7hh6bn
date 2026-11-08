@@ -471,4 +471,22 @@ describe('calculateFullBudget — Base de cálculo do DAS (produto terceirizado 
       2,
     )
   })
+
+  it('valor total de venda permanece intacto com itens faturados direto: cliente paga o produto integralmente', () => {
+    const budget = makeBudget([
+      makeService('a', 150, 2),
+      makeService('terc', 800, 1, true),
+      makeService('c', 50, 4, true),
+    ])
+    const s = calculateFullBudget(budget)
+
+    // Total de venda c/ BDI inclui TODOS os itens (terceirizados ou não)
+    expect(s.finalSalePrice).toBe(1150)
+    // Só o item "a" entra na base do DAS (300)
+    expect(s.dasCalculationBase).toBe(300)
+    expect(s.dasExcludedAmount).toBe(850)
+    // DAS: 11% × 300 = 33 (alíquota CONCE preservada)
+    expect(s.totalTaxesRate).toBe(11)
+    expect(s.totalTaxesAmount).toBe(33)
+  })
 })
