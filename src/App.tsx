@@ -15,6 +15,7 @@ import BudgetsScreen from './pages/BudgetsScreen'
 import CompositionsLibraryPage from './pages/CompositionsLibraryPage'
 import QuotesScreen from './pages/QuotesScreen'
 import UsersScreen from './pages/UsersScreen'
+import TutorialScreen from './pages/TutorialScreen'
 import { clearDemoData } from '@/lib/mockData'
 import { purgeTestBudgetsFromStorage } from '@/lib/budgetsStorage'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
@@ -66,6 +67,8 @@ const App = () => {
               <Route path="/cotacoes" element={<QuotesScreen />} />
               {/* Gestão de contas de usuário CONCE (somente contas criadas pelo próprio usuário) */}
               <Route path="/usuarios" element={<UsersScreen />} />
+              {/* Tutorial da plataforma para colaboradores (passo a passo de orçamentos) */}
+              <Route path="/tutorial" element={<TutorialScreen />} />
             </Route>
           </Route>
 

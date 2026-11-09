@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Sparkles,
   Users,
+  GraduationCap,
 } from 'lucide-react'
 import { ConceLogo } from '@/components/ConceLogo'
 import { getAuthSession, clearAuthSession } from '@/lib/mockData'
@@ -121,6 +122,7 @@ export default function Layout() {
     { to: '/orcamentos', label: 'Orçamentos', icon: FileSpreadsheet },
     { to: '/composicoes', label: 'Composições', icon: Calculator },
     { to: '/cotacoes', label: 'Cotações', icon: ShoppingBag },
+    { to: '/tutorial', label: 'Tutorial', icon: GraduationCap },
   ]
 
   // Gestão de contas: item dedicado (visível apenas para quem está logado, área protegida)
