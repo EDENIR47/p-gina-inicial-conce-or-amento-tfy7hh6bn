@@ -491,8 +491,9 @@ class SyncEngine {
     onProgress?.('Sincronizando biblioteca de composições personalizadas...')
     // Biblioteca COMPARTILHADA: sobe apenas composições que AINDA não existem no
     // cloud (de qualquer usuário) e puxa de volta as de todos os colaboradores.
+    let uploadResult = { uploaded: 0 }
     try {
-      const uploadResult = await pushLocalCompositionsToCloud(onProgress)
+      uploadResult = await pushLocalCompositionsToCloud(onProgress)
       await this.pullSharedCompositions()
       onProgress?.(
         `Composições: ${uploadResult.uploaded} enviada(s) e biblioteca compartilhada atualizada.`,
@@ -507,7 +508,7 @@ class SyncEngine {
     return {
       budgetsUploaded,
       quotesUploaded: quotes.length,
-      compositionsUploaded: customComps.length,
+      compositionsUploaded: uploadResult.uploaded,
     }
   }
 }

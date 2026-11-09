@@ -31,7 +31,7 @@ import {
   purgeRemovedCompositionInputRecord,
 } from '@/lib/budgetsStorage'
 import { getConsolidatedSinapiCatalog, getSinapiImportMetadata } from '@/lib/sinapiStorage'
-import { getPbAuthSession, isPbAuthenticated } from '@/services/authService'
+import { getPbAuthSession, getCurrentPbUser, isPbAuthenticated } from '@/services/authService'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
 import { formatCurrencyBRL } from '@/lib/formatters'
@@ -94,7 +94,8 @@ export const CompositionsLibraryPage: React.FC = () => {
   const handleSaveComposition = (saved: BudgetComposition) => {
     const existingComp = compositions.find((c) => c.id === saved.id)
     const session = getPbAuthSession()
-    const myId = session?.id || ''
+    const pbUser = getCurrentPbUser()
+    const myId = pbUser?.id || ''
 
     // Composição de outro usuário (compartilhada) NÃO pode ser editada:
     // a regra API de update só permite ao dono. Oferece duplicar como cópia própria.
@@ -115,7 +116,7 @@ export const CompositionsLibraryPage: React.FC = () => {
     const compWithOwner: any = saved
     if (!compWithOwner.createdByUserId) {
       compWithOwner.createdByUserId = myId || undefined
-      compWithOwner.createdByUserName = session?.name || session?.email || undefined
+      compWithOwner.createdByUserName = session?.name || pbUser?.email || undefined
     }
 
     const exists = !!existingComp
@@ -164,8 +165,7 @@ export const CompositionsLibraryPage: React.FC = () => {
 
   const handleDeleteComposition = (id: string, code: string) => {
     const target = compositions.find((c) => c.id === id)
-    const session = getPbAuthSession()
-    const myId = session?.id || ''
+    const myId = getCurrentPbUser()?.id || ''
 
     // Regra API: update/delete de composição só é permitido ao dono
     // (colaborador não apaga a composição de outro).
@@ -196,6 +196,7 @@ export const CompositionsLibraryPage: React.FC = () => {
 
   const handleDuplicateComposition = (comp: BudgetComposition) => {
     const session = getPbAuthSession()
+    const myId = getCurrentPbUser()?.id || ''
     const duplicated: any = {
       ...JSON.parse(JSON.stringify(comp)),
       id: `comp-${Date.now()}`,
@@ -206,13 +207,13 @@ export const CompositionsLibraryPage: React.FC = () => {
         {
           version: 'v1.0',
           date: new Date().toISOString().split('T')[0],
-          author: session?.name || session?.email || 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          author: session?.name || session?.user || 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
           changelog: `Duplicada a partir de ${comp.code} (${comp.version})`,
         },
       ],
       // A cópia é da conta logada — ela pode editar e excluir
-      createdByUserId: session?.id || undefined,
-      createdByUserName: session?.name || session?.email || undefined,
+      createdByUserId: myId || undefined,
+      createdByUserName: session?.name || session?.user || undefined,
     }
     const updated = [duplicated, ...compositions]
     updateCompositionsList(updated)

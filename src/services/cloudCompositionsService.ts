@@ -191,8 +191,8 @@ export async function fetchAndMergeSharedCompositions(): Promise<{
     if (localUpdated > cloudUpdated && localMatch.id === cc.id) {
       merged.push({
         ...localMatch,
-        createdByUserId: cc.createdByUserId,
-        createdByUserName: cc.createdByUserName,
+        createdByUserId: (cc as any).createdByUserId,
+        createdByUserName: (cc as any).createdByUserName,
       })
     } else {
       merged.push(cc)
