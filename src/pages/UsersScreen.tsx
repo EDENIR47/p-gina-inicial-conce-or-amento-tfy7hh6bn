@@ -12,8 +12,14 @@ import {
   UserPlus,
   Users as UsersIcon,
 } from 'lucide-react'
-import { fetchConceUsers, createConceUser, formatUserDate } from '@/services/usersService'
+import {
+  fetchConceUsers,
+  createConceUser,
+  formatUserDate,
+  SESSION_EXPIRED_MESSAGE,
+} from '@/services/usersService'
 import type { ManagedUser } from '@/services/usersService'
+import { logoutPb } from '@/services/authService'
 
 export const UsersScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -31,6 +37,7 @@ export const UsersScreen: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null)
   const [errorField, setErrorField] = useState<'name' | 'email' | 'password' | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [sessionExpired, setSessionExpired] = useState(false)
 
   const loadUsers = useCallback(async () => {
     setIsLoadingList(true)
@@ -62,6 +69,7 @@ export const UsersScreen: React.FC = () => {
     setFormError(null)
     setErrorField(null)
     setSuccessMessage(null)
+    setSessionExpired(false)
 
     const cleanName = name.trim()
     const cleanEmail = email.trim().toLowerCase()
@@ -97,11 +105,24 @@ export const UsersScreen: React.FC = () => {
       await loadUsers()
     } catch (err: any) {
       const detail = err?.message || 'Falha ao criar a conta. Verifique os dados e tente novamente.'
+      // Sessão inválida/expirada: mensagem específica + logout suave para
+      // relogin, em vez do erro genérico 400 sem contexto.
+      if (detail.includes(SESSION_EXPIRED_MESSAGE)) {
+        setSessionExpired(true)
+        setFormError(SESSION_EXPIRED_MESSAGE)
+        try {
+          logoutPb()
+        } catch {
+          /* ignore */
+        }
+        return
+      }
       setFormError(
         detail.includes('Não foi possível criar a conta')
           ? detail
           : `Não foi possível criar a conta. ${detail}`,
       )
+      setSessionExpired(false)
     } finally {
       setIsCreating(false)
     }
@@ -156,7 +177,20 @@ export const UsersScreen: React.FC = () => {
           {formError && (
             <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-[#C4453C]/10 border border-[#C4453C]/30 text-[#C4453C] text-xs animate-fade-in">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 font-medium leading-relaxed">{formError}</div>
+              <div className="flex-1 font-medium leading-relaxed">
+                {formError}
+                {sessionExpired && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/login')}
+                      className="px-3 py-1.5 rounded-md bg-[#C4453C] text-white text-xs font-semibold hover:bg-[#A93B33] transition-colors cursor-pointer"
+                    >
+                      Entrar novamente
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           {successMessage && (

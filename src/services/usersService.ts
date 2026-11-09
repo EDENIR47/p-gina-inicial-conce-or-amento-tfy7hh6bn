@@ -9,6 +9,9 @@ export interface ManagedUser {
   created: string
 }
 
+/** Erro amigável de SESSÃO — a UI usa isso para pedir novo login. */
+export const SESSION_EXPIRED_MESSAGE = 'Sessão expirada, faça login novamente.'
+
 /**
  * Lista todas as contas de usuário cadastradas no sistema CONCE, via API
  * padrão do PocketBase (a rota customizada /backend/v1/users não é mais
@@ -40,6 +43,24 @@ export async function fetchConceUsers(): Promise<ManagedUser[]> {
 }
 
 /**
+ * Garante que o cliente PocketBase tem uma sessão VÁLIDA antes de operações
+ * que a regra da coleção exige (ex.: create em users). Faz authRefresh com o
+ * token atual; se falhar, limpa o authStore para não insistir com token morto.
+ */
+export async function ensureFreshSession(): Promise<void> {
+  if (!pb.authStore.isValid || !pb.authStore.token) {
+    throw new Error(SESSION_EXPIRED_MESSAGE)
+  }
+  try {
+    await pb.collection('users').authRefresh()
+  } catch {
+    // Token inválido/expirado no servidor — limpa para evitar novas falhas.
+    pb.authStore.clear()
+    throw new Error(SESSION_EXPIRED_MESSAGE)
+  }
+}
+
+/**
  * Cria uma nova conta (nome, e-mail e senha com mínimo de 8 caracteres), via
  * API padrão do PocketBase. Somente usuários já autenticados podem criar
  * novas contas — o cadastro público pela tela de login está desativado.
@@ -49,6 +70,10 @@ export async function createConceUser(payload: {
   email: string
   password: string
 }): Promise<ManagedUser> {
+  // Valida a sessão ANTES de tentar criar: com token expirado, o PocketBase
+  // responde 400 genérico "Failed to create record." (regra create falsa)
+  // sem nenhum field error — não é erro de validação de campo.
+  await ensureFreshSession()
   try {
     const created = await pb.collection('users').create<{
       id: string
@@ -130,6 +155,17 @@ function buildFriendlyCreationError(err: unknown): string {
   if (lower.includes('password') && (lower.includes('short') || lower.includes('8'))) {
     return 'A senha deve ter no mínimo 8 caracteres.'
   }
+  // 400 genérico sem field data = regra create falhou => sessão não aceita.
+  const status = response?.status
+  if (
+    status === 400 &&
+    raw.includes('Failed to create record') &&
+    !(response?.data && Object.keys(response.data as object).length > 0)
+  ) {
+    return (
+      SESSION_EXPIRED_MESSAGE + ' (o servidor não reconheceu sua sessão no momento da criação).'
+    )
+  }
   const detailBits: string[] = []
   if (response?.data && Object.keys(response.data as object).length > 0) {
     try {
@@ -138,8 +174,8 @@ function buildFriendlyCreationError(err: unknown): string {
       // ignora — corpo não serializável
     }
   }
-  if (response?.status) {
-    detailBits.push(`status HTTP ${response.status}`)
+  if (status) {
+    detailBits.push(`status HTTP ${status}`)
   }
   const detail = detailBits.length > 0 ? ` (${detailBits.join('; ')})` : ''
   return (raw || 'Falha ao criar a conta. Verifique os dados e tente novamente.') + detail
