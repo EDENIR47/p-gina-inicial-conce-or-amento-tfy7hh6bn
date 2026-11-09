@@ -1,5 +1,19 @@
 import pb from '@/lib/pocketbase/client'
 
+/**
+ * Monta o header Authorization com o token do authStore do PocketBase.
+ * O pb.send do SDK não injeta o header automaticamente em rotas customizadas
+ * (/backend/v1/*): sem ele o hook rejeita a chamada como anônima (401).
+ */
+function buildAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {}
+  const token = pb.authStore.token
+  if (token) {
+    headers.Authorization = token
+  }
+  return headers
+}
+
 export interface ManagedUser {
   id: string
   name: string
@@ -18,6 +32,7 @@ export interface UsersResponse {
 export async function fetchConceUsers(): Promise<ManagedUser[]> {
   const result: UsersResponse = await pb.send('/backend/v1/users', {
     method: 'GET',
+    headers: buildAuthHeaders(),
   })
   return Array.isArray(result?.users) ? result.users : []
 }
@@ -34,6 +49,7 @@ export async function createConceUser(payload: {
 }): Promise<ManagedUser> {
   const result = await pb.send<{ user: ManagedUser }>('/backend/v1/users', {
     method: 'POST',
+    headers: buildAuthHeaders(),
     body: payload,
   })
   if (!result?.user) {
