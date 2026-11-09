@@ -4,7 +4,7 @@
  * Especialidades, CRUD completo, Duplicação, Versionamento e Importação SINAPI/SICRO
  */
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import {
   Calculator,
   Plus,
@@ -31,6 +31,7 @@ import {
   purgeRemovedCompositionInputRecord,
 } from '@/lib/budgetsStorage'
 import { getConsolidatedSinapiCatalog, getSinapiImportMetadata } from '@/lib/sinapiStorage'
+import { getPbAuthSession, isPbAuthenticated } from '@/services/authService'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
 import { formatCurrencyBRL } from '@/lib/formatters'
@@ -68,6 +69,17 @@ export const CompositionsLibraryPage: React.FC = () => {
   const [isSinapiImportModalOpen, setIsSinapiImportModalOpen] = useState(false)
   const [isSyncSinapiApiModalOpen, setIsSyncSinapiApiModalOpen] = useState(false)
 
+  // Biblioteca COMPARTILHADA: quando o pull do cloud chegar (Layout dispara o
+  // evento), recarrega a lista — agora com as composições de todos os
+  // colaboradores, não só as deste usuário.
+  useEffect(() => {
+    const handler = () => setCompositions(getStoredCompositions())
+    if (typeof window !== 'undefined') {
+      window.addEventListener('conce_compositions_updated', handler)
+      return () => window.removeEventListener('conce_compositions_updated', handler)
+    }
+  }, [])
+
   const showToast = (msg: string) => {
     setToastMessage(msg)
     setTimeout(() => setToastMessage(null), 3000)
@@ -80,13 +92,39 @@ export const CompositionsLibraryPage: React.FC = () => {
   }
 
   const handleSaveComposition = (saved: BudgetComposition) => {
-    const exists = compositions.some((c) => c.id === saved.id)
+    const existingComp = compositions.find((c) => c.id === saved.id)
+    const session = getPbAuthSession()
+    const myId = session?.id || ''
+
+    // Composição de outro usuário (compartilhada) NÃO pode ser editada:
+    // a regra API de update só permite ao dono. Oferece duplicar como cópia própria.
+    if (
+      existingComp &&
+      (existingComp as any).createdByUserId &&
+      (existingComp as any).createdByUserId !== myId
+    ) {
+      showToast(
+        `A composição ${existingComp.code} foi criada por outro colaborador — use "Duplicar" para criar sua própria versão editável.`,
+      )
+      setEditModalState({ isOpen: false, composition: null })
+      return
+    }
+
+    // Na criação, grava quem criou (campo user da coleção composicoes /
+    // createdByUserId no cache local) — é o que sustenta a regra de update/delete.
+    const compWithOwner: any = saved
+    if (!compWithOwner.createdByUserId) {
+      compWithOwner.createdByUserId = myId || undefined
+      compWithOwner.createdByUserName = session?.name || session?.email || undefined
+    }
+
+    const exists = !!existingComp
     let updated: BudgetComposition[]
     if (exists) {
       updated = compositions.map((c) => (c.id === saved.id ? saved : c))
       showToast(`Composição ${saved.code} atualizada com sucesso!`)
     } else {
-      updated = [saved, ...compositions]
+      updated = [compWithOwner, ...compositions]
       showToast(`Composição ${saved.code} cadastrada com sucesso!`)
     }
     updateCompositionsList(updated)
@@ -109,18 +147,56 @@ export const CompositionsLibraryPage: React.FC = () => {
         }),
       )
     }
+
+    // Biblioteca COMPARTILHADA: sobe a composição nova/atualizada para o cloud
+    // (create pela conta logada; update só do dono — regra API 0026).
+    if (isPbAuthenticated()) {
+      import('@/services/cloudCompositionsService')
+        .then(({ pushLocalCompositionsToCloud }) => pushLocalCompositionsToCloud())
+        .then((r) => {
+          if (r.uploaded > 0) {
+            window.dispatchEvent(new CustomEvent('conce_compositions_updated'))
+          }
+        })
+        .catch(() => {})
+    }
   }
 
   const handleDeleteComposition = (id: string, code: string) => {
+    const target = compositions.find((c) => c.id === id)
+    const session = getPbAuthSession()
+    const myId = session?.id || ''
+
+    // Regra API: update/delete de composição só é permitido ao dono
+    // (colaborador não apaga a composição de outro).
+    if (target && (target as any).createdByUserId && (target as any).createdByUserId !== myId) {
+      showToast(`A composição ${code} foi criada por outro colaborador — você não pode excluí-la.`)
+      return
+    }
+
     if (confirm(`Tem certeza que deseja excluir a composição ${code}?`)) {
       const updated = compositions.filter((c) => c.id !== id)
       updateCompositionsList(updated)
       showToast(`Composição ${code} excluída.`)
+
+      // Remove do cloud também (a regra API só permite ao dono; a checagem acima
+      // já garantiu que este usuário é o dono)
+      if (isPbAuthenticated() && target && !String(target.id).startsWith('comp-')) {
+        import('@/lib/pocketbase/client')
+          .then(({ default: pb }) =>
+            pb
+              .collection('composicoes')
+              .delete(target.id)
+              .catch(() => {}),
+          )
+          .catch(() => {})
+      }
     }
   }
 
   const handleDuplicateComposition = (comp: BudgetComposition) => {
-    const duplicated: BudgetComposition = {
+    const session = getPbAuthSession()
+    const duplicated: any = {
       ...JSON.parse(JSON.stringify(comp)),
       id: `comp-${Date.now()}`,
       code: `${comp.code}-COP`,
@@ -130,10 +206,13 @@ export const CompositionsLibraryPage: React.FC = () => {
         {
           version: 'v1.0',
           date: new Date().toISOString().split('T')[0],
-          author: 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+          author: session?.name || session?.email || 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
           changelog: `Duplicada a partir de ${comp.code} (${comp.version})`,
         },
       ],
+      // A cópia é da conta logada — ela pode editar e excluir
+      createdByUserId: session?.id || undefined,
+      createdByUserName: session?.name || session?.email || undefined,
     }
     const updated = [duplicated, ...compositions]
     updateCompositionsList(updated)
@@ -446,6 +525,14 @@ export const CompositionsLibraryPage: React.FC = () => {
                           <span className="text-xs text-[#171A1F]/70 font-semibold">
                             Unidade: <strong className="text-[#171A1F]">{comp.unit}</strong>
                           </span>
+                          {(comp as any).createdByUserName && (
+                            <span
+                              className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#294C87]/10 text-[#294C87]"
+                              title="Criada por outro colaborador — compartilhada na biblioteca da empresa"
+                            >
+                              Criada por: {(comp as any).createdByUserName}
+                            </span>
+                          )}
                           {compRemovedItems.length > 0 && (
                             <button
                               type="button"

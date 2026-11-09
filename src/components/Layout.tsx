@@ -59,6 +59,11 @@ export default function Layout() {
         syncEngine
           .pullFromCloud()
           .then(() => {
+            // Biblioteca de Composições COMPARTILHADA: puxa do cloud as
+            // composições de todos os colaboradores e atualiza o cache local
+            syncEngine.pullSharedCompositions().catch(() => {})
+          })
+          .then(() => {
             // Se após o pull o cloud tiver dados ou o cache foi atualizado, notifica as telas
             window.dispatchEvent(new CustomEvent('conce_budget_updated'))
 

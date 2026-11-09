@@ -19,16 +19,15 @@ import {
   fetchCloudOrcamentos,
   uploadStagePhotoToCloud,
   saveCloudQuotes,
-  saveCloudCompositions,
 } from './cloudBudgetsService'
-import {
-  getStoredFullBudgets,
-  saveFullBudgets,
-  isDemoOrTestBudget,
-  getStoredCompositions,
-} from '@/lib/budgetsStorage'
+import { getStoredFullBudgets, saveFullBudgets, isDemoOrTestBudget } from '@/lib/budgetsStorage'
 import { getStoredQuotes } from '@/lib/intelligenceStorage'
 import { isPbAuthenticated } from './authService'
+import {
+  fetchAndMergeSharedCompositions,
+  saveMergedCompositionsCache,
+  pushLocalCompositionsToCloud,
+} from '@/services/cloudCompositionsService'
 import {
   getLastSyncError,
   reportSessionExpired,
@@ -418,6 +417,26 @@ class SyncEngine {
   }
 
   /**
+   * Biblioteca COMPARTILHADA: puxa as composições de TODOS os usuários do cloud
+   * e as mescla no cache local, disparando o evento que atualiza as telas
+   * (Página de Composições e o seletor "Importar da Biblioteca").
+   */
+  public async pullSharedCompositions(): Promise<void> {
+    if (!isPbAuthenticated()) return
+    try {
+      const { merged } = await fetchAndMergeSharedCompositions()
+      if (merged.length > 0) {
+        saveMergedCompositionsCache(merged)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('conce_compositions_updated'))
+        }
+      }
+    } catch {
+      /* melhor-esforço: falha no pull de composições não deve derrubar o sync */
+    }
+  }
+
+  /**
    * Carga inicial completa de orçamentos, cotações e composições locais reais para a nuvem
    */
   public async uploadAllLocalDataToCloud(onProgress?: (step: string) => void): Promise<{
@@ -470,12 +489,17 @@ class SyncEngine {
     }
 
     onProgress?.('Sincronizando biblioteca de composições personalizadas...')
-    const compositions = getStoredCompositions()
-    const customComps = (compositions || []).filter((c: any) => c.source !== 'SINAPI' && c.code)
-    if (customComps.length > 0) {
-      await saveCloudCompositions(customComps)
+    // Biblioteca COMPARTILHADA: sobe apenas composições que AINDA não existem no
+    // cloud (de qualquer usuário) e puxa de volta as de todos os colaboradores.
+    try {
+      const uploadResult = await pushLocalCompositionsToCloud(onProgress)
+      await this.pullSharedCompositions()
+      onProgress?.(
+        `Composições: ${uploadResult.uploaded} enviada(s) e biblioteca compartilhada atualizada.`,
+      )
+    } catch {
+      /* melhor-esforço: não derruba a migração por falha no compartilhamento */
     }
-
     onProgress?.('Carga concluída com sucesso!')
     this.state = 'idle'
     this.notify()

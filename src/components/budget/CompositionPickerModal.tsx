@@ -3,7 +3,7 @@
  * Modal para Selecionar Composição da Biblioteca ou Criar Rápida
  */
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { X, Search, Plus, BookOpen, Filter, Check, Tag, Building2 } from 'lucide-react'
 import { BudgetComposition } from '@/types/budgetEngine'
 import { getStoredCompositions } from '@/lib/budgetsStorage'
@@ -27,7 +27,19 @@ export const CompositionPickerModal: React.FC<CompositionPickerModalProps> = ({
 }) => {
   const [search, setSearch] = useState('')
   const [selectedSpecialty, setSelectedSpecialty] = useState('Todas')
-  const compositions = getStoredCompositions()
+  const [compositions, setCompositions] = useState<BudgetComposition[]>(() =>
+    getStoredCompositions(),
+  )
+
+  // Biblioteca COMPARTILHADA: quando o pull do cloud chegar (evento disparado
+  // pelo Layout), recarrega — lista inclui composições de todos os usuários.
+  useEffect(() => {
+    const handler = () => setCompositions(getStoredCompositions())
+    if (typeof window !== 'undefined') {
+      window.addEventListener('conce_compositions_updated', handler)
+      return () => window.removeEventListener('conce_compositions_updated', handler)
+    }
+  }, [])
 
   if (!isOpen) return null
 
@@ -129,6 +141,14 @@ export const CompositionPickerModal: React.FC<CompositionPickerModalProps> = ({
                       <span className="text-xs font-bold text-[#171A1F]/70">
                         Unidade: <strong className="text-[#171A1F]">{comp.unit}</strong>
                       </span>
+                      {(comp as any).createdByUserName && (
+                        <span
+                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/10 text-[#294C87]"
+                          title="Composição compartilhada por outro colaborador"
+                        >
+                          Criada por: {(comp as any).createdByUserName}
+                        </span>
+                      )}
                       {hasUnitMismatch && (
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
                           Alerta: unidade ({comp.unit}) diferente do serviço ({targetUnit})

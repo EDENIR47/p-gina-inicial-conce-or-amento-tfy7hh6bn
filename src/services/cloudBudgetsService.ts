@@ -345,15 +345,18 @@ export async function saveCloudCompositions(compositions: any[]): Promise<void> 
       }
 
       try {
-        const existing = await pb
-          .collection('composicoes')
-          .getFirstListItem(`user = "${currentUserId}" && code = "${c.code}"`)
+        // Biblioteca compartilhada: procura por código em QUALQUER dono.
+        // Já existe no cloud (mesmo de outro usuário) → não duplica; só
+        // atualiza se for do próprio usuário (regra de update é só do dono).
+        const existing = await pb.collection('composicoes').getFirstListItem(`code = "${c.code}"`)
         if (existing) {
-          await pb.collection('composicoes').update(existing.id, payload)
+          if (existing.user === currentUserId) {
+            await pb.collection('composicoes').update(existing.id, payload)
+          }
           continue
         }
       } catch {
-        /* intentionally ignored */
+        /* não encontrada em nenhum dono: segue para o create */
       }
 
       await pb.collection('composicoes').create(payload)

@@ -57,6 +57,21 @@ export const InitialMigrationModal: React.FC<InitialMigrationModalProps> = ({
         comps: result.compositionsUploaded,
       })
       setStatus('success')
+
+      // Biblioteca COMPARTILHADA: após a migração, recarrega a lista com as
+      // composições de TODOS os colaboradores (e o que acabou de subir).
+      try {
+        const { fetchAndMergeSharedCompositions, saveMergedCompositionsCache } =
+          await import('@/services/cloudCompositionsService')
+        const res = await fetchAndMergeSharedCompositions()
+        if (res.merged.length > 0) {
+          saveMergedCompositionsCache(res.merged)
+          window.dispatchEvent(new CustomEvent('conce_compositions_updated'))
+        }
+      } catch {
+        /* compartilhamento é melhor-esforço: migração já foi concluída */
+      }
+
       onSuccess?.()
     } catch (err: any) {
       setStatus('error')
