@@ -1,5 +1,6 @@
 import pb from '@/lib/pocketbase/client'
-import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
+import type { FieldErrors } from '@/lib/pocketbase/errors'
 
 export interface ManagedUser {
   id: string
@@ -59,7 +60,6 @@ export async function createConceUser(payload: {
       email: payload.email,
       password: payload.password,
       passwordConfirm: payload.password,
-      verified: true,
     })
     return {
       id: created.id,
@@ -68,17 +68,65 @@ export async function createConceUser(payload: {
       created: created.created,
     }
   } catch (err) {
-    // Mensagem amigável em português para os casos conhecidos
-    const message = getErrorMessage(err)
-    const raw = String((err as any)?.response?.message || message)
-    if (raw.toLowerCase().includes('email') && raw.toLowerCase().includes('unique')) {
-      throw new Error('Este e-mail já está cadastrado no sistema CONCE.')
-    }
-    if (raw.toLowerCase().includes('password')) {
-      throw new Error('A senha deve ter no mínimo 8 caracteres.')
-    }
-    throw new Error(message || 'Falha ao criar a conta. Verifique os dados e tente novamente.')
+    // Diagnóstico campo a campo do erro de validação do PocketBase
+    // (err.response.data = { campo: { message } }), traduzido para pt-BR.
+    throw new Error(buildFriendlyCreationError(err))
   }
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  name: 'Nome',
+  email: 'E-mail',
+  password: 'Senha',
+  passwordConfirm: 'Confirmação de senha',
+  verified: 'Verificação de e-mail',
+}
+
+/** Traduz uma mensagem de validação padrão do PocketBase para pt-BR. */
+function translateValidationMessage(raw: string): string {
+  const lower = raw.toLowerCase()
+  if (lower.includes('must be a valid email')) return 'informe um e-mail válido.'
+  if (lower.includes('value must be a valid email')) return 'informe um e-mail válido.'
+  if (lower.includes('unique')) return 'este e-mail já está cadastrado no sistema CONCE.'
+  if (lower.includes('cannot be blank')) return 'campo obrigatório.'
+  if (lower.includes('requires 8 or more characters')) return 'deve ter no mínimo 8 caracteres.'
+  if (lower.includes('password') && lower.includes('too short'))
+    return 'deve ter no mínimo 8 caracteres.'
+  if (lower.includes('min') && lower.includes('character'))
+    return 'deve ter no mínimo 8 caracteres.'
+  return raw
+}
+
+/**
+ * Monta a mensagem de erro amigável em pt-BR para falha de criação de conta,
+ * priorizando os erros de validação campo a campo (err.response.data).
+ */
+function buildFriendlyCreationError(err: unknown): string {
+  const fieldErrors: FieldErrors = extractFieldErrors(err)
+  const entries: [string, string][] = Object.entries(fieldErrors)
+  if (entries.length > 0) {
+    const parts = entries.map(([field, message]) => {
+      const label = FIELD_LABELS[field] || field
+      const translated = translateValidationMessage(message)
+      if (field === 'email' && translated.includes('já está cadastrado')) {
+        return 'Este e-mail já está cadastrado no sistema CONCE.'
+      }
+      return `${label}: ${translated}`
+    })
+    // Se o único problema for o e-mail duplicado, mostra a frase completa
+    if (parts.length === 1 && parts[0].includes('já está cadastrado')) return parts[0]
+    return `Não foi possível criar a conta. ${parts.join(' ')}`
+  }
+  const message = getErrorMessage(err)
+  const raw = String((err as any)?.response?.message || message || '')
+  const lower = raw.toLowerCase()
+  if (lower.includes('email') && lower.includes('unique')) {
+    return 'Este e-mail já está cadastrado no sistema CONCE.'
+  }
+  if (lower.includes('password') && (lower.includes('short') || lower.includes('8'))) {
+    return 'A senha deve ter no mínimo 8 caracteres.'
+  }
+  return raw || 'Falha ao criar a conta. Verifique os dados e tente novamente.'
 }
 
 /** Formata a data de criação da conta em pt-BR. */

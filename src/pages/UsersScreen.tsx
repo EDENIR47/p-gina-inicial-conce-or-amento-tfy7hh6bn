@@ -96,7 +96,12 @@ export const UsersScreen: React.FC = () => {
       setPassword('')
       await loadUsers()
     } catch (err: any) {
-      setFormError(err?.message || 'Falha ao criar a conta. Verifique os dados e tente novamente.')
+      const detail = err?.message || 'Falha ao criar a conta. Verifique os dados e tente novamente.'
+      setFormError(
+        detail.includes('Não foi possível criar a conta')
+          ? detail
+          : `Não foi possível criar a conta. ${detail}`,
+      )
     } finally {
       setIsCreating(false)
     }
