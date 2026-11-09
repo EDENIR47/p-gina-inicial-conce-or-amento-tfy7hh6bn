@@ -117,8 +117,12 @@ function buildFriendlyCreationError(err: unknown): string {
     if (parts.length === 1 && parts[0].includes('já está cadastrado')) return parts[0]
     return `Não foi possível criar a conta. ${parts.join(' ')}`
   }
+  // Sem erros de campo: mostra a mensagem crua COMPLETA do servidor, com o
+  // corpo da resposta serializado quando existir — nunca ficar às cegas.
   const message = getErrorMessage(err)
-  const raw = String((err as any)?.response?.message || message || '')
+  const response = (err as { response?: { message?: string; data?: unknown; status?: number } })
+    ?.response
+  const raw = String(response?.message || message || '')
   const lower = raw.toLowerCase()
   if (lower.includes('email') && lower.includes('unique')) {
     return 'Este e-mail já está cadastrado no sistema CONCE.'
@@ -126,7 +130,19 @@ function buildFriendlyCreationError(err: unknown): string {
   if (lower.includes('password') && (lower.includes('short') || lower.includes('8'))) {
     return 'A senha deve ter no mínimo 8 caracteres.'
   }
-  return raw || 'Falha ao criar a conta. Verifique os dados e tente novamente.'
+  const detailBits: string[] = []
+  if (response?.data && Object.keys(response.data as object).length > 0) {
+    try {
+      detailBits.push('detalhes: ' + JSON.stringify(response.data))
+    } catch {
+      // ignora — corpo não serializável
+    }
+  }
+  if (response?.status) {
+    detailBits.push(`status HTTP ${response.status}`)
+  }
+  const detail = detailBits.length > 0 ? ` (${detailBits.join('; ')})` : ''
+  return (raw || 'Falha ao criar a conta. Verifique os dados e tente novamente.') + detail
 }
 
 /** Formata a data de criação da conta em pt-BR. */
