@@ -125,3 +125,118 @@ routerAdd('POST', '/backend/v1/users', (e) => {
     return e.json(500, { error: 'Falha ao criar a conta: ' + msg })
   }
 })
+
+// Rota de EDIÇÃO de conta (nome, e-mail e/ou troca de senha) — PATCH /backend/v1/users/{id}.
+// A regra update da coleção "users" é restrita ao próprio registro, então a
+// edição de terceiros passa por aqui: a rota valida a SESSÃO do chamador
+// (header Authorization) e só então grava com poderes de superuser. Nenhum
+// relaxamento da regra update padrão da coleção.
+routerAdd('PATCH', '/backend/v1/users/{id}', (e) => {
+  // Validação do chamador: token do header Authorization, com ou sem "Bearer ".
+  let token = ''
+  try {
+    token = String(e.request.header.get('Authorization') || '').trim()
+  } catch (_) {
+    token = ''
+  }
+  if (token.indexOf('Bearer ') === 0) {
+    token = token.substring(7).trim()
+  }
+  let caller = null
+  if (token) {
+    try {
+      const found = $app.findAuthRecordByToken(token, 'auth')
+      if (found && found.collection().name === 'users') {
+        caller = found
+      }
+    } catch (_) {
+      caller = null
+    }
+  }
+  if (!caller) {
+    return e.json(401, { error: 'Sessão inválida ou expirada. Faça login novamente.' })
+  }
+
+  try {
+    const targetId = e.request.pathValue('id') || ''
+    let target = null
+    try {
+      const rec = $app.findRecordById('users', targetId)
+      if (rec && rec.collection().name === 'users') {
+        target = rec
+      }
+    } catch (_) {
+      target = null
+    }
+    if (!target) {
+      return e.json(404, { error: 'Usuário não encontrado no sistema CONCE.' })
+    }
+
+    const body = e.requestInfo().body || {}
+    const newName = body.name !== undefined ? String(body.name).trim() : undefined
+    const newEmail = body.email !== undefined ? String(body.email).trim().toLowerCase() : undefined
+    const newPassword = body.password !== undefined ? String(body.password) : undefined
+
+    const hasName = newName !== undefined
+    const hasEmail = newEmail !== undefined
+    const hasPassword = newPassword !== undefined && newPassword !== ''
+    if (!hasName && !hasEmail && !hasPassword) {
+      return e.badRequestError('Nada a atualizar: informe nome, e-mail e/ou nova senha.')
+    }
+
+    if (hasName && newName.length < 3) {
+      return e.badRequestError('Informe o nome completo do usuário (mínimo 3 caracteres).')
+    }
+    if (hasEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      return e.badRequestError('Informe um e-mail válido.')
+    }
+    if (hasPassword && newPassword.length < 8) {
+      return e.badRequestError('A senha deve ter no mínimo 8 caracteres.')
+    }
+
+    // E-mail duplicado: verifica antes de gravar, para mensagem amigável em português.
+    if (hasEmail && newEmail !== target.getString('email')) {
+      try {
+        $app.findAuthRecordByEmail('users', newEmail)
+        return e.json(400, { error: 'Este e-mail já está cadastrado no sistema CONCE.' })
+      } catch (_) {
+        // não existe — pode usar
+      }
+    }
+
+    if (hasName) {
+      target.set('name', newName)
+    }
+    if (hasEmail) {
+      target.setEmail(newEmail)
+    }
+    if (hasPassword) {
+      target.setPassword(newPassword)
+      // Ao trocar a senha o tokenKey do registro muda: os tokens de sessão
+      // antigos do colaborador deixam de valer e ele precisará logar com a
+      // senha nova. A senha atual NUNCA sai do servidor.
+    }
+    $app.save(target)
+
+    return e.json(200, {
+      user: {
+        id: target.id,
+        name: target.getString('name'),
+        email: target.getString('email'),
+        created: target.getDateTime('created').string(),
+      },
+    })
+  } catch (err) {
+    const msg = String(err?.message || err || '')
+    if (msg.indexOf('unique') !== -1) {
+      return e.json(400, { error: 'Este e-mail já está cadastrado no sistema CONCE.' })
+    }
+    if (msg.indexOf('email') !== -1 && msg.indexOf('valid') !== -1) {
+      return e.json(400, { error: 'Informe um e-mail válido.' })
+    }
+    if (msg.indexOf('password') !== -1 && msg.indexOf('8') !== -1) {
+      return e.json(400, { error: 'A senha deve ter no mínimo 8 caracteres.' })
+    }
+    return e.json(500, { error: 'Falha ao salvar as alterações da conta: ' + msg })
+  }
+})

@@ -6,8 +6,10 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  KeyRound,
   Lock,
   Mail,
+  Pencil,
   User,
   UserPlus,
   Users as UsersIcon,
@@ -19,7 +21,8 @@ import {
   SESSION_EXPIRED_MESSAGE,
 } from '@/services/usersService'
 import type { ManagedUser } from '@/services/usersService'
-import { logoutPb } from '@/services/authService'
+import { logoutPb, getCurrentPbUser } from '@/services/authService'
+import { EditUserModal } from '@/components/users/EditUserModal'
 
 export const UsersScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -39,6 +42,12 @@ export const UsersScreen: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [sessionExpired, setSessionExpired] = useState(false)
 
+  // Edição de conta existente (nome, e-mail e/ou nova senha)
+  const [editingUser, setEditingUser] = useState<ManagedUser | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [editedBanner, setEditedBanner] = useState<string | null>(null)
+  const [editedIsError, setEditedIsError] = useState(false)
+
   const loadUsers = useCallback(async () => {
     setIsLoadingList(true)
     setListError(null)
@@ -55,6 +64,26 @@ export const UsersScreen: React.FC = () => {
   useEffect(() => {
     loadUsers()
   }, [loadUsers])
+
+  // Sessão do usuário logado — para saber se a linha é a própria conta.
+  useEffect(() => {
+    try {
+      const u = getCurrentPbUser()
+      setCurrentUserId(u?.id || null)
+    } catch {
+      setCurrentUserId(null)
+    }
+  }, [])
+
+  const handleEditedSaved = useCallback((updated: ManagedUser, changedPassword: boolean) => {
+    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+    setEditedBanner(
+      changedPassword
+        ? `Conta atualizada com sucesso: ${updated.name} (${updated.email}). Senha redefinida — informe-a ao colaborador.`
+        : `Conta atualizada com sucesso: ${updated.name} (${updated.email}).`,
+    )
+    setEditedIsError(false)
+  }, [])
 
   const clearFieldError = (field: 'name' | 'email' | 'password') => {
     if (errorField === field) {
@@ -329,6 +358,31 @@ export const UsersScreen: React.FC = () => {
             </button>
           </div>
 
+          {editedBanner && (
+            <div
+              className={`mb-4 flex items-start gap-2.5 p-3 rounded-lg text-xs animate-fade-in ${
+                editedIsError
+                  ? 'bg-[#C4453C]/10 border border-[#C4453C]/30 text-[#C4453C]'
+                  : 'bg-[#294C87]/10 border border-[#294C87]/30 text-[#294C87]'
+              }`}
+            >
+              {editedIsError ? (
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              ) : (
+                <KeyRound className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 font-medium leading-relaxed">{editedBanner}</div>
+              <button
+                type="button"
+                aria-label="Dispensar aviso"
+                onClick={() => setEditedBanner(null)}
+                className="text-current/70 hover:text-current font-bold leading-none cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
           {isLoadingList ? (
             <div className="py-10 flex items-center justify-center gap-3 text-sm text-[#171A1F]/60">
               <div className="w-4 h-4 border-2 border-[#294C87]/30 border-t-[#294C87] rounded-full animate-spin" />
@@ -362,26 +416,43 @@ export const UsersScreen: React.FC = () => {
                       <span className="text-sm font-semibold text-[#171A1F] truncate">
                         {u.name || '(sem nome)'}
                       </span>
+                      {currentUserId === u.id && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#294C87]/10 text-[#294C87] font-semibold uppercase tracking-wide">
+                          Sua conta
+                        </span>
+                      )}
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#171A1F]/5 text-[#171A1F]/60 font-mono">
                         #{idx + 1}
                       </span>
                     </div>
                     <div className="text-xs text-[#171A1F]/60 truncate">{u.email}</div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-[10px] uppercase tracking-wider text-[#171A1F]/40 font-semibold">
-                      Criada em
-                    </div>
-                    <div className="text-xs text-[#171A1F]/70 font-medium">
-                      {formatUserDate(u.created)}
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(u)}
+                    title={
+                      currentUserId === u.id ? 'Editar minha conta' : 'Editar conta do colaborador'
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-[#294C87]/40 text-[#294C87] text-xs font-semibold hover:bg-[#294C87] hover:text-white transition-all active:scale-95 flex-shrink-0 cursor-pointer"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Editar</span>
+                  </button>
                 </li>
               ))}
             </ul>
           )}
         </div>
       </div>
+
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          isSelf={currentUserId === editingUser.id}
+          onClose={() => setEditingUser(null)}
+          onSaved={handleEditedSaved}
+        />
+      )}
     </div>
   )
 }

@@ -99,6 +99,103 @@ export async function createConceUser(payload: {
   }
 }
 
+/**
+ * Atualiza o cadastro de uma conta existente (nome, e-mail e/ou troca de
+ * senha), via rota de backend PATCH /backend/v1/users/{id}. A coleção users
+ * permite update apenas no próprio registro, então a edição de terceiros
+ * precisa passar por essa rota — ela valida a sessão do chamador (token do
+ * authStore no header Authorization) e grava com poderes de superuser.
+ */
+export async function updateConceUser(
+  userId: string,
+  payload: {
+    name?: string
+    email?: string
+    password?: string
+  },
+): Promise<ManagedUser> {
+  // Sessão precisa estar fresca: a rota valida o token do header.
+  await ensureFreshSession()
+
+  const body: Record<string, string> = {}
+  if (payload.name !== undefined) body.name = payload.name
+  if (payload.email !== undefined) body.email = payload.email
+  if (payload.password !== undefined && payload.password !== '') body.password = payload.password
+  if (Object.keys(body).length === 0) {
+    throw new Error('Nada a atualizar: informe nome, e-mail e/ou nova senha.')
+  }
+
+  let response: Response
+  try {
+    response = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/users/${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: pb.authStore.token,
+      },
+      body: JSON.stringify(body),
+    })
+  } catch {
+    throw new Error(
+      'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.',
+    )
+  }
+
+  let data: any = null
+  try {
+    data = await response.json()
+  } catch {
+    data = null
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(SESSION_EXPIRED_MESSAGE)
+    }
+    throw new Error(friendlyUpdateError(data, response.status))
+  }
+
+  const user = data?.user
+  if (!user || !user.id) {
+    throw new Error('Resposta inesperada do servidor ao salvar as alterações da conta.')
+  }
+  return {
+    id: user.id,
+    name: user.name || '',
+    email: user.email,
+    created: user.created || '',
+  }
+}
+
+/**
+ * Traduz a falha da rota de edição para uma mensagem amigável em pt-BR
+ * (o próprio backend já devolve erros em português; aqui garantimos texto
+ * padrão caso venha algo vazio ou inesperado).
+ */
+function friendlyUpdateError(data: any, status: number): string {
+  const raw = String(data?.error || '').trim()
+  if (raw) {
+    const lower = raw.toLowerCase()
+    if (lower.includes('já está cadastrado')) {
+      return 'Este e-mail já está cadastrado no sistema CONCE.'
+    }
+    if (lower.includes('mínimo 8')) {
+      return 'A senha deve ter no mínimo 8 caracteres.'
+    }
+    if (lower.includes('e-mail válido') || lower.includes('email válido')) {
+      return 'Informe um e-mail válido.'
+    }
+    if (lower.includes('usuário não encontrado')) {
+      return 'Usuário não encontrado no sistema CONCE. Atualize a lista e tente novamente.'
+    }
+    return raw
+  }
+  if (status === 404) return 'Usuário não encontrado no sistema CONCE.'
+  if (status === 400) return 'Não foi possível salvar as alterações. Verifique os dados informados.'
+  if (status >= 500) return 'Erro interno do servidor ao salvar as alterações. Tente novamente.'
+  return `Não foi possível salvar as alterações da conta (status HTTP ${status}).`
+}
+
 const FIELD_LABELS: Record<string, string> = {
   name: 'Nome',
   email: 'E-mail',
