@@ -13,6 +13,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import BudgetsScreen from './pages/BudgetsScreen'
 import CompositionsLibraryPage from './pages/CompositionsLibraryPage'
 import QuotesScreen from './pages/QuotesScreen'
+import UsersScreen from './pages/UsersScreen'
 import { clearDemoData } from '@/lib/mockData'
 import { purgeTestBudgetsFromStorage } from '@/lib/budgetsStorage'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
@@ -59,6 +60,8 @@ const App = () => {
               <Route path="/composicoes" element={<CompositionsLibraryPage />} />
               {/* Módulo Real CONCE de Comparativo de Cotações de Fornecedores */}
               <Route path="/cotacoes" element={<QuotesScreen />} />
+              {/* Gestão de contas de usuário CONCE (somente contas criadas pelo próprio usuário) */}
+              <Route path="/usuarios" element={<UsersScreen />} />
             </Route>
           </Route>
 

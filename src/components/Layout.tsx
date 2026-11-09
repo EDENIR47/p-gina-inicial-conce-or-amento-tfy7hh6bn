@@ -12,6 +12,7 @@ import {
   Shield,
   CheckCircle2,
   Sparkles,
+  Users,
 } from 'lucide-react'
 import { ConceLogo } from '@/components/ConceLogo'
 import { getAuthSession, clearAuthSession } from '@/lib/mockData'
@@ -110,6 +111,9 @@ export default function Layout() {
     { to: '/cotacoes', label: 'Cotações', icon: ShoppingBag },
   ]
 
+  // Gestão de contas: item dedicado (visível apenas para quem está logado, área protegida)
+  const usersLink = { to: '/usuarios', label: 'Usuários', icon: Users }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F4F6F9] text-[#171A1F] antialiased">
       {/* Toast de Encerramento de Sessão */}
@@ -172,6 +176,19 @@ export default function Layout() {
 
           {/* Lado Direito: Indicador Cloud, Perfil e Botão Sair */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Acesso à gestão de usuários */}
+            <NavLink
+              to={usersLink.to}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer ${
+                location.pathname === usersLink.to
+                  ? 'bg-[#294C87] border-[#294C87] text-white'
+                  : 'bg-white/5 border-white/10 text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+              title="Gerenciar contas de usuário da plataforma CONCE"
+            >
+              <usersLink.icon className="w-3.5 h-3.5 text-[#FF6B1F]" />
+              <span>Usuários</span>
+            </NavLink>
             {/* Indicador de Status da Nuvem Skip Cloud */}
             <SyncStatusIndicator onOpenMigration={() => setIsMigrationModalOpen(true)} />
 
@@ -290,6 +307,21 @@ export default function Layout() {
                 className="text-xs text-[#FF6B1F] font-bold underline"
               >
                 Migrar Nuvem
+              </button>
+            </div>
+
+            {/* Acesso à gestão de usuários no Mobile */}
+            <div className="mb-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  navigate(usersLink.to)
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-semibold"
+              >
+                <Users className="w-4 h-4 text-[#FF6B1F]" />
+                <span>Gerenciar Usuários</span>
               </button>
             </div>
 

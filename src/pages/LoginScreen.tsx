@@ -14,15 +14,11 @@ import { ConceLogo, ConceWatermark } from '@/components/ConceLogo'
 import { setAuthSession, getAuthSession, isOnboardingDone, clearDemoData } from '@/lib/mockData'
 import { purgeTestBudgetsFromStorage } from '@/lib/budgetsStorage'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
-import { loginWithEmail, registerWithEmail } from '@/services/authService'
-import { UserPlus, LogIn } from 'lucide-react'
+import { loginWithEmail } from '@/services/authService'
 
 export const LoginScreen: React.FC = () => {
   const navigate = useNavigate()
 
-  // Modo: login ou cadastro
-  const [isRegisterMode, setIsRegisterMode] = useState(false)
-  const [name, setName] = useState('Eng. Edenir Souza da Rosa')
   const [email, setEmail] = useState('engedenirsouza@gmail.com')
   const [password, setPassword] = useState('conce123')
   const [showPassword, setShowPassword] = useState(false)
@@ -62,14 +58,6 @@ export const LoginScreen: React.FC = () => {
 
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedPass = password.trim()
-    const trimmedName = name.trim()
-
-    if (isRegisterMode && !trimmedName) {
-      setErrorMessage('Por favor, informe seu nome completo.')
-      setErrorField('name')
-      triggerShake()
-      return
-    }
 
     // Validações inline em português
     if (!trimmedEmail) {
@@ -86,22 +74,10 @@ export const LoginScreen: React.FC = () => {
       return
     }
 
-    if (trimmedPass.length < 8 && isRegisterMode) {
-      setErrorMessage('A senha deve ter no mínimo 8 caracteres.')
-      setErrorField('password')
-      triggerShake()
-      return
-    }
-
     setIsLoading(true)
 
     try {
-      let session: any
-      if (isRegisterMode) {
-        session = await registerWithEmail(trimmedEmail, trimmedPass, trimmedName)
-      } else {
-        session = await loginWithEmail(trimmedEmail, trimmedPass)
-      }
+      const session = await loginWithEmail(trimmedEmail, trimmedPass)
 
       // Garante limpeza antes de autenticar
       clearDemoData()
@@ -123,23 +99,14 @@ export const LoginScreen: React.FC = () => {
     } catch (err: any) {
       setIsLoading(false)
       const msg = err?.message || ''
-      if (isRegisterMode) {
-        if (msg.includes('email') || msg.includes('unique') || msg.includes('existing')) {
-          setErrorMessage('Este e-mail já está cadastrado. Alterne para o modo de login.')
-          setErrorField('email')
-        } else {
-          setErrorMessage('Falha ao criar conta. Verifique os dados e tente novamente.')
-        }
+      if (
+        msg.includes('400') ||
+        msg.includes('Failed to authenticate') ||
+        msg.includes('invalid')
+      ) {
+        setErrorMessage('E-mail ou senha incorretos na nuvem CONCE.')
       } else {
-        if (
-          msg.includes('400') ||
-          msg.includes('Failed to authenticate') ||
-          msg.includes('invalid')
-        ) {
-          setErrorMessage('E-mail ou senha incorretos na nuvem CONCE.')
-        } else {
-          setErrorMessage('Falha de conexão com a nuvem CONCE. Verifique sua rede.')
-        }
+        setErrorMessage('Falha de conexão com a nuvem CONCE. Verifique sua rede.')
       }
       triggerShake()
     }
@@ -198,12 +165,10 @@ export const LoginScreen: React.FC = () => {
         >
           <div className="mb-6 text-center">
             <h2 className="text-xl sm:text-2xl font-bold text-[#171A1F] tracking-tight">
-              {isRegisterMode ? 'Criar Conta CONCE' : 'Acesso ao Sistema'}
+              Acesso ao Sistema
             </h2>
             <p className="text-xs sm:text-sm text-[#171A1F]/70 mt-1">
-              {isRegisterMode
-                ? 'Cadastre sua conta para salvar orçamentos na nuvem'
-                : 'Portal Gerencial de Orçamentos de Obra (Skip Cloud)'}
+              Portal Gerencial de Orçamentos de Obra (Skip Cloud)
             </p>
           </div>
           {/* Mensagem de Erro Inline Amigável */}
@@ -215,38 +180,6 @@ export const LoginScreen: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Campo Nome (Apenas modo cadastro) */}
-            {isRegisterMode && (
-              <div className="space-y-1.5 text-left animate-fade-in">
-                <label
-                  htmlFor="conce-name"
-                  className="block text-xs font-semibold uppercase tracking-wider text-[#171A1F]"
-                >
-                  Nome Completo / Engenheiro(a)
-                </label>
-                <div className="relative">
-                  <input
-                    id="conce-name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value)
-                      if (errorField === 'name' || errorField === 'all') {
-                        setErrorMessage(null)
-                        setErrorField(null)
-                      }
-                    }}
-                    placeholder="Eng. Edenir Souza da Rosa"
-                    className={`w-full px-4 py-2.5 bg-white text-sm text-[#171A1F] placeholder:text-[#171A1F]/35 rounded-[8px] border transition-all duration-150 outline-none ${
-                      errorField === 'name' || errorField === 'all'
-                        ? 'border-[#C4453C] ring-2 ring-[#C4453C]/20'
-                        : 'border-[#171A1F]/20 focus:border-[#294C87] focus:ring-2 focus:ring-[#294C87]/25'
-                    }`}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Campo E-mail */}
             <div className="space-y-1.5 text-left">
               <label
@@ -325,7 +258,7 @@ export const LoginScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Botão Entrar ou Cadastrar */}
+            {/* Botão Entrar */}
             <button
               type="submit"
               disabled={isLoading}
@@ -334,43 +267,16 @@ export const LoginScreen: React.FC = () => {
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>
-                    {isRegisterMode ? 'Criando conta na nuvem...' : 'Autenticando na nuvem...'}
-                  </span>
+                  <span>Autenticando na nuvem...</span>
                 </>
               ) : (
                 <>
-                  <span>{isRegisterMode ? 'Cadastrar e Acessar' : 'Entrar no Sistema'}</span>
+                  <span>Entrar no Sistema</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 text-[#FF6B1F]" />
                 </>
               )}
             </button>
           </form>
-
-          {/* Alternar entre login e cadastro */}
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegisterMode(!isRegisterMode)
-                setErrorMessage(null)
-                setErrorField(null)
-              }}
-              className="text-xs text-[#294C87] hover:text-[#FF6B1F] font-semibold underline underline-offset-2 transition-colors cursor-pointer inline-flex items-center gap-1.5"
-            >
-              {isRegisterMode ? (
-                <>
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>Já tem uma conta? Fazer login</span>
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Novo usuário? Cadastre sua conta</span>
-                </>
-              )}
-            </button>
-          </div>
 
           {/* Dica visível de credenciais autorizadas */}
           <div className="mt-6 pt-4 border-t border-[#171A1F]/10 text-center">
