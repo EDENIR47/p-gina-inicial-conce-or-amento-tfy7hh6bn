@@ -3,12 +3,13 @@
 // contas — o cadastro público pela tela de login foi desativado a pedido do
 // proprietário: novas contas só nascem aqui, criadas por quem já tem acesso.
 //
-// A identidade do chamador é validada explicitamente a partir do header
-// Authorization (token de sessão do PocketBase), e não apenas por e.auth:
-// rotas customizadas não recebem o auth preenchido de forma confiável.
+// A identidade do chamador é validada a partir do header Authorization (token
+// de sessão do PocketBase). A PocketBase JSVM executa os callbacks em um pool
+// de VMs separado: por isso TODA a lógica (inclusive a validação do token) fica
+// inline dentro de cada callback — nada de funções ou variáveis de topo.
 
-// Resolve o usuário autenticado da requisição, ou null se anônimo/inválido.
-function resolveCaller(e) {
+routerAdd('GET', '/backend/v1/users', (e) => {
+  // Validação do chamador: token do header Authorization, com ou sem "Bearer ".
   let token = ''
   try {
     token = String(e.request.header.get('Authorization') || '').trim()
@@ -18,22 +19,18 @@ function resolveCaller(e) {
   if (token.indexOf('Bearer ') === 0) {
     token = token.substring(7).trim()
   }
-  if (!token) {
-    return null
-  }
-  try {
-    const record = $app.findAuthRecordByToken(token, 'auth')
-    if (!record || record.collection().name !== 'users') {
-      return null
+  let caller = null
+  if (token) {
+    try {
+      const found = $app.findAuthRecordByToken(token, 'auth')
+      if (found && found.collection().name === 'users') {
+        caller = found
+      }
+    } catch (_) {
+      caller = null
     }
-    return record
-  } catch (_) {
-    return null
   }
-}
-
-routerAdd('GET', '/backend/v1/users', (e) => {
-  if (!resolveCaller(e)) {
+  if (!caller) {
     return e.json(401, { error: 'Sessão inválida ou expirada. Faça login novamente.' })
   }
 
@@ -54,7 +51,28 @@ routerAdd('GET', '/backend/v1/users', (e) => {
 })
 
 routerAdd('POST', '/backend/v1/users', (e) => {
-  if (!resolveCaller(e)) {
+  // Validação do chamador: token do header Authorization, com ou sem "Bearer ".
+  let token = ''
+  try {
+    token = String(e.request.header.get('Authorization') || '').trim()
+  } catch (_) {
+    token = ''
+  }
+  if (token.indexOf('Bearer ') === 0) {
+    token = token.substring(7).trim()
+  }
+  let caller = null
+  if (token) {
+    try {
+      const found = $app.findAuthRecordByToken(token, 'auth')
+      if (found && found.collection().name === 'users') {
+        caller = found
+      }
+    } catch (_) {
+      caller = null
+    }
+  }
+  if (!caller) {
     return e.json(401, { error: 'Sessão inválida ou expirada. Faça login novamente.' })
   }
 
