@@ -123,12 +123,18 @@ export async function fetchCloudOrcamentos(): Promise<FullBudget[]> {
 }
 
 /**
- * Salva ou atualiza um orçamento no cloud (PocketBase)
+ * Salva ou atualiza um orçamento no cloud (PocketBase).
+ * Falha ALTO: sem sessão válida lança erro (traduzido pela syncFeedback) —
+ * nunca mais retornar null silenciosamente e a fila tratar como sucesso.
  */
 export async function saveCloudOrcamento(budget: FullBudget): Promise<string | null> {
-  if (!isPbAuthenticated()) return null
+  if (!isPbAuthenticated()) {
+    throw new Error('Sessão expirada, faça login novamente.')
+  }
   const currentUserId = pb.authStore.record?.id
-  if (!currentUserId) return null
+  if (!currentUserId) {
+    throw new Error('Sessão expirada, faça login novamente.')
+  }
 
   const data = fullBudgetToCloudPayload(budget, currentUserId)
 
@@ -152,12 +158,17 @@ export async function saveCloudOrcamento(budget: FullBudget): Promise<string | n
 }
 
 /**
- * Remove um orçamento do cloud pelo ID local ou ID do PocketBase
+ * Remove um orçamento do cloud pelo ID local ou ID do PocketBase.
+ * Sem sessão válida lança erro em vez de retornar false silenciosamente.
  */
 export async function deleteCloudOrcamento(budgetId: string): Promise<boolean> {
-  if (!isPbAuthenticated()) return false
+  if (!isPbAuthenticated()) {
+    throw new Error('Sessão expirada, faça login novamente.')
+  }
   const currentUserId = pb.authStore.record?.id
-  if (!currentUserId) return false
+  if (!currentUserId) {
+    throw new Error('Sessão expirada, faça login novamente.')
+  }
 
   try {
     // Tenta primeiro encontrar pelo local_id

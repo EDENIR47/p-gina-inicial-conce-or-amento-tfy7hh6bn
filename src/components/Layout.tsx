@@ -41,27 +41,39 @@ export default function Layout() {
     setSession(getAuthSession())
   }, [location.pathname])
 
-  // Ao abrir o app: se autenticado no PocketBase, tenta puxar do cloud e sugerir migração se cloud vazio e houver locais
+  // Ao abrir o app: valida/renova a sessão PocketBase (o token pode estar
+  // expirado mesmo com o usuário "logado" na UI) e só então puxa do cloud.
+  // Sem sessão válida após a tentativa, o indicador de sync avisa em pt-BR
+  // em vez de pular o pull em silêncio.
   useEffect(() => {
-    if (isPbAuthenticated()) {
-      // Atualiza os dados de sessão do PocketBase
-      setSession(getAuthSession())
-      syncEngine
-        .pullFromCloud()
-        .then((budgets) => {
-          // Se após o pull o cloud tiver dados ou o cache foi atualizado, notifica as telas
-          window.dispatchEvent(new CustomEvent('conce_budget_updated'))
+    let cancelled = false
+    // eslint-disable-next-line no-undef
+    import('@/services/authService')
+      .then(({ validateAndRefreshPbSession }) => validateAndRefreshPbSession())
+      .catch(() => false)
+      .then((ok) => {
+        if (cancelled || !ok) return
+        // Atualiza os dados de sessão do PocketBase
+        setSession(getAuthSession())
+        syncEngine
+          .pullFromCloud()
+          .then(() => {
+            // Se após o pull o cloud tiver dados ou o cache foi atualizado, notifica as telas
+            window.dispatchEvent(new CustomEvent('conce_budget_updated'))
 
-          // Se o usuário tiver orçamentos locais reais e ainda não migrou para o cloud
-          const localReal = getStoredFullBudgets().filter((b) => !isDemoOrTestBudget(b))
-          const hasPrompted = sessionStorage.getItem('conce_cloud_migration_prompted')
-          if (localReal.length > 0 && !hasPrompted) {
-            sessionStorage.setItem('conce_cloud_migration_prompted', 'true')
-            // Abre o modal de migração convidando o usuário
-            setIsMigrationModalOpen(true)
-          }
-        })
-        .catch(() => {})
+            // Se o usuário tiver orçamentos locais reais e ainda não migrou para o cloud
+            const localReal = getStoredFullBudgets().filter((b) => !isDemoOrTestBudget(b))
+            const hasPrompted = sessionStorage.getItem('conce_cloud_migration_prompted')
+            if (localReal.length > 0 && !hasPrompted) {
+              sessionStorage.setItem('conce_cloud_migration_prompted', 'true')
+              // Abre o modal de migração convidando o usuário
+              setIsMigrationModalOpen(true)
+            }
+          })
+          .catch(() => {})
+      })
+    return () => {
+      cancelled = true
     }
   }, [])
 

@@ -8,6 +8,8 @@
  *    atualizações locais não sincronizadas ficam preservadas na fila de saída.
  * 4. Migração e upload de fotos de etapas (base64 -> arquivos reais no PB).
  * 5. Notificação de status para a UI ("Sincronizado", "Sincronizando...", "N pendentes", "Offline").
+ * 6. FALHA NUNCA MAIS SILENCIOSA: todo erro de gravação é traduzido para pt-BR
+ *    (syncFeedback) e exposto na UI; o retry continua em background.
  */
 
 import { FullBudget } from '@/types/budgetEngine'
@@ -27,6 +29,12 @@ import {
 } from '@/lib/budgetsStorage'
 import { getStoredQuotes } from '@/lib/intelligenceStorage'
 import { isPbAuthenticated } from './authService'
+import {
+  getLastSyncError,
+  reportSessionExpired,
+  reportSyncError,
+  clearSyncError,
+} from './syncFeedback'
 
 export type SyncState = 'idle' | 'syncing' | 'pending' | 'offline' | 'error'
 
@@ -95,6 +103,8 @@ class SyncEngine {
       this.state = 'offline'
     } else if (this.isProcessing) {
       this.state = 'syncing'
+    } else if (getLastSyncError()?.status === 401) {
+      this.state = 'error'
     } else if (this.queue.length > 0) {
       this.state = 'pending'
     } else {
@@ -114,6 +124,29 @@ class SyncEngine {
     } else {
       this.state = 'offline'
       this.notify()
+    }
+  }
+
+  /**
+   * Valida a sessão PocketBase antes de gravar (padrão usersService): faz
+   * authRefresh; se o token estiver morto, limpa tudo e avisa a UI com
+   * "Sessão expirada, faça login novamente." — não fica em retry infinito
+   * com credencial inválida.
+   */
+  private async ensureFreshSession(): Promise<boolean> {
+    const { default: pb } = await import('@/lib/pocketbase/client')
+    if (!pb.authStore.isValid || !pb.authStore.token) {
+      reportSessionExpired('gravar orçamento (sem token)')
+      return false
+    }
+    try {
+      await pb.collection('users').authRefresh()
+      return true
+    } catch {
+      const { logoutPb } = await import('./authService')
+      logoutPb()
+      reportSessionExpired('gravar orçamento (token rejeitado)')
+      return false
     }
   }
 
@@ -160,15 +193,11 @@ class SyncEngine {
   }
 
   /**
-   * Executa a fila de sincronização com o PocketBase
+   * Executa a fila de sincronização com o PocketBase.
+   * Nunca lança: falhas são reportadas via syncFeedback e retentadas com backoff.
    */
   public async processQueue(): Promise<void> {
     if (this.isProcessing) return
-    if (!isPbAuthenticated()) {
-      this.notify()
-      return
-    }
-
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
     if (!isOnline) {
       this.state = 'offline'
@@ -178,6 +207,22 @@ class SyncEngine {
 
     if (this.queue.length === 0) {
       this.state = 'idle'
+      this.notify()
+      return
+    }
+
+    if (!isPbAuthenticated()) {
+      // Sessão ausente: não roda a fila, mas o usuário PRECISA saber por que
+      // os dados "não estão chegando na nuvem".
+      reportSessionExpired('sincronizar fila (sem sessão PocketBase)')
+      this.notify()
+      return
+    }
+
+    // Renova o token antes de qualquer gravação (padrão ensureFreshSession de usersService)
+    const fresh = await this.ensureFreshSession()
+    if (!fresh) {
+      this.isProcessing = false
       this.notify()
       return
     }
@@ -210,7 +255,7 @@ class SyncEngine {
                         return { ...st, photoUrl: cloudUrl }
                       }
                     } catch {
-                      /* intentionally ignored */
+                      /* foto falhou: segue sem ela, o resto do orçamento sobe */
                     }
                   }
                   return st
@@ -227,9 +272,12 @@ class SyncEngine {
           }
 
           // Tarefa concluída com sucesso
+          clearSyncError()
           this.queue.shift()
           this.saveQueue()
         } catch (taskErr) {
+          // Motivo em português vai para a UI (indicador de sync + toasts)
+          reportSyncError(taskErr, 'Falha ao enviar orçamento para a nuvem')
           console.warn('Falha na tarefa de sincronização:', taskErr)
           task.retries++
           if (task.retries > 5) {
@@ -243,8 +291,11 @@ class SyncEngine {
         }
       }
 
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString())
+      if (this.queue.length === 0) {
+        clearSyncError()
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString())
+        }
       }
     } finally {
       this.isProcessing = false
@@ -337,10 +388,32 @@ class SyncEngine {
         return merged
       }
 
+      // Cloud VAZIO para este usuário: orçamentos locais reais (ex. criados
+      // enquanto a sessão do PocketBase estava inválida — caso ORC-2026-108)
+      // precisam SUBIR para a nuvem. Antes a função apenas retornava o cache
+      // local e esses orçamentos nunca chegavam ao cloud.
+      const localAll = getStoredFullBudgets()
+      const queuedIds = new Set(
+        this.queue
+          .filter((t) => t.type === 'upsert_budget' && t.budget?.id)
+          .map((t) => t.budget!.id),
+      )
+      localAll
+        .filter((lb) => !isDemoOrTestBudget(lb) && !queuedIds.has(lb.id))
+        .forEach((lb) => this.enqueueBudgetSave(lb))
+      this.notify()
+      return localAll
+    } catch (err) {
+      reportSyncError(err, 'Falha ao buscar orçamentos da nuvem')
       return getStoredFullBudgets()
     } finally {
       this.isProcessing = false
       this.notify()
+      // As tarefas enfileiradas durante o pull (processQueue sai cedo enquanto
+      // isProcessing = true) precisam ser drenadas agora que o pull terminou.
+      if (this.queue.length > 0) {
+        setTimeout(() => this.processQueue().catch(() => {}), 300)
+      }
     }
   }
 
@@ -381,8 +454,13 @@ class SyncEngine {
         budgetToSend = { ...b, stages: stagesWithCloud }
       }
 
-      await saveCloudOrcamento(budgetToSend)
-      budgetsUploaded++
+      try {
+        await saveCloudOrcamento(budgetToSend)
+        budgetsUploaded++
+      } catch (err) {
+        reportSyncError(err, `Falha ao enviar orçamento ${b.code || b.title} para a nuvem`)
+        throw err
+      }
     }
 
     onProgress?.('Sincronizando cotações salvas...')
