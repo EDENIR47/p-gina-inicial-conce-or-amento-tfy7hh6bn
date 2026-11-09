@@ -2,8 +2,38 @@
 // Somente usuários autenticados na coleção "users" podem listar e criar novas
 // contas — o cadastro público pela tela de login foi desativado a pedido do
 // proprietário: novas contas só nascem aqui, criadas por quem já tem acesso.
+//
+// A identidade do chamador é validada explicitamente a partir do header
+// Authorization (token de sessão do PocketBase), e não apenas por e.auth:
+// rotas customizadas não recebem o auth preenchido de forma confiável.
+
+// Resolve o usuário autenticado da requisição, ou null se anônimo/inválido.
+function resolveCaller(e) {
+  let token = ''
+  try {
+    token = String(e.request.header.get('Authorization') || '').trim()
+  } catch (_) {
+    token = ''
+  }
+  if (token.indexOf('Bearer ') === 0) {
+    token = token.substring(7).trim()
+  }
+  if (!token) {
+    return null
+  }
+  try {
+    const record = $app.findAuthRecordByToken(token, 'auth')
+    if (!record || record.collection().name !== 'users') {
+      return null
+    }
+    return record
+  } catch (_) {
+    return null
+  }
+}
+
 routerAdd('GET', '/backend/v1/users', (e) => {
-  if (!e.auth || !e.auth.id) {
+  if (!resolveCaller(e)) {
     return e.json(401, { error: 'Sessão inválida ou expirada. Faça login novamente.' })
   }
 
@@ -24,7 +54,7 @@ routerAdd('GET', '/backend/v1/users', (e) => {
 })
 
 routerAdd('POST', '/backend/v1/users', (e) => {
-  if (!e.auth || !e.auth.id) {
+  if (!resolveCaller(e)) {
     return e.json(401, { error: 'Sessão inválida ou expirada. Faça login novamente.' })
   }
 
