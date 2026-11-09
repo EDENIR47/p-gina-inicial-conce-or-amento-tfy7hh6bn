@@ -126,6 +126,68 @@ routerAdd('POST', '/backend/v1/users', (e) => {
   }
 })
 
+// Rota de EXCLUSÃO de conta — DELETE /backend/v1/users/{id}.
+// A regra delete da coleção "users" é restrita ao próprio registro, então a
+// exclusão de terceiros passa por aqui: a rota valida a SESSÃO do chamador
+// (header Authorization) e só então apaga com poderes de superuser. O chamador
+// NUNCA pode excluir a própria conta por esta rota. Nenhum relaxamento da
+// regra delete padrão da coleção.
+routerAdd('DELETE', '/backend/v1/users/{id}', (e) => {
+  // Validação do chamador: token do header Authorization, com ou sem "Bearer ".
+  let token = ''
+  try {
+    token = String(e.request.header.get('Authorization') || '').trim()
+  } catch (_) {
+    token = ''
+  }
+  if (token.indexOf('Bearer ') === 0) {
+    token = token.substring(7).trim()
+  }
+  let caller = null
+  if (token) {
+    try {
+      const found = $app.findAuthRecordByToken(token, 'auth')
+      if (found && found.collection().name === 'users') {
+        caller = found
+      }
+    } catch (_) {
+      caller = null
+    }
+  }
+  if (!caller) {
+    return e.json(401, { error: 'Sessão inválida ou expirada. Faça login novamente.' })
+  }
+
+  try {
+    const targetId = e.request.pathValue('id') || ''
+    let target = null
+    try {
+      const rec = $app.findRecordById('users', targetId)
+      if (rec && rec.collection().name === 'users') {
+        target = rec
+      }
+    } catch (_) {
+      target = null
+    }
+    if (!target) {
+      return e.json(404, { error: 'Usuário não encontrado no sistema CONCE.' })
+    }
+
+    if (target.id === caller.id) {
+      return e.json(400, {
+        error: 'Você não pode excluir a própria conta por aqui. Use outro usuário para isso.',
+      })
+    }
+
+    $app.delete(target)
+    return e.json(200, { ok: true })
+  } catch (err) {
+    return e.json(500, {
+      error: 'Falha ao excluir a conta: ' + String(err?.message || err || ''),
+    })
+  }
+})
+
 // Rota de EDIÇÃO de conta (nome, e-mail e/ou troca de senha) — PATCH /backend/v1/users/{id}.
 // A regra update da coleção "users" é restrita ao próprio registro, então a
 // edição de terceiros passa por aqui: a rota valida a SESSÃO do chamador

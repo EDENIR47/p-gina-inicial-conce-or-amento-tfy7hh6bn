@@ -10,6 +10,7 @@ import {
   Lock,
   Mail,
   Pencil,
+  Trash2,
   User,
   UserPlus,
   Users as UsersIcon,
@@ -17,6 +18,7 @@ import {
 import {
   fetchConceUsers,
   createConceUser,
+  deleteConceUser,
   formatUserDate,
   SESSION_EXPIRED_MESSAGE,
 } from '@/services/usersService'
@@ -47,6 +49,11 @@ export const UsersScreen: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [editedBanner, setEditedBanner] = useState<string | null>(null)
   const [editedIsError, setEditedIsError] = useState(false)
+
+  // Exclusão de conta (terceiros) — confirmação em modal antes de apagar
+  const [deletingUser, setDeletingUser] = useState<ManagedUser | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const loadUsers = useCallback(async () => {
     setIsLoadingList(true)
@@ -84,6 +91,34 @@ export const UsersScreen: React.FC = () => {
     )
     setEditedIsError(false)
   }, [])
+
+  const handleConfirmDelete = async () => {
+    if (!deletingUser || isDeleting) return
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteConceUser(deletingUser.id)
+      setUsers((prev) => prev.filter((u) => u.id !== deletingUser.id))
+      setEditedBanner(`Conta excluída com sucesso: ${deletingUser.name} (${deletingUser.email}).`)
+      setEditedIsError(false)
+      setDeletingUser(null)
+    } catch (err: any) {
+      const detail = err?.message || 'Não foi possível excluir a conta. Tente novamente.'
+      if (detail.includes(SESSION_EXPIRED_MESSAGE)) {
+        setDeleteError(SESSION_EXPIRED_MESSAGE)
+        setDeletingUser(null)
+        try {
+          logoutPb()
+        } catch {
+          /* ignore */
+        }
+        return
+      }
+      setDeleteError(detail)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const clearFieldError = (field: 'name' | 'email' | 'password') => {
     if (errorField === field) {
@@ -438,6 +473,20 @@ export const UsersScreen: React.FC = () => {
                     <Pencil className="w-3.5 h-3.5" />
                     <span>Editar</span>
                   </button>
+                  {currentUserId !== u.id && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteError(null)
+                        setDeletingUser(u)
+                      }}
+                      title="Excluir conta do colaborador"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-[#C4453C]/40 text-[#C4453C] text-xs font-semibold hover:bg-[#C4453C] hover:text-white transition-all active:scale-95 flex-shrink-0 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Excluir</span>
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -452,6 +501,75 @@ export const UsersScreen: React.FC = () => {
           onClose={() => setEditingUser(null)}
           onSaved={handleEditedSaved}
         />
+      )}
+
+      {deletingUser && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in"
+          onClick={() => {
+            if (!isDeleting) setDeletingUser(null)
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-[16px] border-t-4 border-[#C4453C] shadow-[0_20px_50px_rgba(23,26,31,0.25)] p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#C4453C]/10 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5 text-[#C4453C]" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#171A1F]">Excluir conta</h3>
+                <p className="text-xs text-[#171A1F]/60 mt-0.5">
+                  Esta ação remove o acesso do colaborador à plataforma CONCE.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-[#C4453C]/10 border border-[#C4453C]/30 text-[#C4453C] text-xs animate-fade-in">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 font-medium leading-relaxed">{deleteError}</div>
+              </div>
+            )}
+
+            <p className="text-sm text-[#171A1F] leading-relaxed mb-6">
+              Excluir a conta de <span className="font-bold">{deletingUser.name}</span> (
+              {deletingUser.email})? Esta ação não pode ser desfeita.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setDeletingUser(null)}
+                disabled={isDeleting}
+                className="px-4 py-2.5 rounded-[8px] border border-[#171A1F]/20 text-[#171A1F] text-sm font-semibold hover:bg-[#171A1F]/5 transition-all disabled:opacity-60 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2.5 rounded-[8px] bg-[#C4453C] hover:bg-[#A93B33] text-white text-sm font-semibold shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-75 disabled:pointer-events-none cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Excluindo conta...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Excluir conta</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

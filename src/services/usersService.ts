@@ -168,6 +168,60 @@ export async function updateConceUser(
 }
 
 /**
+ * Exclui uma conta de usuário (terceiro) via rota de backend DELETE
+ * /backend/v1/users/{id}. A coleção users permite delete apenas no próprio
+ * registro, então a exclusão de terceiros passa por essa rota — ela valida a
+ * sessão do chamador (token do authStore no header Authorization) e apaga com
+ * poderes de superuser. A própria conta nunca pode ser excluída por aqui.
+ */
+export async function deleteConceUser(userId: string): Promise<void> {
+  // Sessão precisa estar fresca: a rota valida o token do header.
+  await ensureFreshSession()
+
+  let response: Response
+  try {
+    response = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: pb.authStore.token,
+      },
+    })
+  } catch {
+    throw new Error(
+      'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.',
+    )
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(SESSION_EXPIRED_MESSAGE)
+    }
+    let data: any = null
+    try {
+      data = await response.json()
+    } catch {
+      data = null
+    }
+    throw new Error(friendlyDeleteError(data, response.status))
+  }
+}
+
+/**
+ * Traduz a falha da rota de exclusão para uma mensagem amigável em pt-BR
+ * (o próprio backend já devolve erros em português; aqui garantimos texto
+ * padrão caso venha algo vazio ou inesperado).
+ */
+function friendlyDeleteError(data: any, status: number): string {
+  const raw = String(data?.error || '').trim()
+  if (raw) return raw
+  if (status === 404)
+    return 'Usuário não encontrado no sistema CONCE. Atualize a lista e tente novamente.'
+  if (status === 400) return 'Não foi possível excluir a conta. Solicitação recusada pelo servidor.'
+  if (status >= 500) return 'Erro interno do servidor ao excluir a conta. Tente novamente.'
+  return `Não foi possível excluir a conta (status HTTP ${status}).`
+}
+
+/**
  * Traduz a falha da rota de edição para uma mensagem amigável em pt-BR
  * (o próprio backend já devolve erros em português; aqui garantimos texto
  * padrão caso venha algo vazio ou inesperado).
