@@ -38,6 +38,7 @@ import {
   DEFAULT_TECHNICAL_OBLIGATIONS_TEXT,
 } from '@/lib/formatters'
 import { logAuditEvent } from '@/lib/intelligenceStorage'
+import { useRtSignature, RtSignatureImage } from '@/components/documents/RtSignature'
 
 export type PdfExportMode = 'valor_final' | 'simplificado' | 'etapas' | 'completo'
 
@@ -149,6 +150,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
   const summary = useMemo(() => calculateFullBudget(budget), [budget])
   const abc = useMemo(() => computeAbcCurve(budget), [budget])
+  // Assinatura do RT desenhada na tela Usuários (se existir, aparece nos 4 formatos)
+  const rtSignature = useRtSignature()
 
   // Adiciona a classe conce-printing ao body enquanto o modal estiver aberto,
   // permitindo que o CSS de impressão isole estritamente o documento da proposta
@@ -711,6 +714,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             {/* Bloco de Assinaturas Formais */}
             <div className="print-signatures-block pt-8 sm:pt-10 print:pt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 print:gap-3 text-center text-xs print:page-break-inside-avoid print-break-avoid">
               <div className="space-y-0.5">
+                <RtSignatureImage signature={rtSignature} />
                 <div className="w-44 mx-auto border-t-2 border-[#171A1F]" />
                 <p className="font-bold text-xs text-[#171A1F]">{cleanAuthor}</p>
                 <p className="text-[9.5px] text-[#171A1F]/70">
@@ -1965,6 +1969,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             {/* Campos Oficiais de Assinatura */}
             <div className="print-signatures-block pt-10 sm:pt-12 print:pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 print:gap-4 text-center text-xs print:page-break-inside-avoid print-break-avoid">
               <div className="space-y-1">
+                <RtSignatureImage signature={rtSignature} />
                 <div className="w-52 mx-auto border-t-2 border-[#171A1F]" />
                 <p className="font-bold text-xs sm:text-sm text-[#171A1F]">{cleanAuthor}</p>
                 <p className="text-[#171A1F]/70 text-[10px]">

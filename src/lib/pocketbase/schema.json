@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-09T15:49:31.933Z",
+  "generatedAt": "2026-11-09T17:49:00.370Z",
   "collections": [
     {
       "name": "users",
@@ -37,6 +37,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "signatureData",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

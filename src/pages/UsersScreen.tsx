@@ -25,6 +25,7 @@ import {
 import type { ManagedUser } from '@/services/usersService'
 import { logoutPb, getCurrentPbUser } from '@/services/authService'
 import { EditUserModal } from '@/components/users/EditUserModal'
+import { SignatureDrawPanel } from '@/components/users/SignatureDrawPanel'
 
 export const UsersScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -492,6 +493,15 @@ export const UsersScreen: React.FC = () => {
             </ul>
           )}
         </div>
+        {/* ASSINATURA DO RESPONSÁVEL TÉCNICO — desenhada pelo próprio usuário logado */}
+        {currentUserId && (
+          <div className="lg:col-span-5">
+            <SignatureDrawPanel
+              userId={currentUserId}
+              userName={users.find((u) => u.id === currentUserId)?.name}
+            />
+          </div>
+        )}
       </div>
 
       {editingUser && (

@@ -34,6 +34,7 @@ import {
   TableRow,
   TextRun,
   WidthType,
+  ImageRun,
 } from 'docx'
 import { FullBudget } from '@/types/budgetEngine'
 import { calculateFullBudget } from '@/lib/budgetEngine'
@@ -66,12 +67,46 @@ const TABLE_TOTAL_WIDTH_DXA = 9638
 const IDENT_LABEL_WIDTH_DXA = 2600
 const IDENT_VALUE_WIDTH_DXA = TABLE_TOTAL_WIDTH_DXA - IDENT_LABEL_WIDTH_DXA // 7038
 
+/** Altura da assinatura no DOCX (~14mm ≈ 40pt ≈ 800 half-points... docx usa px: 40px ≈ 30pt). */
+const SIGNATURE_HEIGHT_PX = 40
+
+/**
+ * Converte um data-URL de imagem (PNG) em bytes para embutir no .docx.
+ * Retorna null em formatos não suportados ou strings inválidas.
+ */
+function parseSignatureDataUrl(dataUrl?: string): Uint8Array | null {
+  if (!dataUrl || !dataUrl.startsWith('data:image/')) return null
+  try {
+    const base64 = dataUrl.split(',')[1]
+    if (!base64) return null
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    return bytes
+  } catch {
+    return null
+  }
+}
+
+export interface ProposalDocxOptions {
+  /** Data-URL PNG da assinatura manuscrita do RT (desenhada na tela Usuários). */
+  signatureDataUrl?: string
+}
+
 /**
  * Cria a estrutura de dados Document do pacote `docx` para a Proposta Técnica e Comercial.
  * Função pura e desacoplada do DOM para testes e reutilização.
+ * Quando `options.signatureDataUrl` é informado, a assinatura manuscrita do RT é
+ * inserida acima da linha de assinatura — sem alterar o conteúdo das seções.
  */
-export function buildProposalDocxDocument(budget: FullBudget): Document {
+export function buildProposalDocxDocument(
+  budget: FullBudget,
+  options?: ProposalDocxOptions,
+): Document {
   const summary = calculateFullBudget(budget)
+  const rtSignatureDataUrl = options?.signatureDataUrl
+  // Decodifica a assinatura (data-URL PNG → Uint8Array) uma única vez
+  const signatureBytes = parseSignatureDataUrl(rtSignatureDataUrl)
   const analysis = analyzeBudgetForProposal(budget)
   const sections = buildProposalSections(budget, summary, analysis)
 
@@ -666,6 +701,25 @@ export function buildProposalDocxDocument(budget: FullBudget): Document {
             margins: { top: 1200, bottom: 60, left: 120, right: 120 },
             borders: transparentBorders,
             children: [
+              // Assinatura manuscrita do RT — embutida no .docx quando existir
+              ...(signatureBytes
+                ? [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { before: 0, after: 60 },
+                      children: [
+                        new ImageRun({
+                          data: signatureBytes,
+                          transformation: {
+                            width: SIGNATURE_HEIGHT_PX * 2.2,
+                            height: SIGNATURE_HEIGHT_PX,
+                          },
+                          type: 'png',
+                        }),
+                      ],
+                    }),
+                  ]
+                : []),
               new Paragraph({
                 alignment: AlignmentType.CENTER,
                 children: [
@@ -918,8 +972,11 @@ export function getProposalDocxFilename(budgetCode: string): string {
 /**
  * Compila o arquivo .docx client-side e dispara o download no navegador.
  */
-export async function downloadProposalDocx(budget: FullBudget): Promise<void> {
-  const doc = buildProposalDocxDocument(budget)
+export async function downloadProposalDocx(
+  budget: FullBudget,
+  options?: ProposalDocxOptions,
+): Promise<void> {
+  const doc = buildProposalDocxDocument(budget, options)
   const blob = await Packer.toBlob(doc)
   const filename = getProposalDocxFilename(budget.code)
 

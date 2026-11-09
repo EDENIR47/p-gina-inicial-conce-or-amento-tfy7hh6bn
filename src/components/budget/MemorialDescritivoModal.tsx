@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { FullBudget } from '@/types/budgetEngine'
 import { CONCE_COMPANY } from '@/lib/conceCompany'
+import { useRtSignature, RtSignatureImage } from '@/components/documents/RtSignature'
 import { ConceLogo, ConceWatermark } from '@/components/ConceLogo'
 import {
   MemorialDocumentData,
@@ -64,6 +65,9 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
   // Um savedMemorial gravado em outro código (resquício de duplicação/sincronização) é
   // tratado como inexistente — o memorial é então 100% gerado das etapas do orçamento aberto.
   const ownSavedMemorial = useMemo(() => getOwnSavedMemorial(budget) ?? null, [budget])
+  // Assinatura manuscrita do RT (desenhada na tela Usuários) — se não houver, o
+  // bloco de assinaturas permanece como antes (apenas nome + CREA).
+  const rtSignature = useRtSignature()
   const hasSavedVersion = useMemo(() => {
     return !!(ownSavedMemorial && ownSavedMemorial.stages && ownSavedMemorial.stages.length > 0)
   }, [ownSavedMemorial])
@@ -720,6 +724,7 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
           {/* Assinaturas Formais */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-6 text-center text-xs">
             <div className="space-y-1">
+              <RtSignatureImage signature={rtSignature} />
               <div className="w-56 h-px bg-[#171A1F] mx-auto" />
               <p className="font-bold text-[#171A1F]">{CONCE_COMPANY.responsavelTecnico}</p>
               <p className="text-[10px] text-[#171A1F]/70">{CONCE_COMPANY.registroCrea}</p>

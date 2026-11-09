@@ -60,6 +60,7 @@ import {
 } from '@/lib/proposalEngine'
 import { downloadProposalDocx } from '@/lib/exportProposalDocx'
 import { getOwnPresentationDocument } from '@/lib/presentationGuard'
+import { useRtSignature } from '@/components/documents/RtSignature'
 
 export interface CommercialProposalModalProps {
   budget: FullBudget
@@ -79,6 +80,9 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
 
   const summary = useMemo(() => calculateFullBudget(budget), [budget])
   const analysis = useMemo(() => analyzeBudgetForProposal(budget), [budget])
+  // Assinatura manuscrita do RT (desenhada na tela Usuários) — se não houver,
+  // o bloco de assinaturas permanece exatamente como antes.
+  const rtSignature = useRtSignature()
   const sections = useMemo(
     () => buildProposalSections(budget, summary, analysis),
     [budget, summary, analysis],
@@ -170,7 +174,7 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
     if (isExportingDocx) return
     setIsExportingDocx(true)
     try {
-      await downloadProposalDocx(budget)
+      await downloadProposalDocx(budget, { signatureDataUrl: rtSignature || undefined })
       showToast('Documento Word (.docx) gerado com sucesso!')
     } catch (err) {
       console.error('Erro ao exportar proposta em Word (.docx):', err)
@@ -673,7 +677,19 @@ export const CommercialProposalModal: React.FC<CommercialProposalModalProps> = (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-12 sm:gap-14 print:grid-cols-2 print:gap-8">
                 {/* ASSINATURA CONCE */}
                 <div className="text-center flex flex-col justify-end">
-                  <div className="h-20 sm:h-24 print:h-[22mm]" aria-hidden="true" />
+                  <div
+                    className="h-20 sm:h-24 print:h-[22mm] flex flex-col items-end justify-end"
+                    aria-hidden={rtSignature ? undefined : true}
+                  >
+                    {/* Assinatura manuscrita do RT (desenhada em /usuarios) — canto direito, acima da linha */}
+                    {rtSignature && (
+                      <img
+                        src={rtSignature}
+                        alt="Assinatura do Responsável Técnico"
+                        className="h-12 sm:h-14 print:h-[13mm] w-auto object-contain self-center mr-6 sm:mr-14"
+                      />
+                    )}
+                  </div>
                   <div className="border-t border-[#171A1F] pt-2 mx-auto w-full max-w-[280px]">
                     <p className="font-bold text-[11px] text-[#171A1F]">
                       {CONCE_COMPANY.responsavelTecnico}
