@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
+import LoginScreen from './pages/LoginScreen'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import OnboardingScreen from './pages/OnboardingScreen'
@@ -42,8 +43,11 @@ const App = () => {
         <Toaster />
         <Sonner position="top-center" />
         <Routes>
-          {/* Rota Raiz: Tela de Login */}
+          {/* Rota Raiz: Página de Entrada Institucional CONCE (pública, sempre visível) */}
           <Route path="/" element={<Index />} />
+
+          {/* Rota de Login (pública — fluxo de acesso seguro) */}
+          <Route path="/login" element={<LoginScreen />} />
 
           {/* Rota de Onboarding (protegida pela sessão) */}
           <Route element={<ProtectedRoute />}>
