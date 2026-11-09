@@ -132,11 +132,22 @@ export async function fetchAndMergeSharedCompositions(): Promise<{
   const local = getStoredCompositions() as any[]
   let cloudRecords: CloudComposicaoRecord[] = []
 
+  // Busca TODAS as páginas do cloud (de todos os usuários, sem filtro por dono).
+  // Paginação manual: nunca corta a lista em uma página única.
   try {
-    const records = await pb.collection('composicoes').getFullList({
-      sort: '-updated',
-    })
-    cloudRecords = records as unknown as CloudComposicaoRecord[]
+    const perPage = 200
+    let page = 1
+    let totalPages = 1
+    const all: CloudComposicaoRecord[] = []
+    do {
+      const res = await pb.collection('composicoes').getList(page, perPage, {
+        sort: '-updated',
+      })
+      all.push(...(res.items as unknown as CloudComposicaoRecord[]))
+      totalPages = res.totalPages || 1
+      page++
+    } while (page <= totalPages)
+    cloudRecords = all
   } catch {
     // Sem cloud / sem sessão: mantém a biblioteca local como está
     return { merged: local, cloudOnly: [] }
