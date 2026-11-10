@@ -192,4 +192,40 @@ describe('Navegação e Comportamento de Visão Geral em /orcamentos', () => {
 
     expect(activeBudget).toBeNull()
   })
+
+  it('(e) atualização rápida de status altera o orçamento no storage, preserva etapas/valores e reflete no filtro', () => {
+    saveSingleBudget(dummyBudget)
+    let stored = getStoredFullBudgets()
+    expect(stored[0].status).toBe('em_andamento')
+
+    // Simula ação de troca rápida para 'aprovado'
+    const target = stored[0]
+    const updated: FullBudget = {
+      ...target,
+      status: 'aprovado',
+      updatedAt: new Date().toISOString(),
+    }
+    saveSingleBudget(updated)
+
+    stored = getStoredFullBudgets()
+    expect(stored[0].status).toBe('aprovado')
+    // Preserva integridade de outros campos
+    expect(stored[0].code).toBe(dummyBudget.code)
+    expect(stored[0].chargesConfig.simplesDasRate).toBe(11.0)
+
+    // Filtro por status 'aprovado' localiza o orçamento
+    const statusFilterAprovado: string = 'aprovado'
+    const filteredAprovados = stored.filter(
+      (b) => statusFilterAprovado === 'todos' || b.status === statusFilterAprovado,
+    )
+    expect(filteredAprovados.length).toBe(1)
+    expect(filteredAprovados[0].id).toBe(dummyBudget.id)
+
+    // Filtro por status 'vencido' não retorna o orçamento
+    const statusFilterVencido: string = 'vencido'
+    const filteredVencidos = stored.filter(
+      (b) => statusFilterVencido === 'todos' || b.status === statusFilterVencido,
+    )
+    expect(filteredVencidos.length).toBe(0)
+  })
 })

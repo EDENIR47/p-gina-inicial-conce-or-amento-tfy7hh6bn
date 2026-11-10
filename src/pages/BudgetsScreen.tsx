@@ -32,6 +32,11 @@ import {
 import { useLocation } from 'react-router-dom'
 import { AiBudgetModal } from '@/components/budget/AiBudgetModal'
 import { FullBudget } from '@/types/budgetEngine'
+import { BudgetStatus } from '@/types/conce'
+import {
+  BudgetStatusDropdown,
+  BUDGET_STATUS_CONFIG,
+} from '@/components/budget/BudgetStatusDropdown'
 import {
   getStoredFullBudgets,
   saveFullBudgets,
@@ -375,6 +380,46 @@ export const BudgetsScreen: React.FC = () => {
     }
     setEditingBudgetModal(null)
     showToast(`Orçamento ${updatedBudget.code} atualizado!`)
+  }
+
+  // Atualização rápida de status diretamente na lista (sem abrir modal)
+  const handleQuickStatusChange = (budget: FullBudget, newStatus: BudgetStatus) => {
+    if (budget.status === newStatus) return
+
+    const previousStatus = budget.status || 'em_andamento'
+    const updatedBudget: FullBudget = {
+      ...budget,
+      status: newStatus,
+      updatedAt: new Date().toISOString(),
+    }
+
+    saveSingleBudget(updatedBudget)
+    const all = getStoredFullBudgets()
+    setBudgetsList(all)
+
+    if (activeBudget && activeBudget.id === updatedBudget.id) {
+      setActiveBudget(updatedBudget)
+    }
+
+    // Trilha de auditoria da alteração rápida de status
+    const prevLabel = BUDGET_STATUS_CONFIG[previousStatus as BudgetStatus]?.label || previousStatus
+    const nextLabel = BUDGET_STATUS_CONFIG[newStatus]?.label || newStatus
+
+    logAuditEvent({
+      budgetId: updatedBudget.id,
+      action: 'edicao_geral',
+      title: 'Status do Orçamento Atualizado',
+      details: `Status do orçamento ${updatedBudget.code} alterado de "${prevLabel}" para "${nextLabel}" via controle rápido da lista.`,
+      oldValue: previousStatus,
+      newValue: newStatus,
+      userName: updatedBudget.author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      metadata: {
+        field: 'status',
+        quickAction: true,
+      },
+    })
+
+    showToast(`Status de ${updatedBudget.code} alterado para "${nextLabel}"!`)
   }
 
   // Validação dos dados do formulário
@@ -1361,26 +1406,6 @@ export const BudgetsScreen: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4">
                   {filteredBudgets.map((b) => {
                     const summary = calculateFullBudget(b)
-                    const statusBadges: Record<string, { label: string; class: string }> = {
-                      em_andamento: {
-                        label: 'Em Andamento',
-                        class: 'bg-[#294C87]/15 text-[#294C87]',
-                      },
-                      aprovado: {
-                        label: 'Aprovado',
-                        class: 'bg-[#3E8E5A]/15 text-[#3E8E5A]',
-                      },
-                      em_analise: {
-                        label: 'Em Análise',
-                        class: 'bg-[#171A1F]/15 text-[#171A1F]',
-                      },
-                      vencido: {
-                        label: 'Vencido',
-                        class: 'bg-[#C4453C]/15 text-[#C4453C]',
-                      },
-                    }
-
-                    const badge = statusBadges[b.status] || statusBadges.em_andamento
 
                     return (
                       <div
@@ -1393,11 +1418,14 @@ export const BudgetsScreen: React.FC = () => {
                               <span className="font-mono text-xs font-extrabold px-2.5 py-0.5 rounded bg-[#294C87]/10 text-[#294C87]">
                                 {b.code}
                               </span>
-                              <span
-                                className={`text-[11px] font-bold px-2 py-0.5 rounded ${badge.class}`}
-                              >
-                                {badge.label}
-                              </span>
+                              <BudgetStatusDropdown
+                                currentStatus={(b.status as BudgetStatus) || 'em_andamento'}
+                                budgetCode={b.code}
+                                onChangeStatus={(newStatus) =>
+                                  handleQuickStatusChange(b, newStatus)
+                                }
+                                size="sm"
+                              />
                               <span className="text-xs text-[#171A1F]/60">
                                 UF da Obra:{' '}
                                 <strong className="text-[#171A1F]">
@@ -1660,25 +1688,6 @@ export const BudgetsScreen: React.FC = () => {
                     <tbody className="divide-y divide-[#171A1F]/5">
                       {budgetsList.map((b) => {
                         const summary = calculateFullBudget(b)
-                        const statusBadges: Record<string, { label: string; class: string }> = {
-                          em_andamento: {
-                            label: 'Em Andamento',
-                            class: 'bg-[#294C87]/15 text-[#294C87]',
-                          },
-                          aprovado: {
-                            label: 'Aprovado',
-                            class: 'bg-[#3E8E5A]/15 text-[#3E8E5A]',
-                          },
-                          em_analise: {
-                            label: 'Em Análise',
-                            class: 'bg-[#171A1F]/15 text-[#171A1F]',
-                          },
-                          vencido: {
-                            label: 'Vencido',
-                            class: 'bg-[#C4453C]/15 text-[#C4453C]',
-                          },
-                        }
-                        const badge = statusBadges[b.status] || statusBadges.em_andamento
 
                         return (
                           <tr key={b.id} className="hover:bg-[#294C87]/[0.03] transition-colors">
@@ -1703,11 +1712,14 @@ export const BudgetsScreen: React.FC = () => {
                               {formatCurrencyBRL(summary.finalSalePrice)}
                             </td>
                             <td className="py-3 px-3 text-center">
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badge.class}`}
-                              >
-                                {badge.label}
-                              </span>
+                              <BudgetStatusDropdown
+                                currentStatus={(b.status as BudgetStatus) || 'em_andamento'}
+                                budgetCode={b.code}
+                                onChangeStatus={(newStatus) =>
+                                  handleQuickStatusChange(b, newStatus)
+                                }
+                                size="sm"
+                              />
                             </td>
                             <td className="py-3 px-3 text-center">
                               <div className="flex items-center justify-center gap-1.5">
