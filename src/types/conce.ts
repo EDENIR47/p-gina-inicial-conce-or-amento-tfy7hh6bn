@@ -19,6 +19,8 @@ export interface Budget {
   marginPercent: number
   createdAt: string
   month: string // ex.: "Dez", "Jan", "Fev"
+  cloudUserId?: string
+  cloudUserName?: string
 }
 
 export interface AbcItem {
