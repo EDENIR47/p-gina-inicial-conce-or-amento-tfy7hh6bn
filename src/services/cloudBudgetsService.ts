@@ -330,36 +330,10 @@ export async function saveCloudCompositions(compositions: any[]): Promise<void> 
   if (!currentUserId || !compositions || compositions.length === 0) return
 
   for (const c of compositions) {
-    if (!c.code) continue
+    if (!c || !c.code || !c.description) continue
     try {
-      const payload = {
-        user: currentUserId,
-        code: c.code,
-        description: c.description || '',
-        specialty: c.specialty || '',
-        unit: c.unit || '',
-        source: c.source || '',
-        version: c.version || '',
-        inputs: c.inputs || [],
-        local_id: c.id || c.code,
-      }
-
-      try {
-        // Biblioteca compartilhada: procura por código em QUALQUER dono.
-        // Já existe no cloud (mesmo de outro usuário) → não duplica; só
-        // atualiza se for do próprio usuário (regra de update é só do dono).
-        const existing = await pb.collection('composicoes').getFirstListItem(`code = "${c.code}"`)
-        if (existing) {
-          if (existing.user === currentUserId) {
-            await pb.collection('composicoes').update(existing.id, payload)
-          }
-          continue
-        }
-      } catch {
-        /* não encontrada em nenhum dono: segue para o create */
-      }
-
-      await pb.collection('composicoes').create(payload)
+      const { saveSingleCompositionToCloud } = await import('./cloudCompositionsService')
+      await saveSingleCompositionToCloud(c, currentUserId)
     } catch (e) {
       console.warn('Falha ao salvar composição no PocketBase:', e)
     }

@@ -35,7 +35,9 @@ import { getPbAuthSession, getCurrentPbUser, isPbAuthenticated } from '@/service
 import {
   fetchAndMergeSharedCompositions,
   saveMergedCompositionsCache,
+  pushLocalCompositionsToCloud,
 } from '@/services/cloudCompositionsService'
+import { syncEngine } from '@/services/syncEngine'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
 import { formatCurrencyBRL } from '@/lib/formatters'
@@ -73,14 +75,20 @@ export const CompositionsLibraryPage: React.FC = () => {
   const [isSinapiImportModalOpen, setIsSinapiImportModalOpen] = useState(false)
   const [isSyncSinapiApiModalOpen, setIsSyncSinapiApiModalOpen] = useState(false)
 
-  // Biblioteca COMPARTILHADA: dispara pull compartilhado na montagem e sempre
-  // renderiza do conjunto mesclado (local do usuário + cloud de todos).
+  // Biblioteca COMPARTILHADA: reconcilia e dispara pull compartilhado na montagem.
+  // Reconciliação: se o usuário possui composições locais que ainda não estão
+  // no cloud, sobe-as automaticamente sem duplicar. Em seguida, renderiza do
+  // conjunto mesclado (local do usuário + cloud de todos).
   useEffect(() => {
     let mounted = true
 
-    const runSharedPull = async () => {
+    const runSharedSync = async () => {
       if (!isPbAuthenticated()) return
       try {
+        // 1. Reconciliação de composições locais que ainda não subiram ao cloud
+        await pushLocalCompositionsToCloud().catch(() => {})
+
+        // 2. Puxa do cloud o catálogo completo de todos os colaboradores
         const { merged } = await fetchAndMergeSharedCompositions()
         if (mounted && Array.isArray(merged) && merged.length > 0) {
           saveMergedCompositionsCache(merged)
@@ -91,7 +99,7 @@ export const CompositionsLibraryPage: React.FC = () => {
       }
     }
 
-    runSharedPull()
+    runSharedSync()
 
     const handler = () => {
       if (mounted) {
@@ -179,18 +187,8 @@ export const CompositionsLibraryPage: React.FC = () => {
       )
     }
 
-    // Biblioteca COMPARTILHADA: sobe a composição nova/atualizada para o cloud
-    // (create pela conta logada; update só do dono — regra API 0026).
-    if (isPbAuthenticated()) {
-      import('@/services/cloudCompositionsService')
-        .then(({ pushLocalCompositionsToCloud }) => pushLocalCompositionsToCloud())
-        .then((r) => {
-          if (r.uploaded > 0) {
-            window.dispatchEvent(new CustomEvent('conce_compositions_updated'))
-          }
-        })
-        .catch(() => {})
-    }
+    // Envia/enfileira no cloud (regra de criação com user atual ou update se for dono)
+    syncEngine.enqueueCompositionSave(compWithOwner)
   }
 
   const handleDeleteComposition = (id: string, code: string) => {
@@ -209,18 +207,8 @@ export const CompositionsLibraryPage: React.FC = () => {
       updateCompositionsList(updated)
       showToast(`Composição ${code} excluída.`)
 
-      // Remove do cloud também (a regra API só permite ao dono; a checagem acima
-      // já garantiu que este usuário é o dono)
-      if (isPbAuthenticated() && target && !String(target.id).startsWith('comp-')) {
-        import('@/lib/pocketbase/client')
-          .then(({ default: pb }) =>
-            pb
-              .collection('composicoes')
-              .delete(target.id)
-              .catch(() => {}),
-          )
-          .catch(() => {})
-      }
+      // Enfileira exclusão no cloud
+      syncEngine.enqueueCompositionDelete(id)
     }
   }
 
@@ -248,12 +236,26 @@ export const CompositionsLibraryPage: React.FC = () => {
     const updated = [duplicated, ...compositions]
     updateCompositionsList(updated)
     showToast(`Composição ${comp.code} duplicada com sucesso!`)
+
+    // Enfileira para subir ao cloud imediatamente
+    syncEngine.enqueueCompositionSave(duplicated)
   }
 
   const handleImportSuccess = (importedList: BudgetComposition[]) => {
-    const updated = [...importedList, ...compositions]
+    const session = getPbAuthSession()
+    const myId = getCurrentPbUser()?.id || ''
+    const stampedList = importedList.map((c) => ({
+      ...c,
+      createdByUserId: (c as any).createdByUserId || myId || undefined,
+      createdByUserName:
+        (c as any).createdByUserName || session?.name || session?.user || undefined,
+    }))
+    const updated = [...stampedList, ...compositions]
     updateCompositionsList(updated)
-    showToast(`${importedList.length} composições importadas com sucesso!`)
+    showToast(`${stampedList.length} composições importadas com sucesso!`)
+
+    // Enfileira as importadas para sincronização no cloud
+    stampedList.forEach((c) => syncEngine.enqueueCompositionSave(c))
   }
 
   const handleSinapiTableImportSuccess = (result: {

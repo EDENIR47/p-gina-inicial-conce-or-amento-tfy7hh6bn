@@ -42,9 +42,14 @@ export const CompositionPickerModal: React.FC<CompositionPickerModalProps> = ({
     if (!isOpen) return
 
     let mounted = true
-    const runSharedPull = async () => {
+    const runSharedSync = async () => {
       if (!isPbAuthenticated()) return
       try {
+        // Reconcilia composições locais que ainda não subiram ao cloud
+        import('@/services/cloudCompositionsService')
+          .then(({ pushLocalCompositionsToCloud }) => pushLocalCompositionsToCloud())
+          .catch(() => {})
+
         const { merged } = await fetchAndMergeSharedCompositions()
         if (mounted && Array.isArray(merged) && merged.length > 0) {
           saveMergedCompositionsCache(merged)
@@ -55,7 +60,7 @@ export const CompositionPickerModal: React.FC<CompositionPickerModalProps> = ({
       }
     }
 
-    runSharedPull()
+    runSharedSync()
 
     const handler = () => {
       if (mounted) {

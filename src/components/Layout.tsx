@@ -59,9 +59,14 @@ export default function Layout() {
         syncEngine
           .pullFromCloud()
           .then(() => {
-            // Biblioteca de Composições COMPARTILHADA: puxa do cloud as
-            // composições de todos os colaboradores e atualiza o cache local
-            syncEngine.pullSharedCompositions().catch(() => {})
+            // Biblioteca de Composições COMPARTILHADA: reconcilia locais pendentes
+            // e puxa do cloud as composições de todos os colaboradores
+            import('@/services/cloudCompositionsService')
+              .then(({ pushLocalCompositionsToCloud }) => pushLocalCompositionsToCloud())
+              .catch(() => {})
+              .finally(() => {
+                syncEngine.pullSharedCompositions().catch(() => {})
+              })
           })
           .then(() => {
             // Se após o pull o cloud tiver dados ou o cache foi atualizado, notifica as telas

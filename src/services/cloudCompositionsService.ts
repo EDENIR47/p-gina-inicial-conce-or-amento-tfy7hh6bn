@@ -9,7 +9,12 @@
 
 import pb from '@/lib/pocketbase/client'
 import { CONCE_CANONICAL_COMPOSITIONS } from '@/lib/compositionsData'
-import { getStoredCompositions, saveStoredCompositions } from '@/lib/budgetsStorage'
+import {
+  getStoredCompositions,
+  saveStoredCompositions,
+  isGenericCompositionCode,
+} from '@/lib/budgetsStorage'
+import { getCurrentPbUser } from '@/services/authService'
 import type { BudgetComposition } from '@/types/budgetEngine'
 
 interface CloudComposicaoRecord {
@@ -36,6 +41,15 @@ export interface CreatorInfo {
   id: string
   name: string
 }
+
+export const CANONICAL_BUILTIN_IDS = new Set([
+  'comp-concreto-fck25',
+  'comp-armacao-aco-ca50',
+  'comp-alvenaria-bloco-ceramico',
+  'comp-emboço-interno',
+  'comp-pintura-acrilica',
+  'comp-ponto-eletrico',
+])
 
 const creatorCache = new Map<string, string>()
 
@@ -86,6 +100,7 @@ export function cloudRecordToComposition(
     createdByUserId?: string
     createdByUserName?: string
     updatedAt?: string
+    local_id?: string
   } = {
     id: rec.id,
     code: rec.code || '',
@@ -98,6 +113,7 @@ export function cloudRecordToComposition(
     createdByUserId: rec.user,
     createdByUserName: creatorName,
     updatedAt: rec.updated,
+    local_id: rec.local_id || rec.id,
   }
   return comp
 }
@@ -163,10 +179,18 @@ export async function fetchAndMergeSharedCompositions(): Promise<{
 
   const localByStableKey = new Map<string, any>()
   for (const c of local) {
-    if (c?.code) localByStableKey.set(`code:${String(c.code).trim().toLowerCase()}`, c)
+    if (c?.code && !isGenericCompositionCode(c.code)) {
+      localByStableKey.set(`code:${String(c.code).trim().toLowerCase()}`, c)
+    }
     if (c?.id) localByStableKey.set(`id:${String(c.id)}`, c)
     if ((c as any)?.local_id) {
       localByStableKey.set(`lid:${String((c as any).local_id)}`, c)
+    }
+    if (c?.code && c?.description) {
+      localByStableKey.set(
+        `desc:${String(c.code).trim().toLowerCase()}:${String(c.description).trim().toLowerCase()}`,
+        c,
+      )
     }
   }
 
@@ -174,13 +198,17 @@ export async function fetchAndMergeSharedCompositions(): Promise<{
   const coveredLocal = new Set<any>()
 
   for (const cc of cloudComps) {
-    const keys = [
-      `id:${cc.id}`,
-      `lid:${(cc as any).local_id || ''}`,
-      `code:${String(cc.code || '')
-        .trim()
-        .toLowerCase()}`,
-    ]
+    const isGeneric = isGenericCompositionCode(cc.code)
+    const keys: string[] = [`id:${cc.id}`, `lid:${(cc as any).local_id || ''}`]
+    if (!isGeneric && cc.code) {
+      keys.push(`code:${String(cc.code).trim().toLowerCase()}`)
+    }
+    if (cc.code && cc.description) {
+      keys.push(
+        `desc:${String(cc.code).trim().toLowerCase()}:${String(cc.description).trim().toLowerCase()}`,
+      )
+    }
+
     let localMatch: any = undefined
     for (const k of keys) {
       const found = localByStableKey.get(k)
@@ -239,57 +267,223 @@ export function saveMergedCompositionsCache(merged: any[]) {
  * Envia ao cloud as composições locais reais (não SINAPI) que ainda não existem lá.
  * Idempotente: composição existente (por id/local_id/code) não é recriada.
  */
-export async function pushLocalCompositionsToCloud(onProgress?: (step: string) => void) {
+/**
+ * Localiza de forma segura se uma composição local já existe nos registros do cloud.
+ * Não confunde códigos genéricos (ex.: "CONCE-CPU-"): para códigos genéricos, exige
+ * correspondência exata de descrição ou casamento explícito por id/local_id.
+ */
+export function findMatchingCloudRecord(
+  comp: any,
+  cloudRecords: CloudComposicaoRecord[],
+): CloudComposicaoRecord | undefined {
+  if (!comp) return undefined
+  const compId = comp.id ? String(comp.id) : ''
+  const compLocalId = comp.local_id ? String(comp.local_id) : ''
+  const compCode = comp.code ? String(comp.code).trim().toLowerCase() : ''
+  const compDesc = comp.description ? String(comp.description).trim().toLowerCase() : ''
+  const isGeneric = isGenericCompositionCode(comp.code)
+
+  for (const r of cloudRecords) {
+    const rId = String(r.id)
+    const rLocalId = r.local_id ? String(r.local_id) : ''
+    const rCode = r.code ? String(r.code).trim().toLowerCase() : ''
+    const rDesc = r.description ? String(r.description).trim().toLowerCase() : ''
+
+    // 1. Casamento direto por ID do PocketBase
+    if (compId && (compId === rId || compId === rLocalId)) return r
+    // 2. Casamento direto por local_id
+    if (compLocalId && (compLocalId === rLocalId || compLocalId === rId)) return r
+
+    // 3. Casamento por código
+    if (compCode && rCode && compCode === rCode) {
+      if (!isGeneric) {
+        // Código canônico específico (ex: CONCE-IMP-002, SICRO-2S0110000, CONCE-ALV-001)
+        return r
+      }
+      // Código genérico (ex: CONCE-CPU-): só casa se a descrição for exatamente a mesma
+      if (compDesc && rDesc && compDesc === rDesc) {
+        return r
+      }
+    }
+  }
+
+  return undefined
+}
+
+/**
+ * Salva ou atualiza uma única composição no PocketBase.
+ * Usada pelo syncEngine ao processar tarefas individuais da fila.
+ */
+export async function saveSingleCompositionToCloud(
+  comp: BudgetComposition,
+  ownerId?: string,
+): Promise<{ success: boolean; cloudId?: string; isNew?: boolean }> {
+  const currentUserId = ownerId || pb.authStore.record?.id || getCurrentPbUser()?.id || ''
+  if (!currentUserId || !comp || !comp.code) {
+    return { success: false }
+  }
+
+  const payload = compositionToCloudPayload(comp, currentUserId)
+
+  // 1. Se já tem ID do PocketBase direto
+  if (comp.id && !comp.id.startsWith('comp-')) {
+    try {
+      const rec = await pb.collection('composicoes').getOne(comp.id)
+      if (rec && rec.user === currentUserId) {
+        await pb.collection('composicoes').update(comp.id, payload)
+        return { success: true, cloudId: comp.id, isNew: false }
+      }
+    } catch {
+      /* rec não encontrado por ID direto: segue para busca geral */
+    }
+  }
+
+  // 2. Busca lista para encontrar correspondência
+  let cloudRecords: CloudComposicaoRecord[] = []
+  try {
+    cloudRecords = (await pb.collection('composicoes').getFullList({
+      fields: 'id,code,local_id,user,description,updated',
+    })) as unknown as CloudComposicaoRecord[]
+  } catch {
+    return { success: false }
+  }
+
+  const match = findMatchingCloudRecord(comp, cloudRecords)
+  if (match) {
+    if (match.user === currentUserId) {
+      await pb.collection('composicoes').update(match.id, payload)
+      return { success: true, cloudId: match.id, isNew: false }
+    }
+    // Pertence a outro usuário: regra API impede sobrescrita
+    return { success: false }
+  }
+
+  // 3. Não existe no cloud: cria novo registro
+  const created = await pb.collection('composicoes').create(payload)
+  return { success: true, cloudId: created.id, isNew: true }
+}
+
+/**
+ * Remove uma única composição do PocketBase, respeitando a regra de dono.
+ */
+export async function deleteSingleCompositionFromCloud(
+  compId: string,
+  ownerId?: string,
+): Promise<boolean> {
+  const currentUserId = ownerId || pb.authStore.record?.id || getCurrentPbUser()?.id || ''
+  if (!currentUserId || !compId) return false
+
+  // Se compId já é o ID do PocketBase
+  if (!compId.startsWith('comp-')) {
+    try {
+      const rec = await pb.collection('composicoes').getOne(compId)
+      if (rec && rec.user === currentUserId) {
+        await pb.collection('composicoes').delete(compId)
+        return true
+      }
+    } catch {
+      /* segue para busca por local_id */
+    }
+  }
+
+  try {
+    const list = await pb.collection('composicoes').getList(1, 10, {
+      filter: `local_id = "${compId}" && user = "${currentUserId}"`,
+    })
+    if (list.items.length > 0) {
+      await pb.collection('composicoes').delete(list.items[0].id)
+      return true
+    }
+  } catch {
+    /* falha silenciosa */
+  }
+
+  return false
+}
+
+/**
+ * Envia ao cloud as composições locais reais que ainda não existem lá ou que
+ * foram editadas localmente pelo usuário logado.
+ * Idempotente: não duplica registros existentes (inclusive os 4 canônicos já no cloud).
+ */
+export async function pushLocalCompositionsToCloud(onProgress?: (step: string) => void): Promise<{
+  uploaded: number
+  updated: number
+}> {
   const local = (getStoredCompositions() as any[]) || []
-  const ownerId = pb.authStore.record?.id || ''
-  if (!ownerId) return { uploaded: 0 }
+  const ownerId = pb.authStore.record?.id || getCurrentPbUser()?.id || ''
+  if (!ownerId) return { uploaded: 0, updated: 0 }
 
   // Restrição estrita de dono: envia APENAS composições pertencentes ao usuário logado
   // (ou criadas localmente por ele sem dono marcado). NUNCA recriar/reenviar composições
   // cujo dono seja outro usuário (createdByUserId !== ownerId).
+  // Também não sobe os 6 templates estáticos SINAPI intocados.
   const candidates = local.filter((c) => {
-    if (!c || c.source === 'SINAPI' || !c.code) return false
+    if (!c || !c.code || !c.description) return false
     const creatorId = (c as any).createdByUserId
     if (creatorId && creatorId !== ownerId) return false
+    if (!creatorId && CANONICAL_BUILTIN_IDS.has(c.id)) return false
     return true
   })
-  if (candidates.length === 0) return { uploaded: 0 }
+  if (candidates.length === 0) return { uploaded: 0, updated: 0 }
 
   let cloudRecords: CloudComposicaoRecord[] = []
   try {
     cloudRecords = (await pb.collection('composicoes').getFullList({
-      fields: 'id,code,local_id,user',
+      fields: 'id,code,local_id,user,description,updated',
     })) as unknown as CloudComposicaoRecord[]
   } catch {
-    return { uploaded: 0 }
-  }
-
-  const cloudKeys = new Set<string>()
-  for (const r of cloudRecords) {
-    if (r.code) cloudKeys.add(`code:${String(r.code).trim().toLowerCase()}`)
-    if (r.local_id) cloudKeys.add(`lid:${String(r.local_id)}`)
-    cloudKeys.add(`id:${r.id}`)
+    return { uploaded: 0, updated: 0 }
   }
 
   let uploaded = 0
+  let updated = 0
+  let cacheModified = false
+
   for (const comp of candidates) {
-    const keys = [
-      `id:${comp.id}`,
-      `lid:${String(comp.local_id || '')}`,
-      `code:${String(comp.code || '')
-        .trim()
-        .toLowerCase()}`,
-    ]
-    if (keys.some((k) => cloudKeys.has(k))) continue
+    const match = findMatchingCloudRecord(comp, cloudRecords)
+
+    if (match) {
+      // Se existe e pertence a este usuário, atualiza se necessário
+      if (match.user === ownerId) {
+        const localUpdated = Date.parse((comp as any).updatedAt || '') || 0
+        const cloudUpdated = Date.parse(match.updated || '') || 0
+        if (comp.id !== match.id || localUpdated > cloudUpdated) {
+          try {
+            await pb
+              .collection('composicoes')
+              .update(match.id, compositionToCloudPayload(comp, ownerId))
+            updated++
+            if (comp.id !== match.id) {
+              comp.id = match.id
+              ;(comp as any).local_id = match.local_id || comp.local_id
+              cacheModified = true
+            }
+          } catch {
+            /* segue */
+          }
+        }
+      }
+      continue
+    }
 
     onProgress?.(`Enviando composição ${comp.code}...`)
     try {
-      await pb.collection('composicoes').create(compositionToCloudPayload(comp, ownerId))
+      const payload = compositionToCloudPayload(comp, ownerId)
+      const created = await pb.collection('composicoes').create(payload)
       uploaded++
+      comp.id = created.id
+      ;(comp as any).local_id = created.local_id || payload.local_id
+      ;(comp as any).createdByUserId = ownerId
+      cacheModified = true
     } catch {
       /* composição individual falhou: segue com as demais */
     }
   }
 
-  return { uploaded }
+  if (cacheModified) {
+    saveMergedCompositionsCache(local)
+  }
+
+  return { uploaded, updated }
 }

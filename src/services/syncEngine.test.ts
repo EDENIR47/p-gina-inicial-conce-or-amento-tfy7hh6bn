@@ -137,4 +137,39 @@ describe('Camada de Sincronização Cloud (PocketBase)', () => {
       queue.some((t: any) => t.type === 'upsert_budget' && t.budget?.id === sampleBudget.id),
     ).toBe(false)
   })
+
+  it('gerencia fila de mutações para composições com enqueue de upsert e delete', () => {
+    const sampleComp = {
+      id: 'comp-test-custom-001',
+      code: 'CONCE-CPU-99',
+      description: 'Pintura Epóxi de Alta Resistência',
+      specialty: 'Acabamentos',
+      unit: 'm²',
+      source: 'CONCE' as const,
+      version: 'v1.0',
+      inputs: [],
+    }
+
+    syncEngine.enqueueCompositionSave(sampleComp)
+    const queueRaw = localStorage.getItem('conce_sync_queue')
+    expect(queueRaw).toBeTruthy()
+    const queue = JSON.parse(queueRaw!)
+    expect(
+      queue.some(
+        (t: any) => t.type === 'upsert_composition' && t.composition?.id === sampleComp.id,
+      ),
+    ).toBe(true)
+
+    syncEngine.enqueueCompositionDelete(sampleComp.id)
+    const queueRaw2 = localStorage.getItem('conce_sync_queue')
+    const queue2 = JSON.parse(queueRaw2!)
+    expect(
+      queue2.some((t: any) => t.type === 'delete_composition' && t.compositionId === sampleComp.id),
+    ).toBe(true)
+    expect(
+      queue2.some(
+        (t: any) => t.type === 'upsert_composition' && t.composition?.id === sampleComp.id,
+      ),
+    ).toBe(false)
+  })
 })

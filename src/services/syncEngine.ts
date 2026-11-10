@@ -27,7 +27,10 @@ import {
   fetchAndMergeSharedCompositions,
   saveMergedCompositionsCache,
   pushLocalCompositionsToCloud,
+  saveSingleCompositionToCloud,
+  deleteSingleCompositionFromCloud,
 } from '@/services/cloudCompositionsService'
+import type { BudgetComposition } from '@/types/budgetEngine'
 import {
   getLastSyncError,
   reportSessionExpired,
@@ -39,9 +42,16 @@ export type SyncState = 'idle' | 'syncing' | 'pending' | 'offline' | 'error'
 
 export interface SyncTask {
   id: string
-  type: 'upsert_budget' | 'delete_budget' | 'upload_photo'
+  type:
+    | 'upsert_budget'
+    | 'delete_budget'
+    | 'upload_photo'
+    | 'upsert_composition'
+    | 'delete_composition'
   budgetId?: string
   budget?: FullBudget
+  compositionId?: string
+  composition?: BudgetComposition
   stageId?: string
   photoDataUrl?: string
   retries: number
@@ -147,6 +157,65 @@ class SyncEngine {
       reportSessionExpired('gravar orçamento (token rejeitado)')
       return false
     }
+  }
+
+  /**
+   * Enfileira uma gravação de composição unitária (upsert)
+   */
+  public enqueueCompositionSave(composition: BudgetComposition) {
+    if (!composition) return
+    const compId = composition.id
+    const compCode = composition.code
+
+    // Remove tarefas anteriores pendentes para a mesma composição
+    this.queue = this.queue.filter(
+      (t) =>
+        !(
+          t.type === 'upsert_composition' &&
+          (t.composition?.id === compId ||
+            (compCode &&
+              t.composition?.code?.trim().toLowerCase() === compCode.trim().toLowerCase()))
+        ),
+    )
+
+    this.queue.push({
+      id: `task-comp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      type: 'upsert_composition',
+      composition,
+      retries: 0,
+      addedAt: Date.now(),
+    })
+
+    this.saveQueue()
+    this.processQueue()
+  }
+
+  /**
+   * Enfileira a exclusão de uma composição unitária
+   */
+  public enqueueCompositionDelete(compositionId: string) {
+    if (!compositionId) return
+
+    // Remove upserts pendentes dessa composição
+    this.queue = this.queue.filter(
+      (t) =>
+        !(
+          t.type === 'upsert_composition' &&
+          (t.composition?.id === compositionId ||
+            (t.composition as any)?.local_id === compositionId)
+        ),
+    )
+
+    this.queue.push({
+      id: `task-del-comp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      type: 'delete_composition',
+      compositionId,
+      retries: 0,
+      addedAt: Date.now(),
+    })
+
+    this.saveQueue()
+    this.processQueue()
   }
 
   /**
@@ -268,6 +337,10 @@ class SyncEngine {
             await saveCloudOrcamento(budgetToSend)
           } else if (task.type === 'delete_budget' && task.budgetId) {
             await deleteCloudOrcamento(task.budgetId)
+          } else if (task.type === 'upsert_composition' && task.composition) {
+            await saveSingleCompositionToCloud(task.composition)
+          } else if (task.type === 'delete_composition' && task.compositionId) {
+            await deleteSingleCompositionFromCloud(task.compositionId)
           }
 
           // Tarefa concluída com sucesso
