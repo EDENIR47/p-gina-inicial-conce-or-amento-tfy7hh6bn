@@ -78,6 +78,11 @@ import type { ResidueCleanupSummary } from '@/lib/residueDetector'
 
 export const BudgetsScreen: React.FC = () => {
   const location = useLocation()
+  // Lista de todos os orçamentos persistidos
+  const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
+  const currentUserId = getCurrentPbUser()?.id
+  const [creatorsMap, setCreatorsMap] = useState<Map<string, string>>(new Map())
+
   // Limpeza de dados de teste e PULL do cloud na inicialização
   useEffect(() => {
     purgeTestBudgetsFromStorage()
@@ -126,11 +131,6 @@ export const BudgetsScreen: React.FC = () => {
       window.removeEventListener('conce_budget_updated', handleBudgetsUpdated)
     }
   }, [])
-
-  // Lista de todos os orçamentos persistidos
-  const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
-  const currentUserId = getCurrentPbUser()?.id
-  const [creatorsMap, setCreatorsMap] = useState<Map<string, string>>(new Map())
 
   // Orçamento atualmente em edição:
   // Na montagem do BudgetsScreen, o estado activeBudget deve iniciar SEMPRE null — a tela abre na Visão Geral (lista de orçamentos),
@@ -1857,15 +1857,19 @@ export const BudgetsScreen: React.FC = () => {
                                   <Layers className="w-4 h-4 text-[#294C87]" />
                                 </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => setDeletingBudgetModal(b)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-xs transition-colors cursor-pointer"
-                                  title="Excluir este orçamento definitivamente"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  <span>Excluir</span>
-                                </button>
+                                {(!b.cloudUserId ||
+                                  !currentUserId ||
+                                  b.cloudUserId === currentUserId) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeletingBudgetModal(b)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                                    title="Excluir este orçamento definitivamente"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Excluir</span>
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
