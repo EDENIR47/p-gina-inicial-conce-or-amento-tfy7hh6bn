@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T20:23:08.952Z",
+  "generatedAt": "2026-11-10T20:51:53.286Z",
   "collections": [
     {
       "name": "users",
@@ -435,6 +435,70 @@
       "indexes": [
         "CREATE INDEX idx_composicoes_user ON composicoes (user)",
         "CREATE INDEX idx_composicoes_code ON composicoes (code)"
+      ]
+    },
+    {
+      "name": "budget_edit_presence",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && user = @request.auth.id",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "budget_local_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "budget_code",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_heartbeat",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_bep_budget_local ON budget_edit_presence (budget_local_id)",
+        "CREATE INDEX idx_bep_budget_code ON budget_edit_presence (budget_code)",
+        "CREATE INDEX idx_bep_user ON budget_edit_presence (user)"
       ]
     }
   ]

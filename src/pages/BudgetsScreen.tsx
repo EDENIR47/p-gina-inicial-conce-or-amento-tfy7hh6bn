@@ -48,6 +48,13 @@ import {
 } from '@/lib/budgetsStorage'
 import { getCurrentPbUser } from '@/services/authService'
 import { fetchCreatorsInfo } from '@/services/cloudCompositionsService'
+import {
+  startEditPresence,
+  stopEditPresence,
+  getEditorsForBudget,
+} from '@/services/editPresenceService'
+import { useEditPresencePolling } from '@/hooks/useEditPresencePolling'
+import { EditPresenceBadge } from '@/components/budget/EditPresenceBadge'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
 import { calculateFullBudget, calculateTcuBdi } from '@/lib/budgetEngine'
 import { formatCurrencyBRL, formatBudgetDeadline } from '@/lib/formatters'
@@ -82,6 +89,9 @@ export const BudgetsScreen: React.FC = () => {
   const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
   const currentUserId = getCurrentPbUser()?.id
   const [creatorsMap, setCreatorsMap] = useState<Map<string, string>>(new Map())
+
+  // PRESENÇA DE EDIÇÃO: polling do cloud de "quem está editando agora" (~30s, TTL 60s)
+  const { presencesByBudget, refreshPresences } = useEditPresencePolling()
 
   // Limpeza de dados de teste e PULL do cloud na inicialização
   useEffect(() => {
@@ -208,6 +218,19 @@ export const BudgetsScreen: React.FC = () => {
     }
     setActiveBudget(null)
   }, [location.key, location.state])
+
+  // PRESENÇA DE EDIÇÃO do orçamento aberto: heartbeat a cada ~20s enquanto a pessoa está editando.
+  // Ao sair do editor (voltar à lista / desmontagem), a presença é encerrada e o aviso some para os outros.
+  useEffect(() => {
+    if (!activeBudget?.id) {
+      void stopEditPresence()
+      return
+    }
+    void startEditPresence(activeBudget.id, activeBudget.code || '')
+    return () => {
+      void stopEditPresence()
+    }
+  }, [activeBudget?.id])
 
   // Aba ativa dentro do editor do orçamento: 'geral' | 'arvore' | 'encargos' | 'bdi' | 'abc'
   const [editorTab, setEditorTab] = useState<'geral' | 'arvore' | 'encargos' | 'bdi' | 'abc'>(
@@ -960,6 +983,12 @@ export const BudgetsScreen: React.FC = () => {
             </div>
           </div>
 
+          {/* AVISO DE PRESENÇA: outra pessoa está editando este orçamento agora (apenas aviso, não bloqueia) */}
+          <EditPresenceBadge
+            editors={getEditorsForBudget(presencesByBudget, activeBudget.id, activeBudget.code)}
+            variant="banner"
+          />
+
           {/* BARRA DE TOTAIS FIXA NO TOPO DO CONTEÚDO */}
           <BudgetTotalsBar
             summary={activeSummary}
@@ -1503,6 +1532,9 @@ export const BudgetsScreen: React.FC = () => {
                                     'Colaborador CONCE'}
                                 </span>
                               )}
+                              <EditPresenceBadge
+                                editors={getEditorsForBudget(presencesByBudget, b.id, b.code)}
+                              />
                               <span className="text-xs text-[#171A1F]/60">
                                 UF da Obra:{' '}
                                 <strong className="text-[#171A1F]">
@@ -1763,6 +1795,7 @@ export const BudgetsScreen: React.FC = () => {
                         <th className="py-3 px-3 text-center">Criação</th>
                         <th className="py-3 px-3 text-right">Valor Total</th>
                         <th className="py-3 px-3 text-center">Status</th>
+                        <th className="py-3 px-3 text-center">Em Edição</th>
                         <th className="py-3 px-3 text-center">Ações</th>
                       </tr>
                     </thead>
@@ -1801,6 +1834,16 @@ export const BudgetsScreen: React.FC = () => {
                                 }
                                 size="sm"
                               />
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              {getEditorsForBudget(presencesByBudget, b.id, b.code).length > 0 ? (
+                                <EditPresenceBadge
+                                  editors={getEditorsForBudget(presencesByBudget, b.id, b.code)}
+                                  variant="table"
+                                />
+                              ) : (
+                                <span className="text-[#171A1F]/25 text-[11px]">—</span>
+                              )}
                             </td>
                             <td className="py-3 px-3 text-center">
                               <div className="flex items-center justify-center gap-1.5">
