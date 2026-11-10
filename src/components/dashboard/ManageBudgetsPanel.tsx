@@ -21,6 +21,7 @@ import { BudgetStatus } from '@/types/conce'
 import { formatCurrencyBRL, formatPercent } from '@/lib/formatters'
 import { calculateFullBudget } from '@/lib/budgetEngine'
 import { useNavigate } from 'react-router-dom'
+import { getCurrentPbUser } from '@/services/authService'
 
 interface ManageBudgetsPanelProps {
   budgets: FullBudget[]
@@ -68,6 +69,8 @@ export const ManageBudgetsPanel: React.FC<ManageBudgetsPanelProps> = ({
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('todos')
+
+  const currentUserId = getCurrentPbUser()?.id
 
   const filtered = budgets.filter((b) => {
     const term = searchTerm.toLowerCase()
@@ -247,15 +250,17 @@ export const ManageBudgetsPanel: React.FC<ManageBudgetsPanelProps> = ({
                           <ArrowUpRight className="w-4 h-4 text-[#294C87]" />
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => onDelete(b)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-xs transition-colors cursor-pointer"
-                          title="Excluir este orçamento definitivamente"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Excluir</span>
-                        </button>
+                        {(!b.cloudUserId || !currentUserId || b.cloudUserId === currentUserId) && (
+                          <button
+                            type="button"
+                            onClick={() => onDelete(b)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                            title="Excluir este orçamento definitivamente"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Excluir</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

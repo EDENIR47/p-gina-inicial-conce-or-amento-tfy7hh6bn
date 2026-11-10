@@ -41,10 +41,13 @@ import {
   getStoredFullBudgets,
   saveFullBudgets,
   saveSingleBudget,
+  deleteSingleBudget,
   createCanonicalDemoBudget,
   purgeTestBudgetsFromStorage,
   STORAGE_KEYS_BUDGETS,
 } from '@/lib/budgetsStorage'
+import { getCurrentPbUser } from '@/services/authService'
+import { fetchCreatorsInfo } from '@/services/cloudCompositionsService'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
 import { calculateFullBudget, calculateTcuBdi } from '@/lib/budgetEngine'
 import { formatCurrencyBRL, formatBudgetDeadline } from '@/lib/formatters'
@@ -75,11 +78,36 @@ import type { ResidueCleanupSummary } from '@/lib/residueDetector'
 
 export const BudgetsScreen: React.FC = () => {
   const location = useLocation()
-  // Limpeza de dados de teste na inicialização
+  // Limpeza de dados de teste e PULL do cloud na inicialização
   useEffect(() => {
     purgeTestBudgetsFromStorage()
     purgeTestIntelligenceData()
+
+    // PULL de todos os orçamentos do cloud no mount
+    syncEngine
+      .pullFromCloud()
+      .then(() => {
+        const fresh = getStoredFullBudgets()
+        setBudgetsList(fresh)
+      })
+      .catch((err) => {
+        console.warn('Falha no pullFromCloud em BudgetsScreen:', err)
+      })
   }, [])
+
+  // Carrega nomes dos criadores dos orçamentos
+  useEffect(() => {
+    const creatorIds = Array.from(
+      new Set(budgetsList.map((b) => b.cloudUserId).filter((id): id is string => Boolean(id))),
+    )
+    if (creatorIds.length > 0) {
+      fetchCreatorsInfo(creatorIds)
+        .then((map) => {
+          setCreatorsMap(new Map(map))
+        })
+        .catch(() => {})
+    }
+  }, [budgetsList])
 
   // Listener para atualização automática caso uma composição da biblioteca seja editada
   useEffect(() => {
@@ -101,6 +129,8 @@ export const BudgetsScreen: React.FC = () => {
 
   // Lista de todos os orçamentos persistidos
   const [budgetsList, setBudgetsList] = useState<FullBudget[]>(() => getStoredFullBudgets())
+  const currentUserId = getCurrentPbUser()?.id
+  const [creatorsMap, setCreatorsMap] = useState<Map<string, string>>(new Map())
 
   // Orçamento atualmente em edição:
   // Na montagem do BudgetsScreen, o estado activeBudget deve iniciar SEMPRE null — a tela abre na Visão Geral (lista de orçamentos),
@@ -364,9 +394,24 @@ export const BudgetsScreen: React.FC = () => {
   const handleConfirmDelete = () => {
     if (!deletingBudgetModal) return
     const code = deletingBudgetModal.code
-    const updated = budgetsList.filter((b) => b.id !== deletingBudgetModal.id)
+    const targetId = deletingBudgetModal.id
+
+    // Restrição de segurança: só o dono pode excluir
+    if (
+      deletingBudgetModal.cloudUserId &&
+      currentUserId &&
+      deletingBudgetModal.cloudUserId !== currentUserId
+    ) {
+      showToast('Apenas o criador deste orçamento pode excluí-lo.')
+      setDeletingBudgetModal(null)
+      return
+    }
+
+    const updated = deleteSingleBudget(targetId)
     setBudgetsList(updated)
-    saveFullBudgets(updated)
+    if (activeBudget && activeBudget.id === targetId) {
+      setActiveBudget(null)
+    }
     setDeletingBudgetModal(null)
     showToast(`Orçamento ${code} excluído com sucesso!`)
   }
@@ -1426,6 +1471,15 @@ export const BudgetsScreen: React.FC = () => {
                                 }
                                 size="sm"
                               />
+                              {b.cloudUserId && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#171A1F]/5 text-[#171A1F]/70 border border-[#171A1F]/10">
+                                  Criado por:{' '}
+                                  {creatorsMap.get(b.cloudUserId) ||
+                                    b.cloudUserName ||
+                                    b.author ||
+                                    'Colaborador CONCE'}
+                                </span>
+                              )}
                               <span className="text-xs text-[#171A1F]/60">
                                 UF da Obra:{' '}
                                 <strong className="text-[#171A1F]">
@@ -1605,14 +1659,18 @@ export const BudgetsScreen: React.FC = () => {
                                 <span>Abrir Núcleo</span>
                               </button>
 
-                              <button
-                                type="button"
-                                onClick={() => setDeletingBudgetModal(b)}
-                                className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
-                                title="Excluir Orçamento"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {(!b.cloudUserId ||
+                                !currentUserId ||
+                                b.cloudUserId === currentUserId) && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingBudgetModal(b)}
+                                  className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
+                                  title="Excluir Orçamento"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>

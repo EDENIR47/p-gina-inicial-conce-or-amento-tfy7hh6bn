@@ -129,7 +129,27 @@ export async function fetchCloudOrcamentos(): Promise<FullBudget[]> {
       sort: '-updated',
     })
 
-    return records.map(cloudOrcamentoToFullBudget)
+    const creatorIds = Array.from(
+      new Set(records.map((r: any) => r.user).filter((u: any): u is string => Boolean(u))),
+    )
+
+    let creatorNamesMap = new Map<string, string>()
+    if (creatorIds.length > 0) {
+      try {
+        const { fetchCreatorsInfo } = await import('@/services/cloudCompositionsService')
+        creatorNamesMap = await fetchCreatorsInfo(creatorIds)
+      } catch {
+        /* fallback silencioso */
+      }
+    }
+
+    return records.map((rec) => {
+      const budget = cloudOrcamentoToFullBudget(rec)
+      if (budget.cloudUserId && creatorNamesMap.has(budget.cloudUserId)) {
+        budget.cloudUserName = creatorNamesMap.get(budget.cloudUserId)
+      }
+      return budget
+    })
   } catch (err) {
     console.warn('Falha ao buscar orçamentos do PocketBase:', err)
     return []

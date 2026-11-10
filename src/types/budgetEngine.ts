@@ -272,6 +272,9 @@ export interface FullBudget {
   createdAt: string
   updatedAt: string
   author: string
+  cloudUserId?: string
+  cloudUserName?: string
+  cloudRecordId?: string
 }
 
 export interface CalculationSummary {

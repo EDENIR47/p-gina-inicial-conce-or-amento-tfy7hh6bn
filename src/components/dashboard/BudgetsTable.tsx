@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Budget, BudgetStatus } from '@/types/conce'
 import { formatCurrencyBRL, formatPercent } from '@/lib/formatters'
+import { getCurrentPbUser } from '@/services/authService'
 
 interface BudgetsTableProps {
   budgets: Budget[]
@@ -53,6 +54,8 @@ export const BudgetsTable: React.FC<BudgetsTableProps> = ({ budgets, onEdit, onD
   const [statusFilter, setStatusFilter] = useState<string>('todos')
   const [page, setPage] = useState(1)
   const pageSize = 8
+
+  const currentUserId = getCurrentPbUser()?.id
 
   // Filtragem combinada
   const filtered = budgets.filter((b) => {
@@ -184,16 +187,19 @@ export const BudgetsTable: React.FC<BudgetsTableProps> = ({ budgets, onEdit, onD
                               Editar
                             </button>
                           )}
-                          {onDelete && (
-                            <button
-                              type="button"
-                              onClick={() => onDelete(b.id)}
-                              className="px-2.5 py-1 rounded-md bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-[11px] transition-colors cursor-pointer"
-                              title="Excluir este orçamento"
-                            >
-                              Excluir
-                            </button>
-                          )}
+                          {onDelete &&
+                            (!b.cloudUserId ||
+                              !currentUserId ||
+                              b.cloudUserId === currentUserId) && (
+                              <button
+                                type="button"
+                                onClick={() => onDelete(b.id)}
+                                className="px-2.5 py-1 rounded-md bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-[11px] transition-colors cursor-pointer"
+                                title="Excluir este orçamento"
+                              >
+                                Excluir
+                              </button>
+                            )}
                         </div>
                       </td>
                     )}

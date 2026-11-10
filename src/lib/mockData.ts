@@ -425,6 +425,8 @@ export function computeDashboardFromRealBudgets(budgets: FullBudget[]): ConceDem
       marginPercent: margin,
       createdAt: b.createdAt || new Date().toISOString().split('T')[0],
       month: budgetMonth,
+      cloudUserId: b.cloudUserId,
+      cloudUserName: b.cloudUserName,
     }
   })
 
