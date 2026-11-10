@@ -126,9 +126,32 @@ export const BudgetsScreen: React.FC = () => {
       })
     }
 
+    const handleConflictNewerCloud = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      const code = detail?.code || 'este orçamento'
+      showToast(
+        `Uma versão mais recente de ${code} já está salva no cloud por outro usuário. A versão mais nova foi mantida!`,
+      )
+      // Dispara pull para carregar a versão mais recente
+      syncEngine
+        .pullFromCloud()
+        .then(() => {
+          const fresh = getStoredFullBudgets()
+          setBudgetsList(fresh)
+          setActiveBudget((prev) => {
+            if (!prev) return prev
+            const found = fresh.find((b) => b.id === prev.id || (prev.code && b.code === prev.code))
+            return found || prev
+          })
+        })
+        .catch(() => {})
+    }
+
     window.addEventListener('conce_budget_updated', handleBudgetsUpdated)
+    window.addEventListener('conce_budget_conflict_newer_cloud', handleConflictNewerCloud)
     return () => {
       window.removeEventListener('conce_budget_updated', handleBudgetsUpdated)
+      window.removeEventListener('conce_budget_conflict_newer_cloud', handleConflictNewerCloud)
     }
   }, [])
 

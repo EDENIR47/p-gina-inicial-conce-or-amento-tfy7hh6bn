@@ -87,7 +87,15 @@ export function cloudOrcamentoToFullBudget(record: any): FullBudget {
     chargesConfig: record.charges_config || payload.chargesConfig,
     stages: payload.stages || [],
     createdAt: payload.createdAt || record.created?.split('T')[0],
-    updatedAt: record.updated || payload.updatedAt || new Date().toISOString(),
+    // REGRA: updatedAt reflete a data real mais recente entre o registro da coleção e o payload
+    updatedAt: (() => {
+      const recMs = record.updated ? Date.parse(record.updated) : 0
+      const payMs = payload.updatedAt ? Date.parse(payload.updatedAt) : 0
+      if (recMs > 0 && payMs > 0) {
+        return recMs >= payMs ? record.updated : payload.updatedAt
+      }
+      return record.updated || payload.updatedAt || new Date().toISOString()
+    })(),
     // Metadados de nuvem para controle de autoria / permissão de exclusão
     cloudRecordId: record.id,
     cloudUserId: record.user || payload.cloudUserId,
@@ -240,6 +248,42 @@ export async function saveCloudOrcamento(budget: FullBudget): Promise<string | n
     }
 
     if (existing) {
+      // REGRA: "A versão mais recente sempre vence e fica salva no cloud".
+      // Se o registro existente no cloud tiver 'updated' ou 'payload.updatedAt' mais recente
+      // que a cópia que está sendo enviada, o envio de uma versão mais antiga NÃO deve
+      // sobrescrever o cloud.
+      const parseTime = (val: any): number => {
+        if (!val) return 0
+        const ms = Date.parse(val)
+        return Number.isFinite(ms) ? ms : 0
+      }
+
+      const cloudUpdatedMs = Math.max(
+        parseTime(existing.updated),
+        parseTime(existing.payload?.updatedAt),
+      )
+      const localUpdatedMs = parseTime(budget.updatedAt)
+
+      // Margem de segurança de 1000ms para evitar falsos positivos de relógio
+      if (cloudUpdatedMs > 0 && localUpdatedMs > 0 && cloudUpdatedMs > localUpdatedMs + 1000) {
+        console.warn(
+          `[saveCloudOrcamento] Versão do cloud para ${budget.code || budget.id} é mais recente (${new Date(cloudUpdatedMs).toISOString()}) que a local (${new Date(localUpdatedMs).toISOString()}). Gravação ignorada para preservar a edição mais nova.`,
+        )
+        // Dispara evento para a UI atualizar o cache e avisar que uma versão mais recente já está no cloud
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('conce_budget_conflict_newer_cloud', {
+              detail: {
+                budgetId: budget.id,
+                code: budget.code,
+                cloudUpdated: existing.updated,
+              },
+            }),
+          )
+        }
+        return existing.id
+      }
+
       // Preserva o criador original do registro
       const originalUserId = existing.user || currentUserId
       const updateData = fullBudgetToCloudPayload(

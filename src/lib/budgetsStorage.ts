@@ -1229,17 +1229,46 @@ export function saveSingleBudget(budget: FullBudget): void {
             }
 
             if (existingRecord) {
+              // REGRA: A versão mais recente sempre vence. Se o cloud for mais novo, não sobrescreve.
+              const parseTime = (val: any): number => {
+                if (!val) return 0
+                const ms = Date.parse(val)
+                return Number.isFinite(ms) ? ms : 0
+              }
+              const cloudUpdatedMs = Math.max(
+                parseTime(existingRecord.updated),
+                parseTime(existingRecord.payload?.updatedAt),
+              )
+              const localUpdatedMs = parseTime(sanitizedBudget.updatedAt)
+
+              if (
+                cloudUpdatedMs > 0 &&
+                localUpdatedMs > 0 &&
+                cloudUpdatedMs > localUpdatedMs + 1000
+              ) {
+                console.warn(
+                  `[saveSingleBudget] Versão do cloud para ${sanitizedBudget.code} é mais recente que a local enviada. Atualização direta descartada.`,
+                )
+                window.dispatchEvent(
+                  new CustomEvent('conce_budget_conflict_newer_cloud', {
+                    detail: {
+                      budgetId: sanitizedBudget.id,
+                      code: sanitizedBudget.code,
+                      cloudUpdated: existingRecord.updated,
+                    },
+                  }),
+                )
+                return
+              }
+
               const { fullBudgetToCloudPayload } = await import('@/services/cloudBudgetsService')
               const originalUserId = existingRecord.user || currentUserId
-              await pb
-                .collection('orcamentos')
-                .update(
-                  existingRecord.id,
-                  fullBudgetToCloudPayload(
-                    { ...sanitizedBudget, cloudUserId: originalUserId } as any,
-                    originalUserId,
-                  ),
-                )
+              const updateData = fullBudgetToCloudPayload(
+                { ...sanitizedBudget, cloudUserId: originalUserId } as any,
+                originalUserId,
+              )
+              updateData.local_id = existingRecord.local_id || sanitizedBudget.id
+              await pb.collection('orcamentos').update(existingRecord.id, updateData)
               return
             }
           }

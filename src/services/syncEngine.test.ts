@@ -107,6 +107,25 @@ describe('Camada de Sincronização Cloud (PocketBase)', () => {
     expect(restored.id).toBe('budget-test-real-001')
     expect(restored.code).toBe('ORC-2025-006')
     expect(restored.client?.name).toBe('Andreia de Oliveira da Costa e Jader da Costa')
+    expect(restored.updatedAt).toBe('2025-04-10T14:00:00.000Z')
+  })
+
+  it('preserva a data mais recente no cloudOrcamentoToFullBudget (last-write-wins)', () => {
+    const recordNewerPayload = {
+      id: 'pb_rec_998',
+      local_id: 'budget-test-real-001',
+      code: 'ORC-2025-006',
+      title: 'Reforma e Estrutura Residencial — Apto 1803',
+      created: '2025-04-10T12:00:00.000Z',
+      updated: '2025-04-10T13:00:00.000Z',
+      payload: {
+        ...sampleBudget,
+        updatedAt: '2025-04-10T15:30:00.000Z',
+      },
+    }
+
+    const restored = cloudOrcamentoToFullBudget(recordNewerPayload)
+    expect(restored.updatedAt).toBe('2025-04-10T15:30:00.000Z')
   })
 
   it('preserva o dono original cloudUserId quando um colaborador diferente edita e salva', () => {

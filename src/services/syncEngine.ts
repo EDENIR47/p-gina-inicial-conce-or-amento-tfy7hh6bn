@@ -441,11 +441,18 @@ class SyncEngine {
             continue
           }
 
-          if (getUpdatedAtMs(localMatch) > getUpdatedAtMs(cb)) {
-            // Local mais recente vence — e precisa voltar para o cloud
+          // REGRA: "A versão mais recente sempre vence e fica salva no cloud".
+          // Se o local for mais recente por mais de 1000ms, o local prevalece e sobe para o cloud.
+          // Caso contrário (cloud igual ou mais recente), a versão do CLOUD vence e atualiza o local.
+          const localMs = getUpdatedAtMs(localMatch)
+          const cloudMs = getUpdatedAtMs(cb)
+
+          if (localMs > cloudMs + 1000) {
+            // Local mais recente vence — e sobe para atualizar o cloud
             mergedCandidate.push(localMatch)
             this.enqueueBudgetSave(localMatch)
           } else {
+            // Cloud mais recente ou idêntico vence — atualiza o cache local com a versão do cloud
             mergedCandidate.push(cb)
           }
         }
