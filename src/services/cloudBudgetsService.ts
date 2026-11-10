@@ -33,7 +33,11 @@ export interface CloudOrcamentoRecord {
 /**
  * Converte um FullBudget local para os campos estruturados da coleção orcamentos
  */
-export function fullBudgetToCloudPayload(budget: FullBudget, userId: string) {
+export function fullBudgetToCloudPayload(budget: FullBudget, fallbackUserId: string) {
+  // Preserva o dono original do orçamento se já registrado (ex.: criado pelo Edenir),
+  // garantindo que uma edição salva por outro colaborador (ex.: Elizandro) não usurpe a autoria
+  const effectiveUserId = (budget as any).cloudUserId || (budget as any).userId || fallbackUserId
+
   return {
     code: budget.code || 'ORC-2025-001',
     title: budget.title || budget.work?.name || 'Orçamento de Obra',
@@ -44,7 +48,7 @@ export function fullBudgetToCloudPayload(budget: FullBudget, userId: string) {
     status: (['em_andamento', 'aprovado', 'vencido', 'em_analise'].includes(budget.status)
       ? budget.status
       : 'em_andamento') as 'em_andamento' | 'aprovado' | 'vencido' | 'em_analise',
-    sale_value: Number(budget.bdiConfig?.calculatedBdi ? 0 : 0), // pode ser enriquecido pelo caller se disponível
+    sale_value: Number(budget.bdiConfig?.calculatedBdi ? 0 : 0),
     direct_cost: 0,
     bdi_rate: Number(budget.bdiConfig?.calculatedBdi || 0),
     tax_regime: budget.chargesConfig?.taxRegime || 'simples_nacional',
@@ -53,9 +57,12 @@ export function fullBudgetToCloudPayload(budget: FullBudget, userId: string) {
     work_data: budget.work || {},
     bdi_config: budget.bdiConfig || {},
     charges_config: budget.chargesConfig || {},
-    payload: budget,
+    payload: {
+      ...budget,
+      cloudUserId: effectiveUserId,
+    },
     local_id: budget.id,
-    user: userId,
+    user: effectiveUserId,
   }
 }
 
@@ -64,7 +71,11 @@ export function fullBudgetToCloudPayload(budget: FullBudget, userId: string) {
  */
 export function cloudOrcamentoToFullBudget(record: any): FullBudget {
   const payload = record.payload || {}
-  const rawBudget: FullBudget = {
+  const rawBudget: FullBudget & {
+    cloudRecordId?: string
+    cloudUserId?: string
+    cloudUserName?: string
+  } = {
     ...payload,
     id: record.local_id || record.id,
     code: record.code || payload.code,
@@ -77,6 +88,9 @@ export function cloudOrcamentoToFullBudget(record: any): FullBudget {
     stages: payload.stages || [],
     createdAt: payload.createdAt || record.created?.split('T')[0],
     updatedAt: record.updated || payload.updatedAt || new Date().toISOString(),
+    // Metadados de nuvem para controle de autoria / permissão de exclusão
+    cloudRecordId: record.id,
+    cloudUserId: record.user || payload.cloudUserId,
   }
 
   // Sanitiza descrições padronizando tipografia sem tocar em nenhum número
@@ -138,19 +152,46 @@ export async function saveCloudOrcamento(budget: FullBudget): Promise<string | n
 
   const data = fullBudgetToCloudPayload(budget, currentUserId)
 
-  // Verifica se já existe orçamento com esse local_id ou code para esse usuário
+  // Regra corporativa CONCE: orçamentos são compartilhados na empresa toda.
+  // Busca por id, local_id ou code INDEPENDENTE do dono para atualizar o mesmo
+  // registro no cloud sem duplicar. Se o registro pertencer a outro colaborador,
+  // preserva o dono original no payload.
   try {
-    const existing = await pb
-      .collection('orcamentos')
-      .getFirstListItem(
-        `user = "${currentUserId}" && (local_id = "${budget.id}" || code = "${budget.code}")`,
-      )
+    const cloudRecordId = (budget as any).cloudRecordId
+    let existing: any = null
+
+    if (cloudRecordId) {
+      try {
+        existing = await pb.collection('orcamentos').getOne(cloudRecordId)
+      } catch {
+        /* tenta busca por código/local_id */
+      }
+    }
+
+    if (!existing) {
+      try {
+        existing = await pb
+          .collection('orcamentos')
+          .getFirstListItem(
+            `local_id = "${budget.id}" || code = "${budget.code}" || id = "${budget.id}"`,
+          )
+      } catch {
+        /* 404 */
+      }
+    }
+
     if (existing) {
-      const updated = await pb.collection('orcamentos').update(existing.id, data)
+      // Preserva o criador original
+      const originalUserId = existing.user || currentUserId
+      const updateData = fullBudgetToCloudPayload(
+        { ...budget, cloudUserId: originalUserId } as any,
+        originalUserId,
+      )
+      const updated = await pb.collection('orcamentos').update(existing.id, updateData)
       return updated.id
     }
   } catch (err: any) {
-    // 404 significa que não existe, pode criar
+    // se falhar a busca, cai para create
   }
 
   const created = await pb.collection('orcamentos').create(data)
@@ -160,6 +201,7 @@ export async function saveCloudOrcamento(budget: FullBudget): Promise<string | n
 /**
  * Remove um orçamento do cloud pelo ID local ou ID do PocketBase.
  * Sem sessão válida lança erro em vez de retornar false silenciosamente.
+ * REGRA: Exclusão no PocketBase é restrita ao dono original (deleteRule: user = @request.auth.id).
  */
 export async function deleteCloudOrcamento(budgetId: string): Promise<boolean> {
   if (!isPbAuthenticated()) {
@@ -171,18 +213,35 @@ export async function deleteCloudOrcamento(budgetId: string): Promise<boolean> {
   }
 
   try {
-    // Tenta primeiro encontrar pelo local_id
-    const existing = await pb
-      .collection('orcamentos')
-      .getFirstListItem(
-        `user = "${currentUserId}" && (local_id = "${budgetId}" || id = "${budgetId}")`,
-      )
+    // Tenta primeiro encontrar pelo id do PocketBase ou pelo local_id
+    let existing: any = null
+    try {
+      existing = await pb.collection('orcamentos').getOne(budgetId)
+    } catch {
+      /* tenta por local_id */
+    }
+
+    if (!existing) {
+      try {
+        existing = await pb
+          .collection('orcamentos')
+          .getFirstListItem(`local_id = "${budgetId}" || id = "${budgetId}"`)
+      } catch {
+        // ignora
+      }
+    }
+
     if (existing) {
+      // Regra de segurança: só exclui se o usuário autenticado for o dono
+      if (existing.user && existing.user !== currentUserId) {
+        console.warn('Tentativa de exclusão bloqueada: orçamento pertence a outro usuário.')
+        return false
+      }
       await pb.collection('orcamentos').delete(existing.id)
       return true
     }
-  } catch {
-    // ignora
+  } catch (err) {
+    console.warn('Falha ao excluir orçamento do cloud:', err)
   }
   return false
 }

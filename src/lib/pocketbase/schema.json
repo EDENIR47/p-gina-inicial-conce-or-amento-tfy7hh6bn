@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T17:11:59.009Z",
+  "generatedAt": "2026-11-10T18:15:47.251Z",
   "collections": [
     {
       "name": "users",
@@ -54,10 +54,10 @@
       "name": "orcamentos",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (user = @request.auth.id || shared_with ~ @request.auth.id)",
-        "view": "@request.auth.id != '' && (user = @request.auth.id || shared_with ~ @request.auth.id)",
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
         "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != '' && (user = @request.auth.id || shared_with ~ @request.auth.id)",
+        "update": "@request.auth.id != ''",
         "delete": "@request.auth.id != '' && user = @request.auth.id"
       },
       "fields": [

@@ -1206,23 +1206,40 @@ export function saveSingleBudget(budget: FullBudget): void {
           const currentUserId = pb.authStore.record?.id
 
           if (isPbAuthenticated() && currentUserId) {
-            let existingId: string | null = null
-            try {
-              const existing = await pb
-                .collection('orcamentos')
-                .getFirstListItem(
-                  `user = "${currentUserId}" && (local_id = "${budget.id}" || code = "${budget.code}")`,
-                )
-              if (existing) existingId = existing.id
-            } catch {
-              /* 404: ainda não existe no cloud — pode criar via fila */
+            let existingRecord: any = null
+            const cloudRecordId = (budget as any).cloudRecordId
+            if (cloudRecordId) {
+              try {
+                existingRecord = await pb.collection('orcamentos').getOne(cloudRecordId)
+              } catch {
+                /* fallback */
+              }
             }
 
-            if (existingId) {
+            if (!existingRecord) {
+              try {
+                existingRecord = await pb
+                  .collection('orcamentos')
+                  .getFirstListItem(
+                    `local_id = "${budget.id}" || code = "${budget.code}" || id = "${budget.id}"`,
+                  )
+              } catch {
+                /* 404: ainda não existe no cloud — pode criar via fila */
+              }
+            }
+
+            if (existingRecord) {
               const { fullBudgetToCloudPayload } = await import('@/services/cloudBudgetsService')
+              const originalUserId = existingRecord.user || currentUserId
               await pb
                 .collection('orcamentos')
-                .update(existingId, fullBudgetToCloudPayload(sanitizedBudget, currentUserId))
+                .update(
+                  existingRecord.id,
+                  fullBudgetToCloudPayload(
+                    { ...sanitizedBudget, cloudUserId: originalUserId } as any,
+                    originalUserId,
+                  ),
+                )
               return
             }
           }

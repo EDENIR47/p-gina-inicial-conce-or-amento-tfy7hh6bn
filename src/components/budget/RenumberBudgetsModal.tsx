@@ -171,13 +171,13 @@ export const RenumberBudgetsModal: React.FC<RenumberBudgetsModalProps> = ({
             // Enfileira pelo syncEngine garantindo o fluxo canônico
             syncEngine.enqueueBudgetSave(targetBudget)
 
-            // Também tenta update direto por ID ou local_id se existir
+            // Também tenta update direto por ID ou local_id se existir (compartilhado em toda a empresa)
             if (currentUserId) {
               try {
                 const existing = await pb
                   .collection('orcamentos')
                   .getFirstListItem(
-                    `user = "${currentUserId}" && (local_id = "${targetBudget.id}" || code = "${it.oldCode}" || code = "${it.newCode}")`,
+                    `local_id = "${targetBudget.id}" || code = "${it.oldCode}" || code = "${it.newCode}" || id = "${targetBudget.id}"`,
                   )
                 if (existing) {
                   await pb.collection('orcamentos').update(existing.id, {
