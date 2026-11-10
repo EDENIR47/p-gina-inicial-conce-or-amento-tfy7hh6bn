@@ -241,7 +241,18 @@ export function saveMergedCompositionsCache(merged: any[]) {
  */
 export async function pushLocalCompositionsToCloud(onProgress?: (step: string) => void) {
   const local = (getStoredCompositions() as any[]) || []
-  const candidates = local.filter((c) => c && c.source !== 'SINAPI' && c.code)
+  const ownerId = pb.authStore.record?.id || ''
+  if (!ownerId) return { uploaded: 0 }
+
+  // Restrição estrita de dono: envia APENAS composições pertencentes ao usuário logado
+  // (ou criadas localmente por ele sem dono marcado). NUNCA recriar/reenviar composições
+  // cujo dono seja outro usuário (createdByUserId !== ownerId).
+  const candidates = local.filter((c) => {
+    if (!c || c.source === 'SINAPI' || !c.code) return false
+    const creatorId = (c as any).createdByUserId
+    if (creatorId && creatorId !== ownerId) return false
+    return true
+  })
   if (candidates.length === 0) return { uploaded: 0 }
 
   let cloudRecords: CloudComposicaoRecord[] = []
@@ -252,9 +263,6 @@ export async function pushLocalCompositionsToCloud(onProgress?: (step: string) =
   } catch {
     return { uploaded: 0 }
   }
-
-  const ownerId = pb.authStore.record?.id || ''
-  if (!ownerId) return { uploaded: 0 }
 
   const cloudKeys = new Set<string>()
   for (const r of cloudRecords) {

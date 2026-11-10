@@ -7,6 +7,11 @@ import React, { useEffect, useState } from 'react'
 import { X, Search, Plus, BookOpen, Filter, Check, Tag, Building2 } from 'lucide-react'
 import { BudgetComposition } from '@/types/budgetEngine'
 import { getStoredCompositions } from '@/lib/budgetsStorage'
+import { isPbAuthenticated } from '@/services/authService'
+import {
+  fetchAndMergeSharedCompositions,
+  saveMergedCompositionsCache,
+} from '@/services/cloudCompositionsService'
 import { formatCurrencyBRL } from '@/lib/formatters'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
@@ -31,15 +36,43 @@ export const CompositionPickerModal: React.FC<CompositionPickerModalProps> = ({
     getStoredCompositions(),
   )
 
-  // Biblioteca COMPARTILHADA: quando o pull do cloud chegar (evento disparado
-  // pelo Layout), recarrega — lista inclui composições de todos os usuários.
+  // Biblioteca COMPARTILHADA: quando o modal abre, dispara pull compartilhado
+  // para garantir que composições de todos os colaboradores estejam presentes.
   useEffect(() => {
-    const handler = () => setCompositions(getStoredCompositions())
+    if (!isOpen) return
+
+    let mounted = true
+    const runSharedPull = async () => {
+      if (!isPbAuthenticated()) return
+      try {
+        const { merged } = await fetchAndMergeSharedCompositions()
+        if (mounted && Array.isArray(merged) && merged.length > 0) {
+          saveMergedCompositionsCache(merged)
+          setCompositions(merged)
+        }
+      } catch {
+        /* se o cloud falhar, mantém o cache local */
+      }
+    }
+
+    runSharedPull()
+
+    const handler = () => {
+      if (mounted) {
+        setCompositions(getStoredCompositions())
+      }
+    }
     if (typeof window !== 'undefined') {
       window.addEventListener('conce_compositions_updated', handler)
-      return () => window.removeEventListener('conce_compositions_updated', handler)
+      return () => {
+        mounted = false
+        window.removeEventListener('conce_compositions_updated', handler)
+      }
     }
-  }, [])
+    return () => {
+      mounted = false
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -141,12 +174,18 @@ export const CompositionPickerModal: React.FC<CompositionPickerModalProps> = ({
                       <span className="text-xs font-bold text-[#171A1F]/70">
                         Unidade: <strong className="text-[#171A1F]">{comp.unit}</strong>
                       </span>
-                      {(comp as any).createdByUserName && (
+                      {((comp as any).createdByUserName ||
+                        (comp.versionsHistory?.[0]?.author &&
+                          comp.source !== 'SINAPI' &&
+                          comp.source !== 'SICRO')) && (
                         <span
                           className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#294C87]/10 text-[#294C87]"
-                          title="Composição compartilhada por outro colaborador"
+                          title="Criador da composição na biblioteca da empresa"
                         >
-                          Criada por: {(comp as any).createdByUserName}
+                          Criada por:{' '}
+                          {(comp as any).createdByUserName ||
+                            comp.versionsHistory?.[0]?.author ||
+                            'Equipe CONCE'}
                         </span>
                       )}
                       {hasUnitMismatch && (

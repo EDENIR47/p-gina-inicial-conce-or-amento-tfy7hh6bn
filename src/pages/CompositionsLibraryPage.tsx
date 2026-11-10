@@ -32,6 +32,10 @@ import {
 } from '@/lib/budgetsStorage'
 import { getConsolidatedSinapiCatalog, getSinapiImportMetadata } from '@/lib/sinapiStorage'
 import { getPbAuthSession, getCurrentPbUser, isPbAuthenticated } from '@/services/authService'
+import {
+  fetchAndMergeSharedCompositions,
+  saveMergedCompositionsCache,
+} from '@/services/cloudCompositionsService'
 import { SPECIALTIES_LIST } from '@/lib/compositionsData'
 import { calculateCompositionUnitCost } from '@/lib/budgetEngine'
 import { formatCurrencyBRL } from '@/lib/formatters'
@@ -69,14 +73,40 @@ export const CompositionsLibraryPage: React.FC = () => {
   const [isSinapiImportModalOpen, setIsSinapiImportModalOpen] = useState(false)
   const [isSyncSinapiApiModalOpen, setIsSyncSinapiApiModalOpen] = useState(false)
 
-  // Biblioteca COMPARTILHADA: quando o pull do cloud chegar (Layout dispara o
-  // evento), recarrega a lista — agora com as composições de todos os
-  // colaboradores, não só as deste usuário.
+  // Biblioteca COMPARTILHADA: dispara pull compartilhado na montagem e sempre
+  // renderiza do conjunto mesclado (local do usuário + cloud de todos).
   useEffect(() => {
-    const handler = () => setCompositions(getStoredCompositions())
+    let mounted = true
+
+    const runSharedPull = async () => {
+      if (!isPbAuthenticated()) return
+      try {
+        const { merged } = await fetchAndMergeSharedCompositions()
+        if (mounted && Array.isArray(merged) && merged.length > 0) {
+          saveMergedCompositionsCache(merged)
+          setCompositions(merged)
+        }
+      } catch {
+        /* se o cloud falhar, mantém o estado atual */
+      }
+    }
+
+    runSharedPull()
+
+    const handler = () => {
+      if (mounted) {
+        setCompositions(getStoredCompositions())
+      }
+    }
     if (typeof window !== 'undefined') {
       window.addEventListener('conce_compositions_updated', handler)
-      return () => window.removeEventListener('conce_compositions_updated', handler)
+      return () => {
+        mounted = false
+        window.removeEventListener('conce_compositions_updated', handler)
+      }
+    }
+    return () => {
+      mounted = false
     }
   }, [])
 
@@ -526,12 +556,18 @@ export const CompositionsLibraryPage: React.FC = () => {
                           <span className="text-xs text-[#171A1F]/70 font-semibold">
                             Unidade: <strong className="text-[#171A1F]">{comp.unit}</strong>
                           </span>
-                          {(comp as any).createdByUserName && (
+                          {((comp as any).createdByUserName ||
+                            (comp.versionsHistory?.[0]?.author &&
+                              comp.source !== 'SINAPI' &&
+                              comp.source !== 'SICRO')) && (
                             <span
                               className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#294C87]/10 text-[#294C87]"
-                              title="Criada por outro colaborador — compartilhada na biblioteca da empresa"
+                              title="Criador da composição na biblioteca da empresa"
                             >
-                              Criada por: {(comp as any).createdByUserName}
+                              Criada por:{' '}
+                              {(comp as any).createdByUserName ||
+                                comp.versionsHistory?.[0]?.author ||
+                                'Equipe CONCE'}
                             </span>
                           )}
                           {compRemovedItems.length > 0 && (
@@ -583,29 +619,47 @@ export const CompositionsLibraryPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleDuplicateComposition(comp)}
-                            className="p-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] transition-colors"
-                            title="Duplicar Composição"
+                            className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] text-xs font-semibold transition-colors"
+                            title="Duplicar Composição como cópia própria"
                           >
                             <Copy className="w-4 h-4" />
+                            <span className="hidden sm:inline">Duplicar</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => setEditModalState({ isOpen: true, composition: comp })}
-                            className="p-2 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87]/20 text-[#294C87] transition-colors"
-                            title="Editar Composição e Insumos"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                          {(() => {
+                            const currentPbUserId = getCurrentPbUser()?.id || ''
+                            const creatorId = (comp as any).createdByUserId
+                            const isOwner =
+                              Boolean(currentPbUserId) &&
+                              (creatorId === currentPbUserId ||
+                                (!creatorId && comp.source !== 'SINAPI' && comp.source !== 'SICRO'))
 
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteComposition(comp.id, comp.code)}
-                            className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
-                            title="Excluir Composição"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                            if (!isOwner) return null
+
+                            return (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditModalState({ isOpen: true, composition: comp })
+                                  }
+                                  className="p-2 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87]/20 text-[#294C87] transition-colors"
+                                  title="Editar Composição e Insumos"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteComposition(comp.id, comp.code)}
+                                  className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                                  title="Excluir Composição"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                     </div>
