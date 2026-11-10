@@ -406,7 +406,7 @@ class SyncEngine {
         const localOnlyReal = currentLocal.filter(
           (lb) =>
             !isDemoOrTestBudget(lb) &&
-            !cloudBudgets.some((cb) => cb.id === lb.id || cb.code === lb.code),
+            !cloudBudgets.some((cb) => cb.id === lb.id || (cb.code && cb.code === lb.code)),
         )
 
         // Mescla com LAST-WRITE-WINS por updatedAt: o registro atualizado mais
@@ -423,13 +423,13 @@ class SyncEngine {
           currentLocal.filter((lb) => lb.code).map((lb) => [lb.code as string, lb]),
         )
 
-        const merged: FullBudget[] = []
+        const mergedCandidate: FullBudget[] = []
 
         for (const cb of cloudBudgets) {
           if (pendingUpsertIds.has(cb.id)) {
             const pending = this.queue.find((t) => t.budget?.id === cb.id)?.budget
-            if (pending) merged.push(pending)
-            else merged.push(cb)
+            if (pending) mergedCandidate.push(pending)
+            else mergedCandidate.push(cb)
             continue
           }
 
@@ -437,23 +437,45 @@ class SyncEngine {
             localById.get(cb.id) ?? (cb.code ? localByCode.get(cb.code) : undefined)
 
           if (!localMatch) {
-            merged.push(cb)
+            mergedCandidate.push(cb)
             continue
           }
 
           if (getUpdatedAtMs(localMatch) > getUpdatedAtMs(cb)) {
             // Local mais recente vence — e precisa voltar para o cloud
-            merged.push(localMatch)
+            mergedCandidate.push(localMatch)
             this.enqueueBudgetSave(localMatch)
           } else {
-            merged.push(cb)
+            mergedCandidate.push(cb)
           }
         }
 
         for (const lb of localOnlyReal) {
-          merged.push(lb)
+          mergedCandidate.push(lb)
           // Se não estiver na fila, enfileira para subir
           this.enqueueBudgetSave(lb)
+        }
+
+        // Deduplicação final por code e por id:
+        // Garante que se houver dois orçamentos com o mesmo code ou mesmo id no array final,
+        // apenas o mais recentemente atualizado permaneça salvo.
+        const seenCodes = new Set<string>()
+        const seenIds = new Set<string>()
+        // Ordena candidatos por updatedAt decrescente para que o mais recente seja o primeiro
+        mergedCandidate.sort((a, b) => getUpdatedAtMs(b) - getUpdatedAtMs(a))
+
+        const merged: FullBudget[] = []
+        for (const b of mergedCandidate) {
+          const idKey = (b.id || '').trim()
+          const codeKey = (b.code || '').trim()
+
+          if (idKey && seenIds.has(idKey)) continue
+          if (codeKey && seenCodes.has(codeKey)) continue
+
+          if (idKey) seenIds.add(idKey)
+          if (codeKey) seenCodes.add(codeKey)
+
+          merged.push(b)
         }
 
         saveFullBudgets(merged)

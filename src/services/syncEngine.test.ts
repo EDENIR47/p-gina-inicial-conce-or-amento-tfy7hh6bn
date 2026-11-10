@@ -109,6 +109,16 @@ describe('Camada de Sincronização Cloud (PocketBase)', () => {
     expect(restored.client?.name).toBe('Andreia de Oliveira da Costa e Jader da Costa')
   })
 
+  it('preserva o dono original cloudUserId quando um colaborador diferente edita e salva', () => {
+    const originalOwnerId = 'user_edenir_123'
+    const payload = fullBudgetToCloudPayload(
+      { ...sampleBudget, cloudUserId: originalOwnerId } as any,
+      originalOwnerId,
+    )
+    expect(payload.user).toBe(originalOwnerId)
+    expect(payload.payload.cloudUserId).toBe(originalOwnerId)
+  })
+
   it('converte dataUrl base64 em File real para upload como anexo', () => {
     // 1x1 transparent gif base64
     const dataUrl = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'

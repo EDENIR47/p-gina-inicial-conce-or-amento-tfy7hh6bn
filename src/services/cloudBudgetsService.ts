@@ -125,6 +125,20 @@ export async function fetchCloudOrcamentos(): Promise<FullBudget[]> {
   if (!isPbAuthenticated()) return []
 
   try {
+    // Dispara deduplicação no backend em segundo plano (melhor-esforço)
+    // para limpar quaisquer duplicatas que possam ter sido inseridas
+    try {
+      fetch(`${pb.baseUrl}/backend/v1/dedupe-orcamentos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(pb.authStore.token ? { Authorization: `Bearer ${pb.authStore.token}` } : {}),
+        },
+      }).catch(() => {})
+    } catch {
+      /* ignora erro de trigger */
+    }
+
     const records = await pb.collection('orcamentos').getFullList({
       sort: '-updated',
     })
@@ -143,13 +157,29 @@ export async function fetchCloudOrcamentos(): Promise<FullBudget[]> {
       }
     }
 
-    return records.map((rec) => {
+    // Deduplica em memória pelo código / local_id:
+    // Como os registros vêm ordenados por -updated, a primeira ocorrência é sempre a mais recente.
+    const seen = new Set<string>()
+    const deduplicatedList: FullBudget[] = []
+
+    for (const rec of records) {
+      const keyLocal = (rec.local_id || rec.id || '').trim()
+      const keyCode = (rec.code || '').trim()
+
+      if (keyLocal && seen.has(`local:${keyLocal}`)) continue
+      if (keyCode && seen.has(`code:${keyCode}`)) continue
+
+      if (keyLocal) seen.add(`local:${keyLocal}`)
+      if (keyCode) seen.add(`code:${keyCode}`)
+
       const budget = cloudOrcamentoToFullBudget(rec)
       if (budget.cloudUserId && creatorNamesMap.has(budget.cloudUserId)) {
         budget.cloudUserName = creatorNamesMap.get(budget.cloudUserId)
       }
-      return budget
-    })
+      deduplicatedList.push(budget)
+    }
+
+    return deduplicatedList
   } catch (err) {
     console.warn('Falha ao buscar orçamentos do PocketBase:', err)
     return []
@@ -189,29 +219,40 @@ export async function saveCloudOrcamento(budget: FullBudget): Promise<string | n
     }
 
     if (!existing) {
-      try {
-        existing = await pb
-          .collection('orcamentos')
-          .getFirstListItem(
-            `local_id = "${budget.id}" || code = "${budget.code}" || id = "${budget.id}"`,
-          )
-      } catch {
-        /* 404 */
+      // Tenta primeiro por local_id exato
+      if (budget.id) {
+        try {
+          existing = await pb
+            .collection('orcamentos')
+            .getFirstListItem(`local_id = "${budget.id}" || id = "${budget.id}"`)
+        } catch {
+          /* tenta por code */
+        }
+      }
+      // Se não achou por local_id, tenta por code
+      if (!existing && budget.code) {
+        try {
+          existing = await pb.collection('orcamentos').getFirstListItem(`code = "${budget.code}"`)
+        } catch {
+          /* não encontrado */
+        }
       }
     }
 
     if (existing) {
-      // Preserva o criador original
+      // Preserva o criador original do registro
       const originalUserId = existing.user || currentUserId
       const updateData = fullBudgetToCloudPayload(
         { ...budget, cloudUserId: originalUserId } as any,
         originalUserId,
       )
+      // Mantém o local_id consistente
+      updateData.local_id = existing.local_id || budget.id
       const updated = await pb.collection('orcamentos').update(existing.id, updateData)
       return updated.id
     }
   } catch (err: any) {
-    // se falhar a busca, cai para create
+    console.warn('Erro ao verificar orçamento existente antes do salvamento:', err)
   }
 
   const created = await pb.collection('orcamentos').create(data)
