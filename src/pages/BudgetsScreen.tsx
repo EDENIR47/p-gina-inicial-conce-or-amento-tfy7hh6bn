@@ -28,6 +28,7 @@ import {
   Eye,
   Hash,
   Eraser,
+  ChevronRight,
 } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { AiBudgetModal } from '@/components/budget/AiBudgetModal'
@@ -55,6 +56,7 @@ import {
 } from '@/services/editPresenceService'
 import { useEditPresencePolling } from '@/hooks/useEditPresencePolling'
 import { EditPresenceBadge } from '@/components/budget/EditPresenceBadge'
+import { BudgetDetailPanel } from '@/components/budget/BudgetDetailPanel'
 import { purgeTestIntelligenceData } from '@/lib/intelligenceStorage'
 import { calculateFullBudget, calculateTcuBdi } from '@/lib/budgetEngine'
 import { formatCurrencyBRL, formatBudgetDeadline } from '@/lib/formatters'
@@ -258,6 +260,9 @@ export const BudgetsScreen: React.FC = () => {
   const [editingBudgetModal, setEditingBudgetModal] = useState<FullBudget | null>(null)
   const [deletingBudgetModal, setDeletingBudgetModal] = useState<FullBudget | null>(null)
 
+  // Painel de detalhes: orçamento selecionado ao clicar na linha compacta da lista
+  const [detailBudgetId, setDetailBudgetId] = useState<string | null>(null)
+
   // Feedback e Validações
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
@@ -459,6 +464,7 @@ export const BudgetsScreen: React.FC = () => {
       setActiveBudget(null)
     }
     setDeletingBudgetModal(null)
+    setDetailBudgetId(null)
     showToast(`Orçamento ${code} excluído com sucesso!`)
   }
 
@@ -777,6 +783,12 @@ export const BudgetsScreen: React.FC = () => {
 
     return matchesSearch && matchesStatus
   })
+
+  // Orçamento selecionado para o painel de detalhes (derivado da lista: reflete edições e exclusões)
+  const detailBudget = detailBudgetId
+    ? budgetsList.find((b) => b.id === detailBudgetId) || null
+    : null
+  const detailSummary = detailBudget ? calculateFullBudget(detailBudget) : null
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12">
@@ -1500,235 +1512,101 @@ export const BudgetsScreen: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1.5">
                   {filteredBudgets.map((b) => {
                     const summary = calculateFullBudget(b)
+                    const editors = getEditorsForBudget(presencesByBudget, b.id, b.code)
 
                     return (
                       <div
                         key={b.id}
-                        className="bg-white rounded-[16px] p-5 shadow-[0_4px_20px_rgba(23,26,31,0.05)] border border-[#171A1F]/10 hover:border-[#294C87]/40 transition-all space-y-4"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setDetailBudgetId(b.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setDetailBudgetId(b.id)
+                          }
+                        }}
+                        className="group bg-white rounded-[12px] px-3 sm:px-4 py-2.5 shadow-[0_2px_10px_rgba(23,26,31,0.04)] border border-[#171A1F]/10 hover:border-[#294C87]/40 hover:shadow-[0_4px_16px_rgba(41,76,135,0.12)] transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#294C87]/40"
+                        title="Clique para ver os detalhes completos do orçamento"
                       >
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                          <div className="space-y-1.5 flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-mono text-xs font-extrabold px-2.5 py-0.5 rounded bg-[#294C87]/10 text-[#294C87]">
-                                {b.code}
-                              </span>
-                              <BudgetStatusDropdown
-                                currentStatus={(b.status as BudgetStatus) || 'em_andamento'}
-                                budgetCode={b.code}
-                                onChangeStatus={(newStatus) =>
-                                  handleQuickStatusChange(b, newStatus)
-                                }
-                                size="sm"
-                              />
-                              {b.cloudUserId && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#171A1F]/5 text-[#171A1F]/70 border border-[#171A1F]/10">
-                                  Criado por:{' '}
-                                  {creatorsMap.get(b.cloudUserId) ||
-                                    b.cloudUserName ||
-                                    b.author ||
-                                    'Colaborador CONCE'}
-                                </span>
-                              )}
-                              <EditPresenceBadge
-                                editors={getEditorsForBudget(presencesByBudget, b.id, b.code)}
-                              />
-                              <span className="text-xs text-[#171A1F]/60">
-                                UF da Obra:{' '}
-                                <strong className="text-[#171A1F]">
-                                  {b.chargesConfig?.uf || b.work.state || 'RS'}
-                                </strong>
-                              </span>
-                              {b.publicWork.enabled && (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F] flex items-center gap-1">
-                                  <Landmark className="w-3 h-3" /> Obras Públicas (
-                                  {b.publicWork.modality})
-                                </span>
-                              )}
-                            </div>
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          {/* Código */}
+                          <span className="font-mono text-[11px] font-extrabold px-2 py-0.5 rounded bg-[#294C87]/10 text-[#294C87] shrink-0">
+                            {b.code}
+                          </span>
 
-                            <h3 className="text-base sm:text-lg font-bold text-[#171A1F]">
+                          {/* Nome + cliente (essencial) */}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-[#171A1F] truncate leading-tight">
                               {b.title || b.work.name}
-                            </h3>
-
-                            {b.title && b.title !== b.work.name && (
-                              <p className="text-xs text-[#294C87] font-semibold">
-                                Obra: {b.work.name}
-                              </p>
-                            )}
-
-                            <p className="text-xs text-[#171A1F]/70">
-                              Cliente:{' '}
-                              <strong className="text-[#171A1F]">
-                                {b.client.name || 'Não informado'}
-                              </strong>{' '}
-                              {b.client.document && `(${b.client.document}) `}• Endereço Obra:{' '}
-                              {b.work.address ? `${b.work.address}, ` : ''}
-                              {b.work.city}/{b.work.state} • Prazo: {formatBudgetDeadline(b.work)}
-                            </p>
-
-                            {b.paymentTerms && (
-                              <p className="text-[11px] text-[#171A1F]/60 line-clamp-1">
-                                <span className="font-semibold text-[#294C87]">
-                                  Forma de Pagamento:
-                                </span>{' '}
-                                {b.paymentTerms}
-                              </p>
-                            )}
-
-                            <div className="flex flex-wrap items-center gap-4 text-[11px] text-[#171A1F]/60 pt-1">
-                              <span>{b.stages.length} etapas</span>
-                              <span>•</span>
-                              <span>{summary.servicesCount} serviços</span>
-                              <span>•</span>
-                              <span>{summary.inputsCount} insumos</span>
-                              <span>•</span>
-                              <span>BDI: {summary.bdiRate.toFixed(2)}%</span>
+                            </div>
+                            <div className="text-[11px] text-[#171A1F]/60 truncate leading-tight">
+                              {b.client.name || 'Cliente não informado'}
+                              {b.work.city ? ` • ${b.work.city}/${b.work.state}` : ''}
                             </div>
                           </div>
 
-                          {/* Valor e Ações */}
-                          <div className="flex items-center md:flex-col items-end justify-between md:justify-start gap-3 border-t md:border-t-0 border-[#171A1F]/10 pt-3 md:pt-0">
-                            <div className="text-left md:text-right">
-                              <span className="text-[10px] text-[#171A1F]/50 uppercase font-bold block">
-                                Valor Total da Obra
-                              </span>
-                              <span className="text-xl sm:text-2xl font-extrabold text-[#FF6B1F] tracking-tight">
-                                {formatCurrencyBRL(summary.finalSalePrice)}
-                              </span>
-                            </div>
+                          {/* Valor */}
+                          <span className="text-sm font-extrabold text-[#FF6B1F] tracking-tight whitespace-nowrap shrink-0">
+                            {formatCurrencyBRL(summary.finalSalePrice)}
+                          </span>
 
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleDuplicateBudget(b)}
-                                className="p-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] transition-colors"
-                                title="Duplicar Orçamento"
-                              >
-                                <Copy className="w-4 h-4" />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  exportBudgetSpreadsheet(b, 'completo')
-                                  showToast(`Planilha ${b.code} exportada!`)
-                                }}
-                                className="p-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#171A1F]/10 text-[#171A1F] transition-colors"
-                                title="Exportar Planilha Excel/CSV"
-                              >
-                                <Download className="w-4 h-4 text-green-600" />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveBudget(b)
-                                  setIsCommercialModalOpen(true)
-                                }}
-                                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-extrabold transition-all border active:scale-95 cursor-pointer ${
-                                  getOwnPresentationDocument(b)
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-400/40 shadow-sm shadow-emerald-600/20'
-                                    : 'bg-gradient-to-r from-[#FF6B1F] to-[#FF8945] hover:from-[#e55d17] hover:to-[#FF6B1F] text-white border-white/20 shadow-sm shadow-orange-500/20'
-                                }`}
-                                title={
-                                  getOwnPresentationDocument(b)
-                                    ? `Proposta anexada como documento (v${getOwnPresentationDocument(b)!.version}). Clique para abrir, reimprimir ou baixar PDF.`
-                                    : 'Proposta Técnica e Comercial (documento A4 com 7 seções)'
-                                }
-                              >
-                                <Eye className="w-3.5 h-3.5 text-white" />
-                                <span>
-                                  {getOwnPresentationDocument(b)
-                                    ? `Proposta (v${getOwnPresentationDocument(b)!.version})`
-                                    : 'Proposta'}
-                                </span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveBudget(b)
-                                  setIsMemorialModalOpen(true)
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white text-xs font-bold transition-colors cursor-pointer"
-                                title="Abrir Memorial Descritivo Automático de Obra"
-                              >
-                                <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
-                                <span className="hidden sm:inline">Memorial</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveBudget(b)
-                                  setPdfInitialMode('valor_final')
-                                  setIsPdfModalOpen(true)
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#171A1F]/5 hover:bg-[#294C87] text-[#171A1F] hover:text-white text-xs font-bold transition-colors"
-                                title="Exportar Proposta PDF (Valor Final, Simplificado, Etapas ou Completo)"
-                              >
-                                <FileSpreadsheet className="w-3.5 h-3.5 text-[#FF6B1F]" />
-                                <span className="hidden sm:inline">Exportar PDF</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  ensureInitialRevision(b)
-                                  setActiveBudget(b)
-                                  setIsRevisionsModalOpen(true)
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/15 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-400/40 text-xs font-bold transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                title="Histórico de Revisões e Restauração de Versões Anteriores"
-                                aria-label={`Histórico e restaurador de revisões do orçamento ${b.code}`}
-                              >
-                                <History
-                                  className="w-3.5 h-3.5 text-[#FF6B1F]"
-                                  aria-hidden="true"
-                                />
-                                <span>Revisões</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => setEditingBudgetModal(b)}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#294C87]/10 hover:bg-[#294C87] text-[#294C87] hover:text-white text-xs font-bold transition-colors cursor-pointer"
-                                title="Editar dados cadastrais, cliente, obra e status"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                                <span>Editar</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveBudget(b)
-                                  setEditorTab('arvore')
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#294C87] hover:bg-[#171A1F] text-white text-xs font-bold transition-colors cursor-pointer"
-                                title="Abrir e Editar Núcleo Completo (Árvore de 4 níveis)"
-                              >
-                                <Layers className="w-3.5 h-3.5 text-[#FF6B1F]" />
-                                <span>Abrir Núcleo</span>
-                              </button>
-
-                              {(!b.cloudUserId ||
-                                !currentUserId ||
-                                b.cloudUserId === currentUserId) && (
-                                <button
-                                  type="button"
-                                  onClick={() => setDeletingBudgetModal(b)}
-                                  className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
-                                  title="Excluir Orçamento"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
+                          {/* Status de um clique (não abre o painel) */}
+                          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <BudgetStatusDropdown
+                              currentStatus={(b.status as BudgetStatus) || 'em_andamento'}
+                              budgetCode={b.code}
+                              onChangeStatus={(newStatus) => handleQuickStatusChange(b, newStatus)}
+                              size="sm"
+                            />
                           </div>
+
+                          {/* Selos auxiliares: criado por, em edição, obras públicas */}
+                          <div className="hidden xl:flex items-center gap-1.5 shrink-0">
+                            {b.cloudUserId && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#171A1F]/5 text-[#171A1F]/70 border border-[#171A1F]/10 whitespace-nowrap">
+                                Criado por:{' '}
+                                {creatorsMap.get(b.cloudUserId) ||
+                                  b.cloudUserName ||
+                                  b.author ||
+                                  'Colaborador CONCE'}
+                              </span>
+                            )}
+                            <EditPresenceBadge editors={editors} variant="table" />
+                            {b.publicWork.enabled && (
+                              <span
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FF6B1F]/15 text-[#FF6B1F]"
+                                title={`Obras Públicas (${b.publicWork.modality})`}
+                              >
+                                <Landmark className="w-3 h-3" />
+                              </span>
+                            )}
+                          </div>
+
+                          <ChevronRight
+                            className="w-4 h-4 text-[#171A1F]/30 group-hover:text-[#294C87] transition-colors shrink-0"
+                            aria-hidden="true"
+                          />
                         </div>
+
+                        {/* Selos auxiliares no mobile/tablet (empilhados abaixo da linha) */}
+                        {(b.cloudUserId || editors.length > 0) && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1.5 xl:hidden">
+                            {b.cloudUserId && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#171A1F]/5 text-[#171A1F]/70 border border-[#171A1F]/10">
+                                Criado por:{' '}
+                                {creatorsMap.get(b.cloudUserId) ||
+                                  b.cloudUserName ||
+                                  b.author ||
+                                  'Colaborador CONCE'}
+                              </span>
+                            )}
+                            <EditPresenceBadge editors={editors} variant="table" />
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -1804,7 +1682,11 @@ export const BudgetsScreen: React.FC = () => {
                         const summary = calculateFullBudget(b)
 
                         return (
-                          <tr key={b.id} className="hover:bg-[#294C87]/[0.03] transition-colors">
+                          <tr
+                            key={b.id}
+                            className="hover:bg-[#294C87]/[0.03] transition-colors cursor-pointer"
+                            onClick={() => setDetailBudgetId(b.id)}
+                          >
                             <td className="py-3 px-3 font-mono font-bold text-[#294C87]">
                               {b.code}
                             </td>
@@ -1845,7 +1727,10 @@ export const BudgetsScreen: React.FC = () => {
                                 <span className="text-[#171A1F]/25 text-[11px]">—</span>
                               )}
                             </td>
-                            <td className="py-3 px-3 text-center">
+                            <td
+                              className="py-3 px-3 text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   type="button"
@@ -1988,6 +1873,46 @@ export const BudgetsScreen: React.FC = () => {
             }}
           />
         </div>
+      )}
+
+      {/* Painel de Detalhes do Orçamento (aberto ao clicar numa linha da lista ou da tabela) */}
+      {detailBudget && detailSummary && (
+        <BudgetDetailPanel
+          key={detailBudget.id}
+          budget={detailBudget}
+          summary={detailSummary}
+          isOpen
+          onClose={() => setDetailBudgetId(null)}
+          creatorName={
+            detailBudget.cloudUserId
+              ? creatorsMap.get(detailBudget.cloudUserId) ||
+                detailBudget.cloudUserName ||
+                detailBudget.author
+              : undefined
+          }
+          editors={getEditorsForBudget(presencesByBudget, detailBudget.id, detailBudget.code)}
+          canDelete={
+            !detailBudget.cloudUserId ||
+            !currentUserId ||
+            detailBudget.cloudUserId === currentUserId
+          }
+          onChangeStatus={(newStatus) => handleQuickStatusChange(detailBudget, newStatus)}
+          onOpenEditor={() => {
+            setActiveBudget(detailBudget)
+            setEditorTab('arvore')
+            setDetailBudgetId(null)
+          }}
+          onEditData={() => {
+            setEditingBudgetModal(detailBudget)
+            setDetailBudgetId(null)
+          }}
+          onDuplicate={() => {
+            handleDuplicateBudget(detailBudget)
+            setDetailBudgetId(null)
+          }}
+          onDelete={() => setDeletingBudgetModal(detailBudget)}
+          onExportSpreadsheet={() => exportBudgetSpreadsheet(detailBudget, 'completo')}
+        />
       )}
 
       {/* Modal de Edição Rápida */}
