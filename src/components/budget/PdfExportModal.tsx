@@ -565,8 +565,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 </span>
                 <p className="font-bold text-xs text-[#171A1F]">{cleanWorkName}</p>
                 <p className="text-[#171A1F]/80 text-[10px]">
+                  {/* REGRA PERMANENTE: usa exclusivamente os dados do orçamento aberto —
+                      quando o endereço de obra estiver vazio, fica em branco (nunca dado de
+                      outro orçamento; correção da contaminação ORC-2026-108 ← ORC-101). */}
                   <strong className="text-[#171A1F]">Endereço da Obra:</strong>{' '}
-                  {budget.work.address || 'Rua Tomaz Gonzaga, 610, Ap. 1803'}
+                  {budget.work.address || 'Não informado'}
                 </p>
                 <p className="text-[#171A1F]/80 text-[10px]">
                   <strong className="text-[#171A1F]">Cidade/UF:</strong>{' '}

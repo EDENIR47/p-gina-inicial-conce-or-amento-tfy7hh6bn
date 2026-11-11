@@ -478,14 +478,22 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
             <div className="space-y-1">
               <span className="text-[10px] uppercase font-bold text-[#294C87]">Obra / Local:</span>
               <p className="font-bold text-sm text-[#171A1F]">
-                {memorialData.work.name || 'Reforma e Estrutura Residencial'}
+                {memorialData.work.name || 'Obra não informada'}
               </p>
               <p className="text-xs text-[#171A1F]/80">
-                {memorialData.work.address || 'Rua Tomaz Gonzaga, 610, Apartamento 1803'}
+                {/* REGRA PERMANENTE: o Memorial usa EXCLUSIVAMENTE os dados do orçamento aberto.
+                    Quando o endereço de obra estiver vazio, o campo fica em branco — nunca um
+                    endereço de outro orçamento (correção da contaminação ORC-2026-108 ← ORC-101). */}
+                {memorialData.work.address ||
+                  (memorialData.work.city || memorialData.work.state
+                    ? `Localização: ${memorialData.work.city} - ${memorialData.work.state}`
+                    : 'Endereço da obra não informado')}
               </p>
-              <p className="text-[11px] text-[#171A1F]/70">
-                {memorialData.work.city} - {memorialData.work.state}
-              </p>
+              {(memorialData.work.city || memorialData.work.state) && (
+                <p className="text-[11px] text-[#171A1F]/70">
+                  {memorialData.work.city} - {memorialData.work.state}
+                </p>
+              )}
               {memorialData.work.totalAreaM2 && memorialData.work.totalAreaM2 > 0 && (
                 <p className="text-[11px] text-[#171A1F]/80">
                   <span className="font-semibold">Área Construída/Intervenção:</span>{' '}
@@ -500,7 +508,8 @@ export const MemorialDescritivoModal: React.FC<MemorialDescritivoModalProps> = (
                 Cliente / Contratante:
               </span>
               <p className="font-bold text-sm text-[#171A1F]">
-                {memorialData.client.name || 'Andreia de Oliveira da Costa e Jader da Costa'}
+                {/* REGRA PERMANENTE: nunca exibir nome de cliente de outro orçamento */}
+                {memorialData.client.name || 'Cliente / Contratante não informado'}
               </p>
               {memorialData.client.document && (
                 <p className="text-xs text-[#171A1F]/80">
