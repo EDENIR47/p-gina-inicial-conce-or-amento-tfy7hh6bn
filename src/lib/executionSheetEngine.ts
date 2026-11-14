@@ -1,15 +1,16 @@
 /**
  * Engine da Planilha de Orçamento de Execução (CONCE).
  *
- * EXPORTAÇÃO: gera um .xlsx com a estrutura do orçamento aberto (etapas → serviços),
- * colunas de identificação preenchidas e colunas VAZIAS para o colaborador preencher
- * (Preço de Execução). Regra permanente: usa EXCLUSIVAMENTE o orçamento aberto,
- * sem fallbacks hard-coded de cliente/obra — campo vazio fica em branco.
+ * EXPORTAÇÃO: gera um .xlsx com os serviços do orçamento aberto e exatamente 7 colunas:
+ * Código, Serviço, Quantidade, Unidade, Valor Unitário, Valor Total, Observação.
+ * As colunas Valor Unitário, Valor Total e Observação saem EM BRANCO para o colaborador
+ * preencher. Regra permanente: usa EXCLUSIVAMENTE o orçamento aberto, sem fallbacks
+ * hard-coded de cliente/obra — campo vazio fica em branco.
  *
- * IMPORTAÇÃO: lê o .xlsx preenchido de volta, valida que pertence ao mesmo
- * orçamento (pelo código ORC-AAAA-XXX + id interno) e aplica os preços por
- * correspondência exata de serviceId (coluna oculta) — nunca duplica itens e
- * preserva a estrutura existente (mesma filosofia do presentationGuard).
+ * IMPORTAÇÃO: lê o .xlsx preenchido de volta. Confere o código do orçamento (aba "Leia-me"),
+ * casa cada linha com um serviço pelo CÓDIGO do serviço (único dentro do orçamento) e aplica
+ * o Valor Unitário como preço de execução. Quantidade, Unidade e Valor Total são informativas
+ * e não alteram nada. Nada é mutado até todas as validações passarem.
  */
 import * as XLSX from 'xlsx'
 import type { BudgetStage, FullBudget } from '@/types/budgetEngine'
@@ -17,47 +18,22 @@ import type { BudgetStage, FullBudget } from '@/types/budgetEngine'
 export const EXEC_SHEET_NAME = 'Planilha de Execução'
 export const EXEC_SHEET_README_NAME = 'Leia-me'
 
-const COL_BUDGET_CODE = 'Código do Orçamento'
-const COL_BUDGET_NAME = 'Nome do Orçamento'
-const COL_CLIENT = 'Cliente'
-const COL_WORK = 'Obra'
-const COL_STAGE = 'Etapa'
-const COL_STAGE_CODE = 'Cód. Etapa'
-const COL_SERVICE_CODE = 'Código Serviço'
+const README_BUDGET_CODE_LABEL = 'Código do Orçamento'
+const COL_CODE = 'Código'
 const COL_SERVICE = 'Serviço'
-const COL_UNIT = 'Unidade'
 const COL_QTY = 'Quantidade'
-const COL_EXEC_PRICE = 'Preço de Execução (R$)'
-const COL_NOTES = 'Observações do Colaborador'
-const COL_INTERNAL_ID = 'ID Interno (não remover)'
+const COL_UNIT = 'Unidade'
+const COL_UNIT_PRICE = 'Valor Unitário'
+const COL_TOTAL = 'Valor Total'
+const COL_NOTES = 'Observação'
 
-const ROW_HEADERS = [
-  COL_BUDGET_CODE,
-  COL_BUDGET_NAME,
-  COL_CLIENT,
-  COL_WORK,
-  COL_STAGE_CODE,
-  COL_STAGE,
-  COL_SERVICE_CODE,
-  COL_SERVICE,
-  COL_UNIT,
-  COL_QTY,
-  COL_EXEC_PRICE,
-  COL_NOTES,
-  COL_INTERNAL_ID,
-]
+const ROW_HEADERS = [COL_CODE, COL_SERVICE, COL_QTY, COL_UNIT, COL_UNIT_PRICE, COL_TOTAL, COL_NOTES]
 
 export interface ExecutionSheetServiceRow {
-  serviceId: string
-  budgetCode: string
-  stageCode: string
-  stageName: string
   serviceCode: string
   serviceName: string
   unit: string
   quantity: number
-  execPrice: number | null
-  notes: string
 }
 
 export interface ExecutionSheetResult {
@@ -65,17 +41,10 @@ export interface ExecutionSheetResult {
   error?: string
   blob?: Blob
   filename?: string
-  rows?: ExecutionSheetServiceRow[]
 }
 
 function emptyToBlank(value?: string | null): string {
-  const trimmed = (value ?? '').toString().trim()
-  return trimmed
-}
-
-function toNumberOrNull(value: unknown): number | null {
-  const n = normalizeExecSheetNumber(value)
-  return Number.isFinite(n) ? n : null
+  return (value ?? '').toString().trim()
 }
 
 /**
@@ -110,54 +79,64 @@ function sanitizeFilenamePart(part?: string | null): string {
     .toLowerCase()
 }
 
-function collectServiceRows(budget: FullBudget): ExecutionSheetServiceRow[] {
-  const rows: ExecutionSheetServiceRow[] = []
+function collectServices(budget: FullBudget): any[] {
+  const services: any[] = []
   const stages: BudgetStage[] = Array.isArray(budget.stages) ? budget.stages : []
-
   for (const stage of stages) {
-    const services = Array.isArray(stage.services) ? stage.services : []
-    for (const service of services) {
-      rows.push({
-        serviceId: String((service as any).id ?? ''),
-        budgetCode: emptyToBlank(budget.code),
-        stageCode: emptyToBlank(stage.code),
-        stageName: emptyToBlank(stage.name),
-        serviceCode: emptyToBlank((service as any).code),
-        serviceName: emptyToBlank((service as any).name ?? (service as any).description),
-        unit: emptyToBlank((service as any).unit),
-        quantity: toNumberOrNull((service as any).quantity) ?? 0,
-        execPrice: null,
-        notes: '',
-      })
+    for (const service of Array.isArray(stage.services) ? stage.services : []) {
+      services.push(service)
     }
   }
-  return rows
+  return services
+}
+
+/** Códigos de serviço repetidos dentro do orçamento (ambíguos para a importação). */
+function findDuplicateServiceCodes(budget: FullBudget): string[] {
+  const seen = new Map<string, number>()
+  for (const service of collectServices(budget)) {
+    const key = normalizeCodeKey(service.code)
+    if (!key) continue
+    seen.set(key, (seen.get(key) ?? 0) + 1)
+  }
+  return [...seen.entries()].filter(([, count]) => count > 1).map(([code]) => code)
+}
+
+function collectServiceRows(budget: FullBudget): ExecutionSheetServiceRow[] {
+  return collectServices(budget).map((service) => ({
+    serviceCode: emptyToBlank(service.code),
+    serviceName: emptyToBlank(service.name ?? service.description),
+    unit: emptyToBlank(service.unit),
+    quantity: normalizeExecSheetNumber(service.quantity),
+  }))
 }
 
 function buildLeiaMeSheet(budget: FullBudget, rows: ExecutionSheetServiceRow[]): XLSX.WorkSheet {
-  const clientName = emptyToBlank(budget.client?.name)
-  const workName = emptyToBlank(budget.work?.name || budget.title)
-
   const info: (string | number)[][] = [
     ['PLANILHA DE ORÇAMENTO DE EXECUÇÃO — CONCE ENGENHARIA'],
     [''],
-    ['Código do Orçamento', emptyToBlank(budget.code)],
-    ['Nome do Orçamento', workName],
-    ['Cliente', clientName],
+    [README_BUDGET_CODE_LABEL, emptyToBlank(budget.code)],
+    ['Nome do Orçamento', emptyToBlank(budget.work?.name || budget.title)],
+    ['Cliente', emptyToBlank(budget.client?.name)],
     ['Total de serviços', rows.length],
     [''],
     ['INSTRUÇÕES'],
-    ['1. Preencha SOMENTE as colunas "Preço de Execução (R$)" e "Observações do Colaborador".'],
     [
-      '2. Não altere as demais colunas (Código do Orçamento, Etapa, Serviço, Quantidade, Unidade, ID Interno).',
+      '1. Preencha a coluna "Valor Unitário" com o preço de execução de cada serviço (ex.: 1.250,00).',
+    ],
+    ['2. A coluna "Observação" é livre e opcional, para comentários sobre o serviço.'],
+    [
+      '3. A coluna "Valor Total" pode ficar em branco. O sistema não usa esta coluna na importação.',
     ],
     [
-      '3. Use ponto ou vírgula como separador decimal — a planilha aceita o formato brasileiro (ex.: 1.250,00).',
+      '4. Não altere as colunas Código, Serviço, Quantidade e Unidade: o Código identifica cada serviço na importação.',
     ],
     [
-      '4. Não remova linhas: serviços sem preço preenchido permanecem com o valor atual do orçamento.',
+      '5. Não remova nem inclua linhas. Serviços sem Valor Unitário permanecem com o valor atual do orçamento.',
     ],
-    ['5. Devolva este arquivo para ser importado de volta no sistema, no mesmo orçamento.'],
+    [
+      '6. Mantenha esta aba: ela traz o código do orçamento, que a importação confere antes de aplicar qualquer preço.',
+    ],
+    ['7. Devolva o arquivo para importação no mesmo orçamento.'],
   ]
   const ws = XLSX.utils.aoa_to_sheet(info)
   ws['!cols'] = [{ wch: 24 }, { wch: 95 }]
@@ -180,42 +159,42 @@ export function buildExecutionSheet(budget: FullBudget): ExecutionSheetResult {
     }
   }
 
-  const clientName = emptyToBlank(budget.client?.name)
-  const workName = emptyToBlank(budget.work?.name || budget.title)
+  const missingCode = rows.filter((r) => !normalizeCodeKey(r.serviceCode))
+  if (missingCode.length > 0) {
+    return {
+      success: false,
+      error: `Há ${missingCode.length} serviço(s) sem código. Informe o código de todos os serviços antes de gerar a planilha de execução.`,
+    }
+  }
 
-  // A ordem das células DEVE casar 1:1 com ROW_HEADERS (13 colunas):
-  // Código Orçamento, Nome Orçamento, Cliente, Obra, Cód. Etapa, Etapa,
-  // Código Serviço, Serviço, Unidade, Quantidade, Preço Execução, Observações, ID Interno.
+  const duplicates = findDuplicateServiceCodes(budget)
+  if (duplicates.length > 0) {
+    return {
+      success: false,
+      error: `Os códigos de serviço precisam ser únicos dentro do orçamento para a planilha de execução. Códigos repetidos: ${duplicates.join(', ')}.`,
+    }
+  }
+
+  // Colunas do colaborador (Valor Unitário, Valor Total, Observação) ficam null = em branco.
   const aoa: (string | number | null)[][] = rows.map((row) => [
-    row.budgetCode,
-    workName,
-    clientName,
-    emptyToBlank(budget.work?.name),
-    row.stageCode,
-    row.stageName,
     row.serviceCode,
     row.serviceName,
-    row.unit,
     row.quantity > 0 ? row.quantity : null,
+    row.unit,
     null,
     null,
-    row.serviceId,
+    null,
   ])
 
   const ws = XLSX.utils.aoa_to_sheet([ROW_HEADERS, ...aoa])
   ws['!cols'] = [
-    { wch: 18 }, // Código do Orçamento
-    { wch: 34 }, // Nome do Orçamento
-    { wch: 28 }, // Cliente
-    { wch: 10 }, // Cód. Etapa
-    { wch: 30 }, // Etapa
-    { wch: 14 }, // Código Serviço
+    { wch: 14 }, // Código
     { wch: 46 }, // Serviço
-    { wch: 10 }, // Unidade
     { wch: 12 }, // Quantidade
-    { wch: 22 }, // Preço de Execução (R$)
-    { wch: 34 }, // Observações
-    { wch: 24 }, // ID Interno
+    { wch: 10 }, // Unidade
+    { wch: 18 }, // Valor Unitário
+    { wch: 18 }, // Valor Total
+    { wch: 34 }, // Observação
   ]
   ws['!autofilter'] = {
     ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: 0, c: ROW_HEADERS.length - 1 } }),
@@ -225,6 +204,7 @@ export function buildExecutionSheet(budget: FullBudget): ExecutionSheetResult {
   XLSX.utils.book_append_sheet(wb, ws, EXEC_SHEET_NAME)
   XLSX.utils.book_append_sheet(wb, buildLeiaMeSheet(budget, rows), EXEC_SHEET_README_NAME)
 
+  const workName = emptyToBlank(budget.work?.name || budget.title)
   try {
     const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
     const blob = new Blob([out], {
@@ -233,7 +213,7 @@ export function buildExecutionSheet(budget: FullBudget): ExecutionSheetResult {
     const filename = `Planilha-Execucao-${sanitizeFilenamePart(budget.code)}${
       workName ? `-${sanitizeFilenamePart(workName).slice(0, 40)}` : ''
     }.xlsx`
-    return { success: true, blob, filename, rows }
+    return { success: true, blob, filename }
   } catch (err) {
     console.error('[executionSheetEngine] Falha ao gerar o .xlsx', err)
     return { success: false, error: 'Falha ao gerar o arquivo Excel. Tente novamente.' }
@@ -248,22 +228,34 @@ export interface ExecutionSheetApplyResult {
 }
 
 function findServiceById(budget: FullBudget, serviceId: string): any | null {
-  for (const stage of budget.stages ?? []) {
-    for (const service of stage.services ?? []) {
-      if (String((service as any).id ?? '') === serviceId) return service
-    }
+  for (const service of collectServices(budget)) {
+    if (String(service.id ?? '') === serviceId) return service
   }
   return null
+}
+
+/** Lê o código do orçamento gravado na aba "Leia-me" (linha "Código do Orçamento"). */
+function readBudgetCodeFromReadme(workbook: XLSX.WorkBook): string | null {
+  const ws = workbook.Sheets[EXEC_SHEET_README_NAME]
+  if (!ws) return null
+  const info = XLSX.utils.sheet_to_json<{ A?: unknown; B?: unknown }>(ws, {
+    header: 'A',
+    defval: null,
+  })
+  const row = info.find((r) => String(r.A ?? '').trim() === README_BUDGET_CODE_LABEL)
+  return row ? normalizeCodeKey(String(row.B ?? '')) : null
 }
 
 /**
  * Importa a planilha preenchida de volta para o orçamento.
  *
  * Validações (nenhuma alteração acontece se falharem):
- * 1. O arquivo precisa ser um .xlsx legível com a aba/execução esperada;
- * 2. O código do orçamento na planilha precisa ser EXATAMENTE o do orçamento aberto;
- * 3. Pelo menos um preço de execução deve estar preenchido;
- * 4. Toda linha com preço precisa casar com um serviço existente (por ID interno).
+ * 1. O arquivo precisa ser um .xlsx legível com a aba de execução esperada;
+ * 2. O código do orçamento na aba "Leia-me" precisa ser EXATAMENTE o do orçamento aberto;
+ * 3. As colunas Código e Valor Unitário precisam existir;
+ * 4. Os códigos de serviço do orçamento precisam ser únicos;
+ * 5. Pelo menos um Valor Unitário deve estar preenchido;
+ * 6. Toda linha com Valor Unitário precisa casar com um serviço existente pelo código.
  */
 export async function applyExecutionSheetPrices(
   budget: FullBudget,
@@ -289,18 +281,7 @@ export async function applyExecutionSheetPrices(
     }
   }
 
-  const parsed = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], {
-    defval: null,
-  })
-  if (parsed.length === 0) {
-    return {
-      success: false,
-      error: 'Planilha inválida: a aba "Planilha de Execução" está vazia.',
-    }
-  }
-
-  const first = parsed[0] ?? {}
-  const sheetBudgetCode = normalizeCodeKey(first[COL_BUDGET_CODE] as string)
+  const sheetBudgetCode = readBudgetCodeFromReadme(workbook)
   const currentBudgetCode = normalizeCodeKey(budget.code)
   if (!sheetBudgetCode || sheetBudgetCode !== currentBudgetCode) {
     return {
@@ -309,37 +290,56 @@ export async function applyExecutionSheetPrices(
     }
   }
 
-  if (!('ID Interno (não remover)' in first) && !('__EMPTY' in first)) {
+  const parsed = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], {
+    defval: null,
+  })
+  if (parsed.length === 0) {
     return {
       success: false,
-      error:
-        'Planilha inválida: a coluna oculta "ID Interno (não remover)" foi removida — sem ela não é possível identificar os serviços. Baixe a planilha novamente pelo sistema.',
+      error: `Planilha inválida: a aba "${EXEC_SHEET_NAME}" está vazia.`,
     }
   }
 
-  type PendingUpdate = { service: any; price: number; notes: string; label: string }
+  const first = parsed[0] ?? {}
+  if (!(COL_CODE in first) || !(COL_UNIT_PRICE in first)) {
+    return {
+      success: false,
+      error: `Planilha inválida: as colunas "${COL_CODE}" e "${COL_UNIT_PRICE}" são obrigatórias. Baixe a planilha novamente pelo sistema.`,
+    }
+  }
+
+  const duplicates = findDuplicateServiceCodes(budget)
+  if (duplicates.length > 0) {
+    return {
+      success: false,
+      error: `Não é possível importar: os códigos de serviço do orçamento se repetem (${duplicates.join(', ')}). Nada foi alterado.`,
+    }
+  }
+
+  const serviceByCode = new Map<string, any>()
+  for (const service of collectServices(budget)) {
+    const key = normalizeCodeKey(service.code)
+    if (key) serviceByCode.set(key, service)
+  }
+
+  type PendingUpdate = { serviceId: string; price: number; notes: string }
   const updates: PendingUpdate[] = []
   const unmatched: string[] = []
 
   for (const row of parsed) {
-    const price = normalizeExecSheetNumber(row[COL_EXEC_PRICE])
+    const price = normalizeExecSheetNumber(row[COL_UNIT_PRICE])
     if (!price || price <= 0) continue
 
-    const serviceId = String(row[COL_INTERNAL_ID] ?? '').trim()
-    if (!serviceId) {
-      unmatched.push(String(row[COL_SERVICE_CODE] ?? '(sem código)'))
-      continue
-    }
-    const service = findServiceById(budget, serviceId)
+    const code = normalizeCodeKey(String(row[COL_CODE] ?? ''))
+    const service = code ? serviceByCode.get(code) : undefined
     if (!service) {
-      unmatched.push(String(row[COL_SERVICE_CODE] ?? '(sem código)'))
+      unmatched.push(code || '(sem código)')
       continue
     }
     updates.push({
-      service,
+      serviceId: String(service.id ?? ''),
       price,
       notes: emptyToBlank(row[COL_NOTES] as string),
-      label: `${row[COL_SERVICE_CODE] ?? ''} — ${row[COL_SERVICE] ?? ''}`.trim(),
     })
   }
 
@@ -350,7 +350,7 @@ export async function applyExecutionSheetPrices(
     return {
       success: false,
       error:
-        'Nenhum preço de execução válido foi encontrado na coluna "Preço de Execução (R$)".' +
+        `Planilha sem preços: nenhum preço de execução foi preenchido na coluna "${COL_UNIT_PRICE}".` +
         suffix,
     }
   }
@@ -372,7 +372,7 @@ export async function applyExecutionSheetPrices(
   const clone = JSON.parse(JSON.stringify(budget)) as FullBudget
   let updated = 0
   for (const upd of updates) {
-    const service = findServiceById(clone, upd.service.id)
+    const service = findServiceById(clone, upd.serviceId)
     if (!service) continue
     service.unitPrice = upd.price
     service.unitPriceSource = 'Usuário'
