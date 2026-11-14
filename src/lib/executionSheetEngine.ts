@@ -183,10 +183,14 @@ export function buildExecutionSheet(budget: FullBudget): ExecutionSheetResult {
   const clientName = emptyToBlank(budget.client?.name)
   const workName = emptyToBlank(budget.work?.name || budget.title)
 
+  // A ordem das células DEVE casar 1:1 com ROW_HEADERS (13 colunas):
+  // Código Orçamento, Nome Orçamento, Cliente, Obra, Cód. Etapa, Etapa,
+  // Código Serviço, Serviço, Unidade, Quantidade, Preço Execução, Observações, ID Interno.
   const aoa: (string | number | null)[][] = rows.map((row) => [
     row.budgetCode,
     workName,
     clientName,
+    emptyToBlank(budget.work?.name),
     row.stageCode,
     row.stageName,
     row.serviceCode,

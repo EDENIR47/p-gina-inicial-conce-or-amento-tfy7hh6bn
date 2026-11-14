@@ -105,10 +105,16 @@ describe('buildExecutionSheet', () => {
 
     const rows = await readWorkbookRows(blob)
     expect(rows).toHaveLength(2)
+    expect(String(rows[0]['Cód. Etapa'])).toBe('01')
+    expect(String(rows[0]['Etapa'])).toBe('Serviços Preliminares')
     expect(String(rows[0]['Código Serviço'])).toBe('01.01')
     expect(String(rows[0]['Serviço'])).toBe('Limpeza do terreno')
     expect(String(rows[0]['Unidade'])).toBe('m2')
     expect(rows[0]['Quantidade']).toBe(250)
+    expect(rows[0]['Preço de Execução (R$)']).toBeNull()
+    expect(rows[0]['Observações do Colaborador']).toBeNull()
+    expect(rows[0]['ID Interno (não remover)']).toBe('serv-1')
+    expect(Object.keys(rows[0])).toHaveLength(13)
     // Colunas do colaborador nascem em branco
     expect(rows[0]['Preço de Execução (R$)']).toBeNull()
     expect(rows[0]['Observações do Colaborador']).toBeNull()
@@ -119,6 +125,7 @@ describe('buildExecutionSheet', () => {
     expect(rows.every((r) => String(r['Código do Orçamento']) === 'ORC-2026-120')).toBe(true)
     expect(rows.every((r) => String(r['Nome do Orçamento']) === 'Obra Teste Alpha')).toBe(true)
     expect(rows.every((r) => String(r['Cliente']) === 'Cliente Teste Ltda')).toBe(true)
+    expect(rows.every((r) => String(r['Obra']) === 'Obra Teste Alpha')).toBe(true)
   })
 
   it('não usa fallback hard-coded de cliente/obra: campo vazio fica em branco', async () => {
