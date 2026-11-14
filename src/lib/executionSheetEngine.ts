@@ -135,8 +135,8 @@ function collectServiceRows(budget: FullBudget): ExecutionSheetServiceRow[] {
 }
 
 function buildLeiaMeSheet(budget: FullBudget, rows: ExecutionSheetServiceRow[]): XLSX.WorkSheet {
-  const clientName = emptyToBlank(budget.client?.name || (budget as any).work?.client?.name)
-  const workName = emptyToBlank((budget as any).work?.name || budget.name)
+  const clientName = emptyToBlank(budget.client?.name)
+  const workName = emptyToBlank(budget.work?.name || budget.title)
 
   const info: (string | number)[][] = [
     ['PLANILHA DE ORÇAMENTO DE EXECUÇÃO — CONCE ENGENHARIA'],
@@ -180,8 +180,8 @@ export function buildExecutionSheet(budget: FullBudget): ExecutionSheetResult {
     }
   }
 
-  const clientName = emptyToBlank(budget.client?.name || (budget as any).work?.client?.name)
-  const workName = emptyToBlank((budget as any).work?.name || budget.name)
+  const clientName = emptyToBlank(budget.client?.name)
+  const workName = emptyToBlank(budget.work?.name || budget.title)
 
   const aoa: (string | number | null)[][] = rows.map((row) => [
     row.budgetCode,

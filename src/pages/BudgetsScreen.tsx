@@ -74,6 +74,7 @@ import { StorageCleanModal } from '@/components/budget/StorageCleanModal'
 import { RenumberBudgetsModal } from '@/components/budget/RenumberBudgetsModal'
 import { AbcCurveScreen } from '@/pages/AbcCurveScreen'
 import { exportBudgetSpreadsheet } from '@/lib/exportSpreadsheet'
+import { buildExecutionSheet, applyExecutionSheetPrices } from '@/lib/executionSheetEngine'
 import { logAuditEvent, ensureInitialRevision } from '@/lib/intelligenceStorage'
 import { generateNextBudgetCodeForCurrentYear } from '@/lib/budgetCodeGenerator'
 import { getOwnPresentationDocument } from '@/lib/presentationGuard'
@@ -267,6 +268,7 @@ export const BudgetsScreen: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [isSaving, setIsSaving] = useState(false)
+  const [isImportingExecSheet, setIsImportingExecSheet] = useState(false)
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -769,6 +771,68 @@ export const BudgetsScreen: React.FC = () => {
     }, 400)
   }
 
+  // ===== PLANILHA DE ORÇAMENTO DE EXECUÇÃO =====
+
+  // Exporta o .xlsx para o colaborador precificar a execução
+  const handleExportExecutionSheet = () => {
+    if (!activeBudget) return
+    const result = buildExecutionSheet(activeBudget)
+    if (!result.success || !result.blob || !result.filename) {
+      showToast(result.error || 'Falha ao gerar a planilha de execução.')
+      return
+    }
+    const url = URL.createObjectURL(result.blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = result.filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    showToast(
+      `Planilha de execução de ${activeBudget.code} gerada! Envie o arquivo ao colaborador (WhatsApp ou e-mail).`,
+    )
+  }
+
+  // Importa de volta a planilha preenchida pelo colaborador e aplica os preços
+  const handleImportExecutionSheet = async (file: File) => {
+    if (!activeBudget) return
+    setIsImportingExecSheet(true)
+    try {
+      const result = await applyExecutionSheetPrices(activeBudget, file)
+      if (!result.success || !result.budget) {
+        showToast(result.error || 'Não foi possível importar a planilha de execução.')
+        return
+      }
+
+      // Aplica no orçamento aberto e grava pelo fluxo normal de save/sync (última edição vence)
+      const updated: FullBudget = {
+        ...result.budget,
+        updatedAt: new Date().toISOString(),
+      }
+      setActiveBudget(updated)
+      saveSingleBudget(updated)
+      setBudgetsList(getStoredFullBudgets())
+
+      logAuditEvent({
+        budgetId: updated.id,
+        action: 'edicao_geral',
+        title: 'Planilha de Execução Importada',
+        details: `${result.updatedCount ?? 0} preço(s) de execução aplicado(s) no orçamento ${updated.code} a partir da planilha do colaborador.`,
+        userName: updated.author || 'Eng. Edenir Souza da Rosa - CREA/RS-252397',
+      })
+
+      showToast(
+        `Planilha importada: ${result.updatedCount ?? 0} preço(s) de execução aplicado(s) com sucesso! Lembre-se de clicar em "Salvar" para sincronizar com a nuvem.`,
+      )
+    } catch (err) {
+      console.error('[BudgetsScreen] Falha ao importar planilha de execução', err)
+      showToast('Erro inesperado ao importar a planilha de execução. Nada foi alterado.')
+    } finally {
+      setIsImportingExecSheet(false)
+    }
+  }
+
   // Cálculo em tempo real do orçamento ativo
   const activeSummary = activeBudget ? calculateFullBudget(activeBudget) : null
 
@@ -1011,6 +1075,9 @@ export const BudgetsScreen: React.FC = () => {
               setIsPdfModalOpen(true)
             }}
             onOpenExcelExport={() => exportBudgetSpreadsheet(activeBudget, 'completo')}
+            onExportExecutionSheet={handleExportExecutionSheet}
+            onImportExecutionSheet={handleImportExecutionSheet}
+            isImportingExecutionSheet={isImportingExecSheet}
             onOpenMemorialModal={() => setIsMemorialModalOpen(true)}
             onOpenCommercialModal={() => setIsCommercialModalOpen(true)}
             onOpenRevisionsModal={() => {

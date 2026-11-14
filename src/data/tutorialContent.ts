@@ -145,6 +145,19 @@ export const TUTORIAL_STEPS: TutorialStepContent[] = [
     ],
     tip: 'Salve com frequência: o botão "Salvar" garante que a versão mais recente do orçamento esteja na nuvem.',
   },
+  {
+    number: 12,
+    title: 'Envie a Planilha de Execução para um colaborador precificar',
+    intro:
+      'Na barra de resumo do orçamento aberto, use os botões "Planilha de Execução" e "Importar Planilha" para terceirizar a precificação da execução.',
+    bullets: [
+      '"Planilha de Execução" baixa um arquivo .xlsx com as etapas e os serviços do orçamento aberto, com as colunas "Preço de Execução (R$)" e "Observações do Colaborador" em branco para o colaborador preencher.',
+      'Envie o arquivo ao colaborador por WhatsApp ou e-mail. Ele preenche apenas o preço de execução de cada serviço (e as observações, se quiser) e devolve o arquivo.',
+      '"Importar Planilha" recebe o arquivo devolvido: o sistema confere o código do orçamento e os serviços, aplica os preços informados e mostra quantos foram aplicados.',
+      'Se a planilha for de outro orçamento ou tiver algum serviço que não corresponde, a importação é rejeitada por inteiro e nada é alterado no orçamento.',
+    ],
+    tip: 'Depois de importar, clique em "Salvar" para gravar os preços e sincronizar com a nuvem — os preços importados ficam marcados como "Preço manual definido pelo usuário".',
+  },
 ]
 
 /** Seção "Assinatura do responsável técnico" */

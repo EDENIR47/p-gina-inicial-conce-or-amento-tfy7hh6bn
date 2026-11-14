@@ -17,16 +17,25 @@ function makeBudget(): FullBudget {
   return {
     id: 'budget-test-1',
     code: 'ORC-2026-120',
-    name: 'Obra Teste Alpha',
+    title: 'Obra Teste Alpha',
     status: 'em_andamento',
-    work: {
-      name: 'Obra Teste Alpha',
-      client: {
-        name: 'Cliente Teste Ltda',
-      },
-    },
     client: {
       name: 'Cliente Teste Ltda',
+      document: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+    },
+    work: {
+      name: 'Obra Teste Alpha',
+      address: '',
+      city: '',
+      state: '',
+      description: '',
+      deadlineMonths: 0,
+      startDate: '',
     },
     stages: [
       {
@@ -103,7 +112,6 @@ describe('buildExecutionSheet', () => {
     // Colunas do colaborador nascem em branco
     expect(rows[0]['Preço de Execução (R$)']).toBeNull()
     expect(rows[0]['Observações do Colaborador']).toBeNull()
-    expect(rows[0]['Preço Praticado (R$)']).toBeNull()
   })
 
   it('preenche o cabeçalho com código, nome, cliente e obra do orçamento aberto', async () => {
@@ -115,8 +123,16 @@ describe('buildExecutionSheet', () => {
 
   it('não usa fallback hard-coded de cliente/obra: campo vazio fica em branco', async () => {
     const budget = makeBudget()
-    budget.client = {}
-    ;(budget as any).work = {}
+    budget.client = {
+      name: '',
+      document: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+    }
+    budget.work = { ...budget.work, name: '' }
     const rows = await readWorkbookRows(buildWorkbookBlob(budget))
     expect(String(rows[0]['Cliente'] ?? '')).toBe('')
     expect(String(rows[0]['Obra'] ?? '')).toBe('')
@@ -150,7 +166,7 @@ describe('applyExecutionSheetPrices', () => {
     const blob = await makeFilledBlobFrom(budget, (rows) => {
       rows[0]['Preço de Execução (R$)'] = 15.5
     })
-    const result = applyExecutionSheetPrices(budget, blob)
+    const result = await applyExecutionSheetPrices(budget, blob)
     expect(result.success).toBe(true)
     if (result.success && result.budget) {
       const srv = result.budget.stages[0].services[0]
@@ -167,7 +183,7 @@ describe('applyExecutionSheetPrices', () => {
     const blob = await makeFilledBlobFrom(budget, (rows) => {
       rows[1]['Preço de Execução (R$)'] = 'R$ 20,00'
     })
-    const result = applyExecutionSheetPrices(budget, blob)
+    const result = await applyExecutionSheetPrices(budget, blob)
     expect(result.success).toBe(true)
     if (result.success && result.budget) {
       expect(result.budget.stages[0].services).toHaveLength(2)
@@ -182,7 +198,7 @@ describe('applyExecutionSheetPrices', () => {
     const blob = await makeFilledBlobFrom(budget, (rows) => {
       rows[0]['Código do Orçamento'] = 'ORC-2026-101'
     })
-    const result = applyExecutionSheetPrices(budget, blob)
+    const result = await applyExecutionSheetPrices(budget, blob)
     expect(result.success).toBe(false)
     if (!result.success) {
       expect(result.error).toContain('ORC-2026-101')
@@ -193,7 +209,7 @@ describe('applyExecutionSheetPrices', () => {
   })
 
   it('rejeita arquivo inválido (não é .xlsx)', async () => {
-    const result = applyExecutionSheetPrices(makeBudget(), new Blob(['isto não é um xlsx']))
+    const result = await applyExecutionSheetPrices(makeBudget(), new Blob(['isto não é um xlsx']))
     expect(result.success).toBe(false)
     if (!result.success) {
       expect(result.error).toContain('inválido')
@@ -204,13 +220,13 @@ describe('applyExecutionSheetPrices', () => {
     const blob = await makeFilledBlobFrom(makeBudget(), (rows) => {
       for (const r of rows) delete r['Preço de Execução (R$)']
     })
-    const result = applyExecutionSheetPrices(makeBudget(), blob)
+    const result = await applyExecutionSheetPrices(makeBudget(), blob)
     expect(result.success).toBe(false)
   })
 
   it('planilha sem nenhum preço preenchido é rejeitada com aviso claro', async () => {
     const blob = await makeFilledBlobFrom(makeBudget(), () => {})
-    const result = applyExecutionSheetPrices(makeBudget(), blob)
+    const result = await applyExecutionSheetPrices(makeBudget(), blob)
     expect(result.success).toBe(false)
     if (!result.success) {
       expect(result.error).toContain('nenhum preço')

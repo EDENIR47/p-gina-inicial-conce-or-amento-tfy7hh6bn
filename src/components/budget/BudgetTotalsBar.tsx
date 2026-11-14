@@ -23,6 +23,8 @@ import {
   History,
   ShieldCheck,
   FileSpreadsheet,
+  FileDown,
+  FileUp,
   Printer,
 } from 'lucide-react'
 import { CalculationSummary, FullBudget } from '@/types/budgetEngine'
@@ -41,6 +43,9 @@ interface BudgetTotalsBarProps {
   onOpenRevisionsModal?: () => void
   onOpenAuditModal?: () => void
   onOpenCommercialModal?: () => void
+  onExportExecutionSheet?: () => void
+  onImportExecutionSheet?: (file: File) => void
+  isImportingExecutionSheet?: boolean
 }
 
 export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
@@ -55,7 +60,17 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
   onOpenCommercialModal,
   onOpenRevisionsModal,
   onOpenAuditModal,
+  onExportExecutionSheet,
+  onImportExecutionSheet,
+  isImportingExecutionSheet = false,
 }) => {
+  const execSheetInputRef = React.useRef<HTMLInputElement | null>(null)
+  const handleExecSheetFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (file && onImportExecutionSheet) onImportExecutionSheet(file)
+  }
+
   // Conferência entre somatório das etapas e total geral
   const sumOfStages = Number(
     summary.stagesSubtotals.reduce((acc, st) => acc + st.withBdi, 0).toFixed(2),
@@ -135,6 +150,40 @@ export const BudgetTotalsBar: React.FC<BudgetTotalsBarProps> = ({
               <FileSpreadsheet className="w-3.5 h-3.5 text-green-400" />
               <span>Excel</span>
             </button>
+          )}
+
+          {onExportExecutionSheet && (
+            <button
+              type="button"
+              onClick={onExportExecutionSheet}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer"
+              title="Gerar Planilha de Orçamento de Execução (.xlsx) para enviar a um colaborador precificar a execução"
+            >
+              <FileDown className="w-3.5 h-3.5 text-sky-400" />
+              <span>Planilha de Execução</span>
+            </button>
+          )}
+
+          {onImportExecutionSheet && (
+            <>
+              <input
+                ref={execSheetInputRef}
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                className="hidden"
+                onChange={handleExecSheetFileChange}
+              />
+              <button
+                type="button"
+                onClick={() => execSheetInputRef.current?.click()}
+                disabled={isImportingExecutionSheet}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                title="Importar de volta a Planilha de Orçamento de Execução preenchida pelo colaborador"
+              >
+                <FileUp className="w-3.5 h-3.5 text-purple-400" />
+                <span>{isImportingExecutionSheet ? 'Importando...' : 'Importar Planilha'}</span>
+              </button>
+            </>
           )}
 
           {onOpenMemorialModal && (
